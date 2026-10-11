@@ -1,0 +1,81 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  max-width: 100%;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--cizgi);
+  font-size: var(--fs-13);
+  line-height: 1.2;
+  overflow: hidden;
+}
+
+.neutral {
+  background: var(--yuzey);
+  color: var(--murekkep);
+}
+
+.muted {
+  background: var(--yuzey-gomuk);
+  color: var(--murekkep);
+}
+
+.inner {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s1);
+  padding: 3px var(--s2);
+  border: 0;
+  background: none;
+  min-width: 0;
+  cursor: default;
+}
+
+button.inner {
+  cursor: pointer;
+}
+
+button.inner:hover {
+  background: var(--yuzey-gomuk);
+}
+
+.dim {
+  color: var(--soluk);
+  flex: none;
+}
+
+.value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  align-self: stretch;
+  border: 0;
+  border-left: 1px solid var(--cizgi);
+  background: none;
+  color: var(--soluk);
+  cursor: pointer;
+}
+
+.remove:hover {
+  color: var(--murekkep);
+  background: var(--yuzey-gomuk);
+}
+
+.add {
+  gap: var(--s1);
+  padding: 3px var(--s2);
+  cursor: pointer;
+  border-style: dashed;
+  color: var(--soluk);
+}
+
+.add:hover {
+  color: var(--murekkep);
+  border-color: var(--cizgi-guclu);
+}

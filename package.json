@@ -1,0 +1,10 @@
+{
+  "name": "metis",
+  "private": true,
+  "version": "2.0.0",
+  "workspaces": ["apps/web"],
+  "scripts": {
+    "build:web": "npm run build -w @metis/web",
+    "test:e2e": "playwright test -c apps/web/playwright.config.ts"
+  }
+}

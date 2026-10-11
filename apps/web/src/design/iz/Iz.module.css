@@ -1,0 +1,322 @@
+/* -------------------------------------------------------- Via işareti ●n */
+.via {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 1px 0 3px;
+  padding: 0 4px 0 3px;
+  height: 20px;
+  vertical-align: 1px;
+  border: 1px solid transparent;
+  border-radius: var(--r-round);
+  background: none;
+  color: var(--iz-metin);
+  font-family: var(--font-sans);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background var(--t-hover) var(--ease),
+    border-color var(--t-hover) var(--ease);
+}
+
+.via:hover {
+  background: var(--iz-zemin);
+}
+
+.viaDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--iz);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--iz) 22%, transparent);
+}
+
+.viaActive {
+  background: var(--iz-zemin);
+  border-color: var(--iz);
+}
+
+.viaNum {
+  min-width: 7px;
+}
+
+/* Mentor cevabı doğrulandığında via'lar sırayla altınla yanar */
+.ignite .viaDot {
+  animation: ignite 360ms var(--ease) both;
+}
+
+.ignite .viaNum {
+  animation: igniteText 360ms var(--ease) both;
+  animation-delay: inherit;
+}
+
+@keyframes ignite {
+  from {
+    background: var(--cizgi-guclu);
+    box-shadow: 0 0 0 0 transparent;
+    transform: scale(0.6);
+  }
+  60% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--iz) 30%, transparent);
+  }
+}
+
+@keyframes igniteText {
+  from {
+    color: var(--soluk);
+  }
+}
+
+.ignite .viaDot,
+.ignite .viaNum {
+  animation-delay: inherit;
+}
+
+/* ------------------------------------------------------------- İz paneli */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  background: var(--yuzey);
+  border-left: 1px solid var(--cizgi);
+  padding: var(--s4) var(--s5) var(--s5);
+  min-width: 0;
+}
+
+.docked {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: var(--iz-panel-w);
+  flex: none;
+  animation: panelIn var(--t-panel) var(--ease);
+}
+
+.overlay {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(var(--iz-panel-w), 94vw);
+  border-radius: var(--r-dialog) 0 0 var(--r-dialog);
+  box-shadow: var(--golge-diyalog);
+  animation: panelIn var(--t-trace) var(--ease);
+}
+
+.panelScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: rgb(10 18 15 / 0.3);
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+.panelHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panelKind {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--soluk);
+  font-size: var(--fs-13);
+  font-weight: 500;
+}
+
+.panelTitle {
+  font-size: var(--fs-19);
+  outline: none;
+  overflow-wrap: anywhere;
+}
+
+.panelError {
+  color: var(--celiski);
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s2) var(--s4);
+  margin: 0;
+  font-size: var(--fs-13);
+}
+
+.meta dt {
+  color: var(--soluk);
+}
+
+.meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.locator {
+  font-size: var(--fs-13);
+}
+
+.oldRev {
+  color: var(--dikkat);
+}
+
+.panelActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--cizgi-guclu);
+  border-radius: var(--r-chip);
+  background: var(--yuzey);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.linkButton:hover {
+  background: var(--yuzey-gomuk);
+}
+
+.sourceText {
+  flex: 1;
+  min-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-panel);
+  background: var(--yuzey-gomuk);
+}
+
+.pre {
+  margin: 0;
+  background: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-sans);
+  font-size: var(--fs-14);
+  line-height: 1.6;
+}
+
+.tech summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--soluk);
+  font-size: var(--fs-13);
+  list-style: none;
+}
+
+.tech summary::-webkit-details-marker {
+  display: none;
+}
+
+.techChevron {
+  transition: transform var(--t-panel) var(--ease);
+}
+
+.tech[open] .techChevron {
+  transform: rotate(90deg);
+}
+
+.techList {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px var(--s3);
+  margin: var(--s2) 0 0;
+  font-size: var(--fs-12);
+}
+
+.techList dt {
+  color: var(--soluk);
+}
+
+.techList dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------- İz çizgisi */
+.traceLayer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 45;
+  overflow: visible;
+}
+
+.tracePath {
+  fill: none;
+  stroke: var(--iz);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dashoffset: 0;
+  animation: draw var(--t-trace) var(--ease) both;
+}
+
+.traceVia {
+  fill: var(--yuzey);
+  stroke: var(--iz);
+  stroke-width: 2;
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: var(--trace-len);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracePath {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------ Kanıt şeridi */
+.para {
+  position: relative;
+}
+
+.paraEvidenced {
+  padding-left: 0;
+}
+
+.stripe {
+  position: absolute;
+  left: calc(-1 * var(--s4));
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--iz);
+  cursor: help;
+}
+
+.stripe::after {
+  content: '';
+  position: absolute;
+  inset: 0 -6px;
+}

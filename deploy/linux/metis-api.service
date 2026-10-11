@@ -1,0 +1,19 @@
+[Unit]
+Description=METIS API (127.0.0.1; TLS ters vekilde)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User={{USER}}
+Environment=METIS_CONFIG={{ROOT}}/config/metis.env
+Environment=PYTHONUTF8=1
+WorkingDirectory={{ROOT}}/data
+ExecStart={{ROOT}}/app/current/venv/bin/python -m metis.cli serve --host 127.0.0.1 --port {{PORT}} --workers {{WORKERS}}
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

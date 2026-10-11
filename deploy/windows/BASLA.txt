@@ -1,0 +1,41 @@
+METIS sunucu kurulum paketi — BAŞLA
+====================================
+
+Bu klasör internet bağlantısı olmadan kurulum için gereken her şeyi içerir:
+gömülü Python 3.12, hash-kilitli Python paketleri, web arayüzü, WinSW servis
+sarmalayıcısı ve kurulum betikleri. Ayrıntılı rehber: KURULUM.md
+
+Önkoşul (bir kez): PostgreSQL 16, EDB çevrimdışı kurucusuyla aynı sunucuya
+kurulmuş olmalı (KURULUM.md, 2. adım). Bu paket PostgreSQL'i kendisi kurmaz.
+
+İLK KURULUM
+  1. Bu klasörü sunucuya kopyala (ör. D:\Kurulum\METIS-<sürüm>-server-win64).
+  2. PowerShell'i "Yönetici olarak çalıştır" ile aç ve klasöre geç.
+  3. Çalıştır:
+       powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl https://metis.sirket.local
+     Betik PostgreSQL 'postgres' parolasını bir kez sorar (kaydedilmez).
+  4. Ekrana yazılan kurulum kodunu not al; IIS/ARR'yi KURULUM.md 5. adıma göre
+     ayarla ve tarayıcıdan adresi aç.
+  5. C:\METIS\config\master.key dosyasını şirket kasasına yedekle.
+
+YÜKSELTME (yeni sürüm paketi geldiğinde)
+  Yeni paketin klasöründe, yönetici PowerShell ile:
+       powershell -ExecutionPolicy Bypass -File .\upgrade.ps1
+  Betik önce yedek alır, yeni sürümü yanına kurar, servisleri durdurup geçiş
+  yapar; sağlık kontrolü başarısız olursa önceki sürüme geri döner.
+
+KALDIRMA
+       powershell -ExecutionPolicy Bypass -File .\uninstall.ps1             (verileri korur)
+       powershell -ExecutionPolicy Bypass -File .\uninstall.ps1 -RemoveAll  (her şeyi siler)
+
+KENDİ BİLGİSAYARINDA DENEME (Windows 10/11, IIS olmadan)
+  PostgreSQL 16'yı kur, sonra yönetici PowerShell ile:
+       powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl http://localhost:8000 -AllowHttp
+  Tarayıcıda http://localhost:8000 adresini aç ve kurulum kodunu gir.
+  Örnek içerik için: C:\METIS\bin\metis demo   Ayrıntı: KURULUM.md, sondaki ek.
+
+GÜNLÜK İŞLETİM
+  C:\METIS\bin\metis doctor                      durum denetimi
+  C:\METIS\bin\metis backup                      elle yedek
+  C:\METIS\bin\metis restore --rehearsal latest  geri yükleme tatbikatı
+  Günlükler: C:\METIS\data\logs   Yedekler: C:\METIS\data\backups

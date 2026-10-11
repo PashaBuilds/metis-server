@@ -1,0 +1,56 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--r-chip);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background var(--t-panel) var(--ease),
+    color var(--t-panel) var(--ease);
+}
+
+.md {
+  padding: 3px 8px;
+  font-size: var(--fs-13);
+}
+
+.sm {
+  padding: 2px 6px;
+  font-size: var(--fs-12);
+}
+
+.onay {
+  color: var(--onay);
+  background: var(--onay-zemin);
+}
+
+.inceleme {
+  color: var(--inceleme);
+  background: var(--inceleme-zemin);
+}
+
+.taslak {
+  color: var(--taslak);
+  background: var(--taslak-zemin);
+}
+
+.dikkat {
+  color: var(--dikkat);
+  background: var(--dikkat-zemin);
+}
+
+.celiski {
+  color: var(--celiski);
+  background: var(--celiski-zemin);
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

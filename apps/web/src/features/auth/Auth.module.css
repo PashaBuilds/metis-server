@@ -1,0 +1,152 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  min-height: 100vh;
+}
+
+.brandSide {
+  position: relative;
+  overflow: hidden;
+  background: var(--ray);
+  color: var(--ray-metin);
+  display: flex;
+  align-items: center;
+  padding: var(--s7);
+}
+
+.brandInner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.wordmark {
+  font-size: var(--fs-28);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin-top: var(--s3);
+}
+
+.slogan {
+  font-size: var(--fs-19);
+  max-width: 26ch;
+  line-height: 1.45;
+  opacity: 0.92;
+}
+
+.motif {
+  position: absolute;
+  inset: auto 0 0 0;
+  width: 100%;
+  height: 60%;
+}
+
+.motif path {
+  fill: none;
+  stroke: var(--iz);
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.motif circle {
+  fill: var(--ray);
+  stroke: var(--iz);
+  stroke-width: 1.5;
+  opacity: 0.7;
+}
+
+.motif .motifFaint {
+  opacity: 0.22;
+}
+
+.formSide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s6) var(--s5);
+}
+
+.formInner {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+}
+
+.title {
+  font-size: var(--fs-28);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.lead {
+  color: var(--soluk);
+  line-height: 1.6;
+}
+
+.error {
+  padding: var(--s3);
+  border-radius: var(--r-panel);
+  background: var(--celiski-zemin);
+  color: var(--celiski);
+  font-size: var(--fs-14);
+}
+
+.choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s2);
+}
+
+.choiceBtn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--s3);
+  border: 1px solid var(--cizgi-guclu);
+  border-radius: var(--r-panel);
+  background: var(--yuzey);
+  text-align: left;
+  cursor: pointer;
+}
+
+.choiceBtn[aria-pressed='true'] {
+  border-color: var(--murekkep);
+  box-shadow: inset 0 0 0 1px var(--murekkep);
+}
+
+.choiceBtn span:last-child {
+  color: var(--soluk);
+  font-size: var(--fs-13);
+}
+
+.codeBlock {
+  font-family: var(--font-mono);
+  font-size: var(--fs-13);
+  padding: var(--s3);
+  background: var(--yuzey-gomuk);
+  border-radius: var(--r-panel);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .brandSide {
+    padding: var(--s5);
+    min-height: 200px;
+  }
+
+  .slogan {
+    font-size: var(--fs-16);
+  }
+}

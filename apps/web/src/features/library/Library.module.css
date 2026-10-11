@@ -1,0 +1,338 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  max-width: 1200px;
+  min-width: 0;
+}
+
+.page > :global(*) {
+  margin-bottom: 0;
+}
+
+.crumbs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  align-self: flex-start;
+  color: var(--soluk);
+  font-size: var(--fs-13);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--murekkep);
+  text-decoration: underline;
+}
+
+/* ------------------------------------------------------------ filtreler */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s3);
+  padding-bottom: var(--s2);
+}
+
+.searchBox {
+  position: relative;
+  flex: 1 1 280px;
+  max-width: 420px;
+  min-width: 0;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--soluk);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-left: 34px;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.select {
+  min-width: 150px;
+}
+
+.filterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--cizgi-guclu);
+  border-radius: var(--r-chip);
+  background: var(--yuzey);
+  font-size: var(--fs-14);
+  cursor: pointer;
+}
+
+.filterBtn:hover {
+  border-color: var(--soluk);
+}
+
+.filterBtn svg {
+  color: var(--soluk);
+}
+
+.filterOn {
+  border-color: var(--murekkep);
+}
+
+.filterCount {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-round);
+  background: var(--murekkep);
+  color: var(--murekkep-ters);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+}
+
+.filterPop {
+  z-index: 70;
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 24px));
+  max-height: 360px;
+  overflow-y: auto;
+  padding: var(--s3) var(--s4);
+  background: var(--yuzey);
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-panel);
+  box-shadow: var(--golge-diyalog);
+}
+
+.filterSet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.filterNone {
+  color: var(--soluk);
+  font-size: var(--fs-13);
+}
+
+/* -------------------------------------------------------------- satırlar */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--cizgi);
+}
+
+.domainRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 220px);
+  align-items: center;
+  gap: var(--s4);
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.domainLink {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s4) var(--s2);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: var(--fs-16);
+  min-width: 0;
+}
+
+:global([data-density='compact']) .domainLink {
+  padding: var(--s2);
+}
+
+.domainLink:hover .domainName {
+  text-decoration: underline;
+}
+
+.domainIcon {
+  color: var(--soluk);
+  flex: none;
+}
+
+.domainName {
+  overflow-wrap: anywhere;
+}
+
+.domainCount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.time {
+  color: var(--soluk);
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.total {
+  color: var(--soluk);
+  font-size: var(--fs-13);
+}
+
+.pageRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s3) var(--s2);
+  border-bottom: 1px solid var(--cizgi);
+  min-width: 0;
+}
+
+:global([data-density='compact']) .pageRow {
+  padding: 6px var(--s2);
+}
+
+.pageRow > svg:first-child {
+  margin-top: 2px;
+  color: var(--soluk);
+  flex: none;
+}
+
+.pageMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.pageTitle {
+  font-weight: 600;
+  font-size: var(--fs-16);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  align-self: flex-start;
+}
+
+.pageTitle:hover {
+  text-decoration: underline;
+}
+
+.summary {
+  color: var(--soluk);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global([data-density='compact']) .summary {
+  display: none;
+}
+
+.pageMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: 2px;
+}
+
+.kindText {
+  font-size: var(--fs-13);
+  color: var(--soluk);
+}
+
+.pageSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex: none;
+}
+
+.moreRow {
+  display: flex;
+  justify-content: center;
+  padding: var(--s4) 0;
+}
+
+.ctaLink {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--s4);
+  border-radius: var(--r-chip);
+  background: var(--murekkep);
+  color: var(--murekkep-ters);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+@media (max-width: 759px) {
+  .searchBox {
+    max-width: none;
+    flex-basis: 100%;
+  }
+
+  .select {
+    min-width: 0;
+    flex: 1 1 140px;
+  }
+
+  .domainRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .domainRow .time {
+    display: none;
+  }
+
+  .pageRow {
+    flex-wrap: wrap;
+  }
+
+  .pageMain {
+    flex-basis: calc(100% - 80px);
+  }
+
+  .pageSide {
+    order: 3;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    padding-left: 30px;
+  }
+
+  .summary {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}

@@ -1,0 +1,99 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--murekkep);
+}
+
+.hint {
+  font-size: var(--fs-13);
+  color: var(--soluk);
+}
+
+.error {
+  font-size: var(--fs-13);
+  color: var(--celiski);
+}
+
+.input {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--cizgi-guclu);
+  border-radius: var(--r-chip);
+  background: var(--yuzey);
+  color: var(--murekkep);
+  font-size: var(--fs-14);
+  transition: border-color var(--t-hover) var(--ease);
+}
+
+.input::placeholder {
+  color: var(--soluk);
+}
+
+.input:hover {
+  border-color: var(--soluk);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--murekkep);
+  outline-offset: 1px;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--celiski);
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: var(--lh-read);
+}
+
+.selectWrap {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.select {
+  appearance: none;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.chevron {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--soluk);
+}
+
+.check {
+  display: flex;
+  gap: var(--s2);
+  align-items: flex-start;
+}
+
+.check input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--murekkep);
+  flex: none;
+}
+
+.check label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}

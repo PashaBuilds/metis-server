@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metis"
+version = "2.0.0"
+description = "METIS v2 — Ekibin teknik bilgisi, kaynaklarıyla."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.30,<1",
+  "sqlalchemy>=2.0.30,<2.1",
+  "psycopg[binary]>=3.2,<4",
+  "alembic>=1.13,<2",
+  "pydantic>=2.8,<3",
+  "httpx>=0.27,<1",
+  "pypdf>=5,<7",
+  "cryptography>=43",
+  "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-timeout>=2.3",
+  "hypothesis>=6.100",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "pycryptodome>=3.20",  # yalnız test: v0.5.5 yedek biçimiyle birebir uyum kontrolü
+]
+
+[project.scripts]
+metis = "metis.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["services"]
+include = ["metis*"]
+
+[tool.setuptools.package-data]
+metis = ["domain_packs/*.json", "llm/prompts/*.md", "migrations/*.ini", "migrations/*.mako", "migrations/versions/*.py", "seed/*.json"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["services", "tests"]
+extend-exclude = ["reference"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE"]
+ignore = ["S101", "S311", "B008", "E501", "S603", "S607", "S608"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S108"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --timeout=120"
+filterwarnings = ["ignore::DeprecationWarning", "ignore:Using `httpx`"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = false

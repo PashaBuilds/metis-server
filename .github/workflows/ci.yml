@@ -1,0 +1,267 @@
+name: CI
+
+# Actions dakikaları sınırlı (özel depo; Windows dakikası 2 kat sayılır). Bu yüzden:
+# - yalnız belge değişen gönderimler CI çalıştırmaz,
+# - aynı daldaki eski koşu, yenisi başlayınca iptal edilir,
+# - Windows işi yalnız paketi/Windows davranışını etkileyen değişikliklerde, sürüm yayımlarken,
+#   commit mesajında [windows] varsa veya elle (Actions → CI → Run workflow) çalıştırılınca koşar.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths-ignore: ["docs/**", "**/*.md"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Değişiklik kapsamı
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      windows: ${{ steps.scope.outputs.windows }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: scope
+        env:
+          BEFORE: ${{ github.event.before }}
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          run=false
+          if [ "${GITHUB_EVENT_NAME}" != "push" ] || [ "${GITHUB_REF_TYPE}" = "tag" ]; then run=true
+          elif printf '%s' "$MESSAGE" | grep -qF '[windows]'; then run=true
+          elif [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then run=true
+          elif git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -qE '^(deploy/|pyproject\.toml$|services/metis/(ops|legacy_import)/|services/metis/cli\.py$|services/metis/modules/sources/pdf_extract\.py$)'; then run=true
+          fi
+          echo "windows=$run" >> "$GITHUB_OUTPUT"
+          echo "Windows işi: $run"
+
+  linux:
+    name: Linux — lint, typecheck, pytest, Playwright
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: metis_owner
+          POSTGRES_PASSWORD: metis-dev
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U metis_owner" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      METIS_TEST_ADMIN_DSN: postgresql://metis_owner:metis-dev@127.0.0.1:5432/postgres
+      PGPASSWORD: metis-dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - name: PostgreSQL istemci araçları ve çalışma zamanı rolü
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq postgresql-client-16
+          psql -h 127.0.0.1 -U metis_owner -d postgres -c "CREATE ROLE metis_app LOGIN PASSWORD 'metis-dev'"
+      - name: Python bağımlılıkları (.venv — betikler bu yolu kullanır)
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e ".[dev]"
+      - name: Ruff
+        run: .venv/bin/ruff check services tests evals deploy
+      - name: OpenAPI sözleşmesi güncel mi
+        run: |
+          .venv/bin/python scripts/export_openapi.py /tmp/openapi.json
+          diff -u apps/web/openapi.json /tmp/openapi.json
+      - name: pytest (gerçek PostgreSQL 16)
+        run: .venv/bin/pytest -q
+      - name: Değerlendirme (mock model)
+        run: .venv/bin/python evals/run.py --mode mock
+      - name: Web bağımlılıkları
+        run: npm ci
+      - name: Typecheck, lint, build
+        run: |
+          npm run typecheck -w @metis/web
+          npm run lint -w @metis/web
+          npm run build:web
+      - name: Geliştirme yığını (vitrin ve harita ölçümü için kurgusal veri)
+        run: |
+          psql -h 127.0.0.1 -U metis_owner -d postgres -c "CREATE DATABASE metis"
+          scripts/dev-up.sh --demo
+          METIS_ENV=development METIS_MASTER_KEY_FILE=$PWD/.data/master.key .venv/bin/metis demo-graph --nodes 200
+      - name: Playwright (vitrin + e2e)
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test -c apps/web/playwright.config.ts tests/visual
+          npx playwright test -c apps/web/playwright.e2e.config.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: apps/web/test-results, retention-days: 7 }
+
+  windows:
+    name: Windows — pytest + çevrimdışı kurulum duman testi
+    needs: changes
+    if: needs.changes.outputs.windows == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      METIS_TEST_ADMIN_DSN: postgresql://postgres:root@127.0.0.1:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - name: PostgreSQL 16 kur (runner'da önyüklü sürüm 14; METIS 16+ ister)
+        shell: pwsh
+        run: |
+          Get-Service -Name "postgresql*" | Stop-Service -ErrorAction SilentlyContinue
+          choco install postgresql16 --no-progress -y --params "/Password:root /Port:5432"
+          $pgbin = "C:\Program Files\PostgreSQL\16\bin"
+          "PGBIN=$pgbin" | Out-File -Append $env:GITHUB_ENV
+          "$pgbin" | Out-File -Append $env:GITHUB_PATH
+          $env:PGPASSWORD = "root"
+          & "$pgbin\psql.exe" -U postgres -h 127.0.0.1 -c "SELECT version();"
+      - name: pytest (Windows, PG servisi)
+        shell: pwsh
+        run: |
+          python -m pip install -e ".[dev]"
+          $env:METIS_PG_BIN = $env:PGBIN
+          pytest -q tests/api tests/legacy_import tests/ops
+      - name: Paketi üret (internet açık)
+        shell: pwsh
+        run: |
+          npm ci
+          python deploy/build-bundle.py --target win64 --locked
+          python deploy/build-bundle.py --target win64 --locked --skip-web-build --version-suffix +ci2 --out dist-next
+      - name: Çevrimdışı kurulum (ağ kapalı adım)
+        shell: pwsh
+        # Ağ kapalı: tüm HTTP(S) istekleri erişilemeyen bir vekile yönlendirilir ve pip --no-index ile çalışır.
+        env:
+          HTTP_PROXY: http://127.0.0.1:9
+          HTTPS_PROXY: http://127.0.0.1:9
+          PIP_NO_INDEX: "1"
+          METIS_PG_SUPERUSER_PASSWORD: root
+        run: |
+          Expand-Archive dist\METIS-2.0.0-server-win64.zip -DestinationPath C:\bundle
+          cd C:\bundle\METIS-2.0.0-server-win64
+          .\install-offline.ps1 -InstallRoot C:\METIS -PublicUrl http://localhost:8000 -AllowHttp -PgBin $env:PGBIN
+      - name: Duman testi — giriş, yeniden başlatma, kalıcılık, yedek, tatbikat
+        shell: pwsh
+        run: |
+          $base = "http://127.0.0.1:8000"
+          $h = @{ Origin = "http://localhost:8000" }
+          $code = (& C:\METIS\bin\metis.cmd setup-code | Select-Object -Last 1).Trim()
+          $s = $null
+          $me = Invoke-RestMethod -Method Post "$base/api/v1/setup" -Headers $h -ContentType "application/json" -SessionVariable s `
+            -Body (@{ code = $code; display_name = "CI Yönetici"; username = "ci"; password = "Kurgusal-Parola-2026"; project_name = "CI" } | ConvertTo-Json)
+          $pid_ = $me.memberships[0].project_id
+          $h["X-CSRF-Token"] = $me.csrf_token
+          $meta = @{ title = "Kalıcılık"; kind = "note"; text = "CI kalıcılık testi."; scope = @{ domain = @("*"); yatt = @("*"); kart = @("*"); proje = @("*") }; acl = @() } | ConvertTo-Json -Compress
+          $form = @{ meta = $meta }
+          Invoke-RestMethod -Method Post "$base/api/v1/projects/$pid_/sources" -Headers $h -WebSession $s -Form $form | Out-Null
+          Restart-Service metis-api, metis-worker
+          Start-Sleep -Seconds 15
+          $login = Invoke-RestMethod -Method Post "$base/api/v1/auth/login" -Headers @{ Origin = "http://localhost:8000" } -ContentType "application/json" -SessionVariable s2 `
+            -Body (@{ username = "ci"; password = "Kurgusal-Parola-2026" } | ConvertTo-Json)
+          $src = Invoke-RestMethod "$base/api/v1/projects/$pid_/sources" -WebSession $s2
+          if (-not ($src.items | Where-Object { $_.title -eq "Kalıcılık" })) { throw "Yeniden başlatma sonrası veri yok" }
+          & C:\METIS\bin\metis.cmd backup
+          if ($LASTEXITCODE -ne 0) { throw "yedek başarısız" }
+          & C:\METIS\bin\metis.cmd restore --rehearsal latest
+          if ($LASTEXITCODE -ne 0) { throw "geri yükleme tatbikatı başarısız" }
+      - name: Kurgusal çalışma alanı (deneme kurulumunda metis demo)
+        shell: pwsh
+        run: |
+          & C:\METIS\bin\metis.cmd demo
+          if ($LASTEXITCODE -ne 0) { throw "metis demo başarısız" }
+          $login = Invoke-RestMethod -Method Post "http://127.0.0.1:8000/api/v1/auth/login" -Headers @{ Origin = "http://localhost:8000" } -ContentType "application/json" -SessionVariable s `
+            -Body (@{ username = "baris"; password = "Kurgusal-Parola-2026" } | ConvertTo-Json)
+          $pid_ = $login.memberships[0].project_id  # baris yalnız kurgusal çalışma alanının üyesi
+          $pages = Invoke-RestMethod "http://127.0.0.1:8000/api/v1/projects/$pid_/pages?limit=50" -WebSession $s
+          if ($pages.items.Count -lt 1) { throw "kurgusal sayfalar yok" }
+          "kurgusal çalışma alanı: $($pages.items.Count) sayfa"
+      - name: Yükseltme betiği (ağ kapalı)
+        shell: pwsh
+        env:
+          HTTP_PROXY: http://127.0.0.1:9
+          HTTPS_PROXY: http://127.0.0.1:9
+          PIP_NO_INDEX: "1"
+        run: |
+          Expand-Archive "dist-next\METIS-2.0.0+ci2-server-win64.zip" -DestinationPath C:\bundle-next
+          cd "C:\bundle-next\METIS-2.0.0+ci2-server-win64"
+          .\upgrade.ps1 -InstallRoot C:\METIS
+          $r = Invoke-WebRequest -UseBasicParsing -NoProxy http://127.0.0.1:8000/api/v1/health/ready
+          if ($r.StatusCode -ne 200) { throw "yükseltme sonrası hazır değil" }
+          (Get-Item C:\METIS\app\current).Target
+      - name: Kaldırma betiği (varsayılan, sonra -RemoveAll)
+        shell: pwsh
+        timeout-minutes: 10
+        env:
+          METIS_PG_SUPERUSER_PASSWORD: root
+        run: |
+          # Günlükleri sonraki adım için sakla (kaldırma C:\METIS'i siler).
+          Copy-Item -Recurse C:\METIS\data\logs C:\metis-logs
+          cd "C:\bundle-next\METIS-2.0.0+ci2-server-win64"
+          .\uninstall.ps1 -InstallRoot C:\METIS
+          if (Get-Service metis-api, metis-worker -ErrorAction SilentlyContinue) { throw "servisler kaldırılmadı" }
+          if (Get-ScheduledTask -TaskName "METIS*" -ErrorAction SilentlyContinue) { throw "zamanlanmış görevler kaldırılmadı" }
+          if (Test-Path C:\METIS\app) { throw "program dosyaları kaldı" }
+          if (-not (Test-Path C:\METIS\config\master.key)) { throw "varsayılan kaldırma ana anahtarı silmemeliydi" }
+          $env:PGPASSWORD = "root"
+          function Q([string]$Sql) {
+            $r = & "$env:PGBIN\psql.exe" -w -U postgres -h 127.0.0.1 -tAc $Sql
+            if ($LASTEXITCODE -ne 0) { throw "psql başarısız: $Sql" }
+            return "$r".Trim()
+          }
+          if ((Q "SELECT 1 FROM pg_database WHERE datname='metis'") -ne "1") { throw "varsayılan kaldırma veritabanını silmemeliydi" }
+          .\uninstall.ps1 -InstallRoot C:\METIS -RemoveAll
+          if ($env:PGPASSWORD -ne "root") { throw "kaldırma betiği çağıranın PGPASSWORD değerini bozdu" }
+          if (Test-Path C:\METIS) { throw "C:\METIS kaldı" }
+          if (Q "SELECT 1 FROM pg_database WHERE datname='metis'") { throw "veritabanı kaldı" }
+          if (Q "SELECT 1 FROM pg_roles WHERE rolname LIKE 'metis_%'") { throw "roller kaldı" }
+          "kaldırma doğrulandı"
+      - name: Servis günlükleri
+        if: always()
+        shell: pwsh
+        run: Get-ChildItem C:\METIS\data\logs, C:\metis-logs -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 50 }
+      - uses: actions/upload-artifact@v4
+        with: { name: metis-server-win64, path: "dist/METIS-*-server-win64.zip*", retention-days: 14 }
+
+  release:
+    # İki yol: v* etiketi gönderilirse o etiket; main'e gönderimde deploy/RELEASE dosyasındaki ad (henüz yoksa).
+    # Etiketi gerekirse GitHub'ın kendi jetonu oluşturur (ajan oturumları etiket gönderemez).
+    name: Release (tek ZIP)
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+    needs: [linux, windows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sürüm adı
+        id: tag
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then tag="${GITHUB_REF_NAME}"; else tag="$(tr -d '[:space:]' < deploy/RELEASE)"; fi
+          case "$tag" in v[0-9]*) ;; *) echo "geçerli sürüm adı yok ('$tag'); release atlanıyor"; exit 0;; esac
+          if gh release view "$tag" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then echo "$tag zaten yayımlanmış; atlanıyor"; exit 0; fi
+          echo "name=$tag" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        if: steps.tag.outputs.name != ''
+        with: { name: metis-server-win64, path: dist }
+      - name: GitHub Release
+        if: steps.tag.outputs.name != ''
+        env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ steps.tag.outputs.name }}" }
+        run: |
+          # Tire içeren adlar (ör. v2.0.0-rc.1) deneme sürümüdür: ön sürüm olarak işaretlenir.
+          pre=""; case "$TAG" in *-*) pre="--prerelease";; esac
+          gh release create "$TAG" dist/* --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" $pre \
+            --title "METIS $TAG" --notes-file deploy/RELEASE_NOTES.md

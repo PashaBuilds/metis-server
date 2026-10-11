@@ -1,0 +1,116 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  border: 1px solid transparent;
+  border-radius: var(--r-chip);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--t-hover) var(--ease),
+    border-color var(--t-hover) var(--ease),
+    color var(--t-hover) var(--ease);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.md {
+  height: 36px;
+  padding: 0 var(--s4);
+  font-size: var(--fs-14);
+}
+
+.sm {
+  height: 30px;
+  padding: 0 var(--s3);
+  font-size: var(--fs-13);
+}
+
+.primary {
+  background: var(--murekkep);
+  color: var(--murekkep-ters);
+}
+
+.primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--murekkep) 86%, var(--yuzey));
+}
+
+.secondary {
+  background: var(--yuzey);
+  border-color: var(--cizgi-guclu);
+  color: var(--murekkep);
+}
+
+.secondary:not(:disabled):hover {
+  background: var(--yuzey-gomuk);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--murekkep);
+}
+
+.ghost:not(:disabled):hover {
+  background: var(--yuzey-gomuk);
+}
+
+.danger {
+  background: var(--yuzey);
+  border-color: color-mix(in srgb, var(--celiski) 55%, var(--cizgi));
+  color: var(--celiski);
+}
+
+.danger:not(:disabled):hover {
+  background: var(--celiski-zemin);
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.icon {
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--r-chip);
+  cursor: pointer;
+  background: transparent;
+  color: inherit;
+  flex: none;
+  transition: background var(--t-hover) var(--ease);
+}
+
+.icon.secondary {
+  border-color: var(--cizgi-guclu);
+  background: var(--yuzey);
+}
+
+.icon:hover {
+  background: var(--yuzey-gomuk);
+}
+
+.icon-md {
+  width: 36px;
+  height: 36px;
+}
+
+.icon-sm {
+  width: 30px;
+  height: 30px;
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

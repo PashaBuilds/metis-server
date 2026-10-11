@@ -1,0 +1,8 @@
+[Unit]
+Description=METIS geri yükleme tatbikatı
+
+[Service]
+Type=oneshot
+User={{USER}}
+Environment=METIS_CONFIG={{ROOT}}/config/metis.env
+ExecStart={{ROOT}}/app/current/venv/bin/python -m metis.cli restore --rehearsal latest

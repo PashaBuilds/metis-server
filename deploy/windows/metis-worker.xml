@@ -1,0 +1,23 @@
+<!-- WinSW servis tanımı: Metis worker (iş kuyruğu, bakım zamanlayıcısı). -->
+<service>
+  <id>metis-worker</id>
+  <name>METIS Worker</name>
+  <description>METIS v2 arka plan işleri: taslak hazırlama, bilgi havuzu denetimi, benchmark, zamanlanmış bakım.</description>
+  <executable>{{ROOT}}\app\current\python\python.exe</executable>
+  <arguments>-m metis.cli worker --slots {{SLOTS}}</arguments>
+  <env name="METIS_CONFIG" value="{{ENV}}"/>
+  <env name="PYTHONUTF8" value="1"/>
+  <workingdirectory>{{ROOT}}\data</workingdirectory>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <onfailure action="restart" delay="60 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>30 sec</stoptimeout>
+  <logpath>{{ROOT}}\data\logs\service</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+</service>

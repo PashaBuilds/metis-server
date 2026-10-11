@@ -1,0 +1,8 @@
+[Unit]
+Description=METIS gece yedeği
+
+[Service]
+Type=oneshot
+User={{USER}}
+Environment=METIS_CONFIG={{ROOT}}/config/metis.env
+ExecStart={{ROOT}}/app/current/venv/bin/python -m metis.cli backup --keep-days 14

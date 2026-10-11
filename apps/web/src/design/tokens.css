@@ -1,0 +1,178 @@
+/*
+ * İz tasarım dili — tek kaynak tokenlar.
+ * Kural: altın (--iz*) YALNIZ kaynağa bağlı şeyler içindir (alıntı, via, kanıt şeridi, iz çizgisi).
+ */
+
+:root {
+  /* tipografi */
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --fs-12: 0.75rem;
+  --fs-13: 0.8125rem;
+  --fs-14: 0.875rem;
+  --fs-16: 1rem;
+  --fs-19: 1.1875rem;
+  --fs-23: 1.4375rem;
+  --fs-28: 1.75rem;
+  --fs-34: 2.125rem;
+  --fs-41: 2.5625rem;
+  --lh-read: 1.65;
+  --lh-ui: 1.45;
+  --measure: 68ch;
+
+  /* boşluk (4 px taban) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+
+  /* köşe (hiyerarşiye göre) */
+  --r-chip: 4px;
+  --r-panel: 8px;
+  --r-dialog: 14px;
+  --r-round: 999px;
+
+  /* hareket */
+  --t-hover: 120ms;
+  --t-panel: 180ms;
+  --t-trace: 320ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* düzen */
+  --rail-w: 232px;
+  --rail-w-collapsed: 64px;
+  --topbar-h: 56px;
+  --iz-panel-w: 440px;
+
+  color-scheme: light;
+  --zemin: #f3f5f1;
+  --yuzey: #ffffff;
+  --yuzey-gomuk: #eaeee9;
+  --murekkep: #15201b;
+  --murekkep-ters: #ffffff;
+  --soluk: #59655f;
+  --cizgi: #d8ded7;
+  --cizgi-guclu: #b9c3bb;
+  --ray: #17382f;
+  --ray-metin: #d7e4dd;
+  --ray-vurgu: #24493e;
+  --iz: #a77b0a;
+  --iz-metin: #7a5900;
+  --iz-zemin: #f7ecc4;
+
+  --onay: #2a7550;
+  --onay-zemin: #e2f0e8;
+  --inceleme: #2d55c8;
+  --inceleme-zemin: #e5ebfa;
+  --taslak: #5e6a64;
+  --taslak-zemin: #e9ece9;
+  --dikkat: #9a5b00;
+  --dikkat-zemin: #f8ecd9;
+  --celiski: #b3263f;
+  --celiski-zemin: #f8e3e6;
+
+  --golge-diyalog: 0 18px 48px -12px rgb(21 32 27 / 0.28);
+  --odak: 0 0 0 2px var(--yuzey), 0 0 0 4px var(--murekkep);
+}
+
+/* Sistem teması: kullanıcı açık/koyu seçmediyse */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --zemin: #0e1613;
+    --yuzey: #141f1b;
+    --yuzey-gomuk: #1b2924;
+    --murekkep: #e6ece7;
+    --murekkep-ters: #0e1613;
+    --soluk: #9daaa3;
+    --cizgi: #2a3833;
+    --cizgi-guclu: #3c4d47;
+    --ray: #0f241d;
+    --ray-metin: #c9d8d0;
+    --ray-vurgu: #1b3a30;
+    --iz: #e2bc4e;
+    --iz-metin: #e8c664;
+    --iz-zemin: #3b3113;
+
+    --onay: #7fcb9f;
+    --onay-zemin: #183326;
+    --inceleme: #8fa8f0;
+    --inceleme-zemin: #1b2647;
+    --taslak: #a3afa9;
+    --taslak-zemin: #222e2a;
+    --dikkat: #e9b261;
+    --dikkat-zemin: #3a2a12;
+    --celiski: #f08c9e;
+    --celiski-zemin: #3f1a22;
+
+    --golge-diyalog: 0 18px 48px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
+:root[data-theme='dark'],
+.theme-dark {
+  color-scheme: dark;
+  --zemin: #0e1613;
+  --yuzey: #141f1b;
+  --yuzey-gomuk: #1b2924;
+  --murekkep: #e6ece7;
+  --murekkep-ters: #0e1613;
+  --soluk: #9daaa3;
+  --cizgi: #2a3833;
+  --cizgi-guclu: #3c4d47;
+  --ray: #0f241d;
+  --ray-metin: #c9d8d0;
+  --ray-vurgu: #1b3a30;
+  --iz: #e2bc4e;
+  --iz-metin: #e8c664;
+  --iz-zemin: #3b3113;
+
+  --onay: #7fcb9f;
+  --onay-zemin: #183326;
+  --inceleme: #8fa8f0;
+  --inceleme-zemin: #1b2647;
+  --taslak: #a3afa9;
+  --taslak-zemin: #222e2a;
+  --dikkat: #e9b261;
+  --dikkat-zemin: #3a2a12;
+  --celiski: #f08c9e;
+  --celiski-zemin: #3f1a22;
+
+  --golge-diyalog: 0 18px 48px -12px rgb(0 0 0 / 0.6);
+}
+
+/* Vitrin: iki temayı yan yana göstermek için kapsamlı tema sınıfı */
+.theme-light {
+  color-scheme: light;
+  --zemin: #f3f5f1;
+  --yuzey: #ffffff;
+  --yuzey-gomuk: #eaeee9;
+  --murekkep: #15201b;
+  --murekkep-ters: #ffffff;
+  --soluk: #59655f;
+  --cizgi: #d8ded7;
+  --cizgi-guclu: #b9c3bb;
+  --ray: #17382f;
+  --ray-metin: #d7e4dd;
+  --ray-vurgu: #24493e;
+  --iz: #a77b0a;
+  --iz-metin: #7a5900;
+  --iz-zemin: #f7ecc4;
+
+  --onay: #2a7550;
+  --onay-zemin: #e2f0e8;
+  --inceleme: #2d55c8;
+  --inceleme-zemin: #e5ebfa;
+  --taslak: #5e6a64;
+  --taslak-zemin: #e9ece9;
+  --dikkat: #9a5b00;
+  --dikkat-zemin: #f8ecd9;
+  --celiski: #b3263f;
+  --celiski-zemin: #f8e3e6;
+
+  --golge-diyalog: 0 18px 48px -12px rgb(21 32 27 / 0.28);
+}

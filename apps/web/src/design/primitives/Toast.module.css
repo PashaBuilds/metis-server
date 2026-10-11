@@ -1,0 +1,102 @@
+.region {
+  position: fixed;
+  z-index: 60;
+  right: var(--s4);
+  bottom: var(--s4);
+  pointer-events: none;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  align-items: flex-end;
+}
+
+.item {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toast {
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-width: 280px;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: var(--s3) var(--s3) var(--s3) var(--s4);
+  border-radius: var(--r-panel);
+  background: var(--murekkep);
+  color: var(--murekkep-ters);
+  box-shadow: var(--golge-diyalog);
+  animation: rise var(--t-panel) var(--ease);
+}
+
+.icon {
+  flex: none;
+}
+
+.ok .icon {
+  color: color-mix(in srgb, var(--onay-zemin) 70%, var(--murekkep-ters));
+}
+
+.error {
+  background: var(--celiski);
+  color: #fff;
+}
+
+.msg {
+  flex: 1;
+  font-size: var(--fs-14);
+}
+
+.undo {
+  border: 1px solid currentColor;
+  background: none;
+  color: inherit;
+  border-radius: var(--r-chip);
+  padding: 4px 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.close {
+  border: 0;
+  background: none;
+  color: inherit;
+  opacity: 0.8;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: currentColor;
+  opacity: 0.4;
+  transform-origin: left;
+  animation: shrink linear forwards;
+}
+
+@keyframes shrink {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

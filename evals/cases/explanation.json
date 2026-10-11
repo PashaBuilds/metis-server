@@ -1,0 +1,31 @@
+{
+ "version": "explanation-cases-v1",
+ "note": "Deterministik cümle denetimi vakaları (brief 5.6): doğru cümle, uydurma sayı, yanlış sembol, ters olumsuzlama, kapsam dışı genelleme. Her vaka sabit bir model çıktısı ve beklenen kalan/atılan cümleleri içerir.",
+ "bundle": [
+  {"claim_id": "c1", "evidence_id": "e1", "statement": "SPI denetleyicisi 100 MHz referans saatini 8 bölücü ile 12.5 MHz SCLK'ye indirir.", "scope": {"kart": ["ZCU102"]}},
+  {"claim_id": "c2", "evidence_id": "e2", "statement": "Kesme maskesi XPAR_XAXIPCIE_0_BASEADDR + 0x13C adresindeki IMR kaydında tutulur.", "scope": {"kart": ["VPK120"]}},
+  {"claim_id": "c3", "evidence_id": "e3", "statement": "ISR içinde printf kullanılmaz.", "scope": {"kart": ["VPK120"]}},
+  {"claim_id": "c4", "evidence_id": "e4", "statement": "Tampon boyutu 512 bayttır ve 2'nin kuvveti olarak tutulur.", "scope": {"kart": ["*"]}}
+ ],
+ "cases": [
+  {"id": "correct-paraphrase", "sentence": "SPI saati 100MHz referanstan 8 bölücüyle 12,5 MHz'e indirilir.", "claim_ids": ["c1"], "expected": "kept"},
+  {"id": "correct-units-equivalent", "sentence": "Tampon 0.5 KiB, yani 512 bayttır.", "claim_ids": ["c4"], "expected": "kept"},
+  {"id": "invented-number", "sentence": "SPI saati 25 MHz'tir.", "claim_ids": ["c1"], "expected": "dropped", "reason": "number"},
+  {"id": "invented-unit-value", "sentence": "SPI referans saati 100 kHz olur.", "claim_ids": ["c1"], "expected": "dropped", "reason": "number"},
+  {"id": "wrong-symbol", "sentence": "Maske XPAR_XAXIPCIE_1_BASEADDR + 0x13C adresinde tutulur.", "claim_ids": ["c2"], "expected": "dropped", "reason": "symbol"},
+  {"id": "wrong-hex", "sentence": "Maske XPAR_XAXIPCIE_0_BASEADDR + 0x140 adresinde tutulur.", "claim_ids": ["c2"], "expected": "dropped", "reason": "hex"},
+  {"id": "correct-symbol", "sentence": "Maske, XPAR_XAXIPCIE_0_BASEADDR + 0x13C adresindeki IMR kaydındadır.", "claim_ids": ["c2"], "expected": "kept"},
+  {"id": "inverted-negation", "sentence": "ISR içinde printf kullanılabilir.", "claim_ids": ["c3"], "expected": "dropped", "reason": "negation"},
+  {"id": "kept-negation", "sentence": "ISR içinde printf kullanılmaz.", "claim_ids": ["c3"], "expected": "kept"},
+  {"id": "added-negation", "sentence": "Tampon boyutu 512 bayt değildir.", "claim_ids": ["c4"], "expected": "dropped", "reason": "negation"},
+  {"id": "scope-generalization", "sentence": "Tüm kartlarda kesme maskesi IMR kaydında tutulur.", "claim_ids": ["c2"], "expected": "dropped", "reason": "generalization"},
+  {"id": "other-card-named", "sentence": "ZCU102 kartında da kesme maskesi IMR kaydında tutulur.", "claim_ids": ["c2"], "expected": "dropped", "reason": "symbol"},
+  {"id": "no-citation", "sentence": "Tampon boyutu 512 bayttır.", "claim_ids": [], "expected": "dropped", "reason": "no_claim"},
+  {"id": "unknown-citation", "sentence": "Tampon boyutu 512 bayttır.", "claim_ids": ["c99"], "expected": "dropped", "reason": "unknown_claim"},
+  {"id": "multi-claim", "sentence": "SPI 12.5 MHz SCLK üretir ve ISR içinde printf kullanılmaz.", "claim_ids": ["c1", "c3"], "expected": "kept"}
+ ],
+ "known_limits": [
+  "Olumsuzlama kuralı özne eşleşmesine bakmaz; cümlede ve iddiada olumsuzluk işareti varlığını karşılaştırır.",
+  "Sayısal olmayan anlam değişiklikleri (ör. 'önce' yerine 'sonra') yakalanmaz; alıntılar her zaman ayrıca gösterilir."
+ ]
+}

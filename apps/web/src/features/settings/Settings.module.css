@@ -1,0 +1,509 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  max-width: 1000px;
+  min-width: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  align-items: flex-start;
+}
+
+.blockHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s4);
+  flex-wrap: wrap;
+}
+
+.blockHead > p {
+  max-width: 62ch;
+  flex: 1 1 320px;
+}
+
+.blockTitle {
+  font-size: var(--fs-16);
+}
+
+.hint {
+  color: var(--soluk);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+}
+
+.label {
+  font-size: var(--fs-13);
+  font-weight: 500;
+}
+
+.error {
+  color: var(--celiski);
+  font-size: var(--fs-13);
+}
+
+.grow {
+  flex: 1;
+}
+
+/* ------------------------------------------------------------------ üyeler */
+.people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--cizgi);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s2);
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.inactiveRow .personMain,
+.inactiveRow .avatar {
+  opacity: 0.7;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--yuzey-gomuk);
+  border: 1px solid var(--cizgi);
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+
+.personMain {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.personName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.you {
+  padding: 0 6px;
+  border-radius: var(--r-chip);
+  background: var(--yuzey-gomuk);
+  font-size: var(--fs-12);
+  font-weight: 500;
+  color: var(--soluk);
+}
+
+.username {
+  color: var(--soluk);
+  font-size: var(--fs-13);
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.roleChips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s1);
+  flex: 1 1 260px;
+}
+
+.adminBadge,
+.inactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-chip);
+  font-size: var(--fs-12);
+  font-weight: 500;
+  min-height: 26px;
+}
+
+.adminBadge {
+  background: var(--inceleme-zemin);
+  color: var(--inceleme);
+}
+
+.inactive {
+  background: var(--celiski-zemin);
+  color: var(--celiski);
+}
+
+.roleSet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.roleSet legend {
+  margin-bottom: var(--s2);
+}
+
+.dialogForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.pwRow {
+  display: flex;
+  gap: var(--s2);
+  align-items: flex-start;
+}
+
+.pwGen {
+  margin-top: 25px;
+}
+
+/* ---------------------------------------------------------------- politika */
+.radios {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  width: 100%;
+  max-width: 640px;
+}
+
+.radio {
+  display: flex;
+  gap: var(--s3);
+  align-items: flex-start;
+  padding: var(--s3) var(--s4);
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-panel);
+  background: var(--yuzey);
+  cursor: pointer;
+}
+
+.radio input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--murekkep);
+  flex: none;
+}
+
+.radioOn {
+  border-color: var(--murekkep);
+}
+
+.radioText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radioLabel {
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------------ kapsam */
+.dimGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s4);
+}
+
+.dim {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s4);
+  background: var(--yuzey);
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-panel);
+  min-width: 0;
+}
+
+.values {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  min-height: 34px;
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.valueText {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.addValue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+
+.addValue > input {
+  flex: 1 1 120px;
+  width: auto;
+}
+
+.addValue > p {
+  flex-basis: 100%;
+}
+
+@media (max-width: 759px) {
+  .person {
+    flex-wrap: wrap;
+  }
+
+  .roleChips {
+    justify-content: flex-start;
+    order: 3;
+    flex-basis: 100%;
+    padding-left: 44px;
+  }
+}
+
+/* ------------------------------------------------- bakım / sistem / aktarım */
+.opsForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  width: 100%;
+  max-width: 480px;
+  margin-top: var(--s2);
+}
+
+.narrow {
+  max-width: 120px;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s6);
+  margin: 0;
+  font-size: var(--fs-13);
+}
+
+.facts dt {
+  color: var(--soluk);
+}
+
+.facts dd {
+  margin: 2px 0 0;
+}
+
+.factList {
+  width: 100%;
+  margin: var(--s2) 0 0;
+  border-top: 1px solid var(--cizgi);
+}
+
+.factRow {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: var(--s4);
+  padding: var(--s2) var(--s1);
+  border-bottom: 1px solid var(--cizgi);
+  align-items: center;
+}
+
+.factRow dt {
+  color: var(--soluk);
+  font-size: var(--fs-13);
+}
+
+.factRow dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hintInline {
+  margin-left: var(--s3);
+  color: var(--soluk);
+  font-size: var(--fs-13);
+}
+
+.opsRows {
+  list-style: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--cizgi);
+}
+
+.opsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s3);
+  padding: var(--s2) var(--s1);
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.opsName {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.titleIcon {
+  vertical-align: -2px;
+  margin-right: var(--s2);
+  color: var(--soluk);
+}
+
+.cmdList {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--s2) var(--s4);
+  align-items: center;
+  margin: var(--s2) 0 0;
+  font-size: var(--fs-13);
+}
+
+.cmdList dt {
+  color: var(--soluk);
+}
+
+.cmdList dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.cmd {
+  margin: 0;
+  padding: var(--s2) var(--s3);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.downloadLink {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  min-height: 36px;
+  padding: 6px var(--s4);
+  border-radius: var(--r-chip);
+  background: var(--murekkep);
+  color: var(--murekkep-ters);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.downloadName {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.importRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s3) var(--s1);
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.importHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s3);
+}
+
+.importHead .hintInline {
+  margin-left: 0;
+}
+
+.expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  margin-left: auto;
+  padding: 0 var(--s2);
+  border: 0;
+  border-radius: var(--r-chip);
+  background: none;
+  color: var(--murekkep);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.expand:hover {
+  background: var(--yuzey-gomuk);
+}
+
+.expand svg {
+  transition: transform var(--t-panel) var(--ease);
+}
+
+.chevOpen {
+  transform: rotate(180deg);
+}
+
+.report {
+  padding: var(--s4);
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-panel);
+  background: var(--yuzey);
+  max-width: 80ch;
+}
+
+.techDetails {
+  margin-top: var(--s4);
+  font-size: var(--fs-13);
+}
+
+.techDetails > summary {
+  cursor: pointer;
+  color: var(--soluk);
+  font-weight: 500;
+}
+
+@media (max-width: 759px) {
+  .factRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .cmdList {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s1);
+  }
+
+  .hintInline {
+    display: block;
+    margin-left: 0;
+  }
+}
