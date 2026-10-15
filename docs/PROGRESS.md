@@ -116,3 +116,9 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
 - Bu depo (`metis-server`), özel geliştirme deposundan **temiz geçmişle** (tek başlangıç commit'i) başlatıldı; yukarıdaki commit kısaltmaları ve "PR #1" o özel depoya aittir.
 - Çıkarılanlar: şirket adı, `reference/v0.5.5/` (önceki sürümün kaynakları; özel arşivde), belgelerdeki kişisel hitaplar. Commit yazarı GitHub noreply e-postası.
 - Örnek verilerdeki adlar (Atlas, Orion, K1/K2, ZCU102 vb.) kurgusaldır.
+
+### Pilot planı (2026-10-15, ürün sahibiyle)
+- Hedef: 13–14 kişilik ekip, şirket içi ağ (intranet, internetsiz). Sunucu: ayrılacak bir iş istasyonu veya BT'nin vereceği bilgisayar; ekip tarayıcıyla bağlanır.
+- Dosyalar internet bilgisayarında indirilip yalnız taşıma amacıyla intranete aktarılır; kurulum ve kullanım tamamen intranette.
+- Sıra: (1) ürün sahibinin kendi şirket bilgisayarında `-AllowHttp` + `localhost` deneme, yalnız kurgusal veri (`metis demo`), taşıma ve yükseltme provası; (2) aynı bilgisayarda `-RemoveAll` → temiz kurulum, gerçek içerik (demo yok, `master.key` ayrıca yedeklenir); (3) sunucuya taşıma + ağdan erişim.
+- Açık işler: başka bilgisayara taşıma (adres değişir) için paketlenmiş, denenmiş bir adım yok — eklenecek ve (1)'de prova edilecek; ağdan erişim yolu (IIS + şirket sertifikası veya iç ağda doğrudan erişim seçeneği) kararı bekliyor.
