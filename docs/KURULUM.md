@@ -26,7 +26,10 @@ web arayüzü, WinSW servis sarmalayıcısı, `install-offline.ps1`, `upgrade.ps
 
 1. EDB kurucusunu çalıştır (`postgresql-16.x-windows-x64.exe`). Varsayılan klasör `C:\Program Files\PostgreSQL\16`.
 2. Veri klasörü olarak veri diskini seç (ör. `D:\PostgreSQL\16\data`). Port 5432. `postgres` parolasını şirket kasasına kaydet.
-3. Stack Builder'ı atla (internet ister, gerekmez).
+3. **Locale** sayfasında `[Default locale]` yerine **`English, United States`** seç. Türkçe Windows'ta varsayılan
+   ("Turkish_Türkiye") veritabanı kümesinin oluşturulmasını bozar ("The database cluster initialisation failed");
+   ayrıca Türkçe büyük/küçük harf kuralı (I→ı) kullanıcı adı karşılaştırmalarını etkiler. Veritabanı yine UTF-8 olur.
+   Son ekranda Stack Builder kutusunun işaretini kaldır (internet ister, gerekmez).
 4. `C:\Program Files\PostgreSQL\16\data\postgresql.conf` içinde `listen_addresses = 'localhost'` kalsın (METIS aynı sunucuda).
 5. Servisin çalıştığını doğrula: `Get-Service postgresql-x64-16`.
 
@@ -165,6 +168,7 @@ Yalnız **boş** bir kurulumda (ilk yöneticiyi oluşturmadan önce) yapılır:
 
 | Belirti | Bakılacak yer |
 |---|---|
+| PG kurulumunda "database cluster initialisation failed" | PG'yi kaldır, `C:\Program Files\PostgreSQL\16` klasörünü sil, Locale = `English, United States` ile yeniden kur |
 | Servis başlamıyor | `C:\METIS\data\logs\service\*.log`, `C:\METIS\bin\metis doctor` |
 | "Şema sürümü" uyarısı | `C:\METIS\bin\metis migrate` |
 | Giriş sonrası 403 / CSRF | `METIS_PUBLIC_URL` tarayıcıdaki adresle aynı mı? |
@@ -188,7 +192,8 @@ kaldığı yerden devam eder. `-RemoveAll` geri alınamaz. PostgreSQL'in kendisi
 
 Windows 10 veya 11 (64 bit) bir bilgisayarda, IIS ve sertifika olmadan, yalnız o bilgisayardan erişilecek şekilde:
 
-1. PostgreSQL 16'yı kur (EDB kurucusu; `postgres` parolasını not al, port 5432).
+1. PostgreSQL 16'yı kur (EDB kurucusu; `postgres` parolasını not al, port 5432). **Locale** sayfasında
+   `English, United States` seç (2. bölüm, 3. madde); son ekranda Stack Builder işaretini kaldır.
 2. Release sayfasından `METIS-<sürüm>-server-win64.zip` dosyasını indir, bir klasöre aç
    (Windows indirilen dosyayı engellediyse: ZIP'e sağ tık → Özellikler → "Engellemeyi kaldır", sonra aç).
 3. PowerShell'i **Yönetici olarak** aç, klasöre geç ve çalıştır:
