@@ -77,6 +77,9 @@ function PageView({ page }: { page: PageDetail }) {
     qc.invalidateQueries({ queryKey: ['domains', page.project_id] });
   };
   const unknowns = r.unknowns.filter((u): u is string => typeof u === 'string');
+  const tocSections = SECTIONS.filter(
+    (x) => x.id === 'aciklama' || (x.id === 'iddialar' && r.claims.length > 0) || (x.id === 'sinirlar' && unknowns.length > 0) || (x.id === 'ilgili' && page.relations.length > 0),
+  );
 
   return (
     <div className={s.wrap}>
@@ -181,13 +184,11 @@ function PageView({ page }: { page: PageDetail }) {
           </div>
         </section>
 
+        {r.claims.length > 0 && (
         <section id="iddialar" className={s.section} aria-labelledby="iddialar-h">
           <h2 id="iddialar-h" className={s.sectionTitle}>
             {tr.page.claims}
           </h2>
-          {r.claims.length === 0 ? (
-            <p className={s.muted}>{tr.page.claimsEmpty}</p>
-          ) : (
             <ol className={s.claims}>
               {r.claims.map((c) => (
                 <li key={c.id} className={s.claim}>
@@ -206,39 +207,35 @@ function PageView({ page }: { page: PageDetail }) {
                 </li>
               ))}
             </ol>
-          )}
         </section>
+        )}
 
+        {unknowns.length > 0 && (
         <section id="sinirlar" className={s.section} aria-labelledby="sinirlar-h">
           <h2 id="sinirlar-h" className={s.sectionTitle}>
             {tr.page.unknowns}
           </h2>
-          {unknowns.length === 0 ? (
-            <p className={s.muted}>{tr.page.unknownsEmpty}</p>
-          ) : (
             <ul className={s.unknowns}>
               {unknowns.map((u, i) => (
                 <li key={i}>{u}</li>
               ))}
             </ul>
-          )}
         </section>
+        )}
 
+        {page.relations.length > 0 && (
         <section id="ilgili" className={s.section} aria-labelledby="ilgili-h">
           <h2 id="ilgili-h" className={s.sectionTitle}>
             {tr.page.relations}
           </h2>
-          {page.relations.length === 0 ? (
-            <p className={s.muted}>{tr.page.relationsEmpty}</p>
-          ) : (
             <ul className={s.relations}>
               {page.relations.map((rel) => {
-                const label = tr.relations[rel.predicate] ?? rel.predicate;
+                const label = (rel.direction === 'in' ? tr.relationsIn : tr.relations)[rel.predicate] ?? rel.predicate;
                 return (
                   <li key={rel.relation_id} className={s.relation}>
                     <span className={s.predicate}>
                       {rel.direction === 'in' && <ArrowLeft size={14} aria-hidden />}
-                      {rel.direction === 'in' ? tr.page.relationIn(label) : label}
+                      {label}
                     </span>
                     <Link to="/bilgi/$pageId" params={{ pageId: rel.other_page_id }} search={{}} className={s.relLink}>
                       <PageKindIcon kind={rel.other_kind} size={15} />
@@ -248,8 +245,8 @@ function PageView({ page }: { page: PageDetail }) {
                 );
               })}
             </ul>
-          )}
         </section>
+        )}
 
         <div className={s.actionBar} role="toolbar" aria-label={tr.common.more}>
           <Link to="/mentor" search={{ q: r.title }} className={s.actionLink}>
@@ -282,11 +279,8 @@ function PageView({ page }: { page: PageDetail }) {
       </article>
 
       <aside className={s.aside} aria-label={tr.page.toc}>
-        <Toc />
+        {tocSections.length > 1 && <Toc sections={tocSections} />}
         {page.sources.length > 0 && <SourceList sources={page.sources} />}
-        <Link to="/mentor" search={{ q: r.title }} className={s.askLink}>
-          {tr.page.askTopic} →
-        </Link>
       </aside>
 
       <HistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} pageId={page.page_id} />
@@ -353,29 +347,33 @@ function Paragraph({ text, marks }: { text: string; marks: ClaimView[] }) {
   );
 }
 
-function Toc() {
+type TocSection = (typeof SECTIONS)[number];
+
+function Toc({ sections }: { sections: TocSection[] }) {
   const [active, setActive] = useState<string>(SECTIONS[0].id);
+  const key = sections.map((x) => x.id).join(',');
   useEffect(() => {
-    const els = SECTIONS.map((x) => document.getElementById(x.id)).filter((e): e is HTMLElement => !!e);
+    const els = sections.map((x) => document.getElementById(x.id)).filter((e): e is HTMLElement => !!e);
     const visible = new Map<string, boolean>();
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) visible.set(e.target.id, e.isIntersecting);
-        const first = SECTIONS.find((x) => visible.get(x.id));
+        const first = sections.find((x) => visible.get(x.id));
         if (first) setActive(first.id);
       },
       { rootMargin: '-64px 0px -55% 0px', threshold: 0 },
     );
     els.forEach((e) => io.observe(e));
     return () => io.disconnect();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
   return (
     <nav className={s.toc} aria-labelledby="toc-h">
       <h2 id="toc-h" className={s.asideTitle}>
         {tr.page.toc}
       </h2>
       <ul>
-        {SECTIONS.map((x) => (
+        {sections.map((x) => (
           <li key={x.id}>
             <a
               href={`#${x.id}`}

@@ -133,6 +133,7 @@ export function TaskDetailPage() {
         <Report job={j} />
       </section>
 
+      {(messages.length > 0 || j.can_answer) && (
       <section className={s.section} aria-labelledby="job-q">
         <h2 id="job-q" className={s.sectionTitle}>
           {tr.jobs.questions}
@@ -157,6 +158,7 @@ export function TaskDetailPage() {
         )}
         {j.can_answer && <AnswerForm job={j} question={[...messages].reverse().find((m) => m.role === 'metis' && !m.answered) ?? null} />}
       </section>
+      )}
 
       <TechDetails job={j} />
       </div>
@@ -358,6 +360,7 @@ function TechDetails({ job }: { job: Job }) {
             fence={text(t.fence)} attempt={text(t.attempt)}
             {t.lease_until ? ` lease_until=${text(t.lease_until)}` : ''}
             {t.worker_id ? ` worker=${text(t.worker_id)}` : ''}
+            {job.error_code ? ` error=${job.error_code}` : ''}
           </dd>
           <dt>{tr.jobs.techBudget}</dt>
           <dd className="mono">{budget.length ? budget.map(([k, v]) => `${k}=${text(v)}`).join(' ') : tr.common.none}</dd>

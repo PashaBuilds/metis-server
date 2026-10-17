@@ -3,7 +3,6 @@ import { getRouteApi, Link, useBlocker, useNavigate } from '@tanstack/react-rout
 import { PenLine } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button, Dialog, EmptyState, SkeletonRows } from '@/design/primitives';
-import { SourceKindIcon } from '@/design/iz';
 import { PageHeader } from '@/app/Shell';
 import { EMPTY_SCOPE } from '@/app/session';
 import { tr } from '@/i18n/tr';
@@ -96,6 +95,7 @@ export function ContributePage() {
   const [path, setPath] = useState<'choose' | 'self'>(editMode ? 'self' : 'choose');
   const [source, setSource] = useState<SourceDetail | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
+  const [revisionMode, setRevisionMode] = useState(false);
 
   const dirtyRef = useRef({ source: false, editor: false });
   const allowNav = useRef(false);
@@ -219,10 +219,35 @@ export function ContributePage() {
                 selected={source}
                 onSelect={selectSource}
                 onClear={() => setSource(null)}
-                onContinue={() => setStep('draft')}
+                onContinue={path === 'self' ? () => setStep('draft') : undefined}
                 onDirty={(d) => setDirty('source', d)}
                 offerRevision={!!search.source}
+                onRevisionMode={setRevisionMode}
               />
+              {source && path === 'choose' && !revisionMode && (
+                // Kaynak seçilince iki yol doğrudan sunulur; ayrı bir "Taslağa geç" adımı yok.
+                <div className={s.options}>
+                  <MetisOption source={source} onStarted={(id) => go(() => navigate({ to: '/gorevler/$jobId', params: { jobId: id } }))} />
+                  <div className={s.option}>
+                    <div className={s.optionHead}>
+                      <PenLine size={20} aria-hidden />
+                      <h3 className={s.optionTitle}>{tr.contribute.selfTitle}</h3>
+                    </div>
+                    <p className={s.optionText}>{tr.contribute.selfText}</p>
+                    <div className={s.optionAction}>
+                      <Button
+                        variant="primary"
+                        onClick={() => {
+                          setPath('self');
+                          setStep('draft');
+                        }}
+                      >
+                        {tr.contribute.openEditor}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               {!source && editMode && (
                 <div>
                   <Button variant="ghost" onClick={() => setStep('draft')}>
@@ -231,29 +256,6 @@ export function ContributePage() {
                 </div>
               )}
             </section>
-          )}
-          {step === 'draft' && path === 'choose' && (
-            <div className={s.options}>
-              <MetisOption source={source} onStarted={(id) => go(() => navigate({ to: '/gorevler/$jobId', params: { jobId: id } }))} />
-              <div className={s.option}>
-                <div className={s.optionHead}>
-                  <PenLine size={20} aria-hidden />
-                  <h3 className={s.optionTitle}>{tr.contribute.selfTitle}</h3>
-                </div>
-                <p className={s.optionText}>{tr.contribute.selfText}</p>
-                {source && (
-                  <p className={s.optionSource}>
-                    <SourceKindIcon kind={source.kind} size={15} />
-                    {source.title}
-                  </p>
-                )}
-                <div className={s.optionAction}>
-                  <Button variant="primary" onClick={() => setPath('self')}>
-                    {tr.contribute.openEditor}
-                  </Button>
-                </div>
-              </div>
-            </div>
           )}
           {path === 'self' && (
             <div hidden={step !== 'draft'}>

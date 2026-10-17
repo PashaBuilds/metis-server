@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
-import { ChevronLeft, ExternalLink, FolderTree, MessagesSquare, PencilLine, Search, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ExternalLink, FolderTree, MessagesSquare, PencilLine, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button, ConfirmDialog, EmptyState, Input, Select, SkeletonRows, StatusBadge } from '@/design/primitives';
 import { ScopeChips, useCatalog } from '@/app/ScopeBar';
@@ -82,6 +82,8 @@ export function LibraryPage() {
   }, [search.q]);
 
   const filtered = hasFilters(search);
+  const advancedCount = (['yatt', 'kart', 'proje'] as const).filter((d) => (search[d] ?? []).length > 0).length + (search.freshness ? 1 : 0);
+  const [moreOpen, setMoreOpen] = useState(advancedCount > 0);
   const showRows = !!search.domain || filtered;
   const domains = useQuery({
     queryKey: ['domains', pid],
@@ -122,15 +124,6 @@ export function LibraryPage() {
           />
         </div>
         <div className={s.filterRow}>
-          {(['yatt', 'kart', 'proje'] as const).map((d) => (
-            <MultiFilter
-              key={d}
-              label={tr.scope.dims[d]!}
-              options={(catalog.data?.[d] ?? []).map((v) => v.value)}
-              value={search[d] ?? []}
-              onChange={(v) => setSearch({ [d]: v })}
-            />
-          ))}
           <Select aria-label={tr.library.kind} value={search.kind ?? ''} onChange={(e) => setSearch({ kind: e.target.value || undefined })} className={s.select}>
             <option value="">{tr.library.allKinds}</option>
             {PAGE_KINDS.map((k) => (
@@ -139,20 +132,36 @@ export function LibraryPage() {
               </option>
             ))}
           </Select>
-          <Select aria-label={tr.library.freshness} value={search.freshness ?? ''} onChange={(e) => setSearch({ freshness: e.target.value || undefined })} className={s.select}>
-            <option value="">{tr.library.allFreshness}</option>
-            {FRESHNESS.map((k) => (
-              <option key={k} value={k}>
-                {tr.freshness[k]}
-              </option>
-            ))}
-          </Select>
+          <Button variant="secondary" icon={<SlidersHorizontal size={15} aria-hidden />} aria-expanded={moreOpen} aria-controls="library-more-filters" onClick={() => setMoreOpen((o) => !o)}>
+            {advancedCount ? tr.library.moreFiltersN(advancedCount) : tr.library.moreFilters}
+          </Button>
           {filtered && (
             <Button variant="ghost" size="sm" icon={<X size={15} aria-hidden />} onClick={clearAll}>
               {tr.common.clearFilters}
             </Button>
           )}
         </div>
+        {moreOpen && (
+          <div id="library-more-filters" className={s.filterRow}>
+            {(['yatt', 'kart', 'proje'] as const).map((d) => (
+              <MultiFilter
+                key={d}
+                label={tr.scope.dims[d]!}
+                options={(catalog.data?.[d] ?? []).map((v) => v.value)}
+                value={search[d] ?? []}
+                onChange={(v) => setSearch({ [d]: v })}
+              />
+            ))}
+            <Select aria-label={tr.library.freshness} value={search.freshness ?? ''} onChange={(e) => setSearch({ freshness: e.target.value || undefined })} className={s.select}>
+              <option value="">{tr.library.allFreshness}</option>
+              {FRESHNESS.map((k) => (
+                <option key={k} value={k}>
+                  {tr.freshness[k]}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
       </div>
 
       {showRows ? (

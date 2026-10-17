@@ -51,6 +51,7 @@ p {
 a {
   color: inherit;
   text-underline-offset: 3px;
+  text-decoration-color: var(--vurgu);
 }
 
 button,
@@ -98,7 +99,7 @@ mark {
 }
 
 :focus-visible {
-  outline: 2px solid var(--murekkep);
+  outline: 2px solid var(--vurgu);
   outline-offset: 2px;
   border-radius: 2px;
 }

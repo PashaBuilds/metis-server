@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, FilePlus2, FileUp, RefreshCw, Search, X } from 'lucide-react';
-import { useRef, useState, type DragEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Button, Field, Input, Segmented, Select, SkeletonRows, Textarea, useToast } from '@/design/primitives';
 import { SourceKindIcon } from '@/design/iz';
-import { ScopePicker } from '@/app/ScopeBar';
+import { ScopeField } from '@/app/ScopeBar';
 import { EMPTY_SCOPE, useSession, type ScopeSel } from '@/app/session';
 import { errorMessage, sourceKindLabel, tr } from '@/i18n/tr';
 import { api, ApiError, type Schemas } from '@/lib/api/client';
@@ -29,14 +29,27 @@ interface Props {
   selected: SourceDetail | null;
   onSelect: (id: string) => Promise<void>;
   onClear: () => void;
-  onContinue: () => void;
+  /** Yalnız editör zaten açıkken (kaynağı değiştirmeye dönülünce) gösterilir. */
+  onContinue?: () => void;
   onDirty: (dirty: boolean) => void;
   offerRevision: boolean;
+  /** Yeni sürüm formu açıkken taslak yolları gizlenir. */
+  onRevisionMode?: (open: boolean) => void;
 }
 
-export function SourceStep({ selected, onSelect, onClear, onContinue, onDirty, offerRevision }: Props) {
-  const [tab, setTab] = useState<'existing' | 'new'>('existing');
+export function SourceStep({ selected, onSelect, onClear, onContinue, onDirty, offerRevision, onRevisionMode }: Props) {
+  const { projectId } = useSession();
+  const [picked, setTab] = useState<'existing' | 'new' | null>(null);
   const [revisionOpen, setRevisionOpen] = useState(offerRevision);
+  // Projede hiç kaynak yoksa doğrudan "Yeni kaynak" açılır (ExistingSources ile aynı sorgu, önbellekten gelir).
+  const any = useQuery({
+    queryKey: ['sources', projectId, ''],
+    queryFn: () => api.get<Schemas['SourceListOut']>(`/projects/${projectId}/sources`, { q: '', limit: 50 }),
+    enabled: !!projectId && !selected,
+  });
+  const tab = picked ?? (any.data && any.data.items.length === 0 ? 'new' : 'existing');
+  const revisionMode = revisionOpen && !!selected;
+  useEffect(() => onRevisionMode?.(revisionMode), [revisionMode, onRevisionMode]);
 
   if (selected) {
     const rev = selected.current_revision;
@@ -67,9 +80,11 @@ export function SourceStep({ selected, onSelect, onClear, onContinue, onDirty, o
           />
         ) : (
           <div className={s.actions}>
-            <Button variant="primary" iconEnd={<ArrowRight size={16} aria-hidden />} onClick={onContinue}>
-              {tr.contribute.continue}
-            </Button>
+            {onContinue && (
+              <Button variant="primary" iconEnd={<ArrowRight size={16} aria-hidden />} onClick={onContinue}>
+                {tr.contribute.continue}
+              </Button>
+            )}
             <Button icon={<RefreshCw size={15} aria-hidden />} onClick={() => setRevisionOpen(true)}>
               {tr.contribute.newRevision}
             </Button>
@@ -295,29 +310,6 @@ function NewSourceForm({ onCreated, onDirty }: { onCreated: (id: string) => Prom
           )}
         </Field>
       </div>
-      <div className={s.formRow}>
-        <Field label={tr.contribute.fVersion} hint={tr.contribute.fVersionHint} className={s.grow}>
-          {({ id, describedBy }) => <Input id={id} aria-describedby={describedBy} value={form.source_version} onChange={set('source_version')} />}
-        </Field>
-        {form.kind === 'code' && (
-          <Field label={tr.contribute.fCommit} className={s.grow}>
-            {({ id }) => <Input id={id} className="mono" value={form.commit} onChange={set('commit')} />}
-          </Field>
-        )}
-      </div>
-      {form.kind === 'code' && (
-        <div className={s.formRow}>
-          <Field label={tr.contribute.fRepository} className={s.grow}>
-            {({ id }) => <Input id={id} value={form.repository} onChange={set('repository')} />}
-          </Field>
-          <Field label={tr.contribute.fPath} className={s.grow}>
-            {({ id }) => <Input id={id} className="mono" value={form.path} onChange={set('path')} />}
-          </Field>
-          <Field label={tr.contribute.fSymbol} className={s.grow}>
-            {({ id }) => <Input id={id} className="mono" value={form.symbol} onChange={set('symbol')} />}
-          </Field>
-        </div>
-      )}
       <div className={s.contentPick} role="group" aria-label={tr.contribute.fFile}>
         <FileDrop
           file={file}
@@ -333,16 +325,51 @@ function NewSourceForm({ onCreated, onDirty }: { onCreated: (id: string) => Prom
           {({ id, describedBy }) => <Textarea id={id} aria-describedby={describedBy} invalid={!!errors.content} rows={8} value={form.text} onChange={set('text')} />}
         </Field>
       </div>
-      <fieldset className={s.scopeBox}>
-        <legend className={s.legend}>{tr.contribute.fScope}</legend>
+      <section className={s.scopeBlock} aria-labelledby="src-scope-h">
+        <h3 id="src-scope-h" className={s.subTitle}>
+          {tr.contribute.fScope}
+        </h3>
         <p className={s.hint}>{tr.contribute.fScopeHint}</p>
-        <ScopePicker value={scope} onChange={setScope} allowIndependent />
+        <ScopeField
+          value={scope}
+          onChange={(sc) => {
+            setScope(sc);
+            onDirty(true);
+          }}
+          allowIndependent
+        />
         {errors.scope && (
           <p className={s.error} role="alert">
             {errors.scope}
           </p>
         )}
-      </fieldset>
+      </section>
+      <details className={s.extra}>
+        <summary>{tr.contribute.extra}</summary>
+        <div className={s.formRow}>
+          <Field label={tr.contribute.fVersion} hint={tr.contribute.fVersionHint} className={s.grow}>
+            {({ id, describedBy }) => <Input id={id} aria-describedby={describedBy} value={form.source_version} onChange={set('source_version')} />}
+          </Field>
+          {form.kind === 'code' && (
+            <Field label={tr.contribute.fCommit} className={s.grow}>
+              {({ id }) => <Input id={id} className="mono" value={form.commit} onChange={set('commit')} />}
+            </Field>
+          )}
+        </div>
+        {form.kind === 'code' && (
+          <div className={s.formRow}>
+            <Field label={tr.contribute.fRepository} className={s.grow}>
+              {({ id }) => <Input id={id} value={form.repository} onChange={set('repository')} />}
+            </Field>
+            <Field label={tr.contribute.fPath} className={s.grow}>
+              {({ id }) => <Input id={id} className="mono" value={form.path} onChange={set('path')} />}
+            </Field>
+            <Field label={tr.contribute.fSymbol} className={s.grow}>
+              {({ id }) => <Input id={id} className="mono" value={form.symbol} onChange={set('symbol')} />}
+            </Field>
+          </div>
+        )}
+      </details>
       <div className={s.actions}>
         <Button type="submit" variant="primary" icon={<FilePlus2 size={16} aria-hidden />} loading={busy}>
           {tr.contribute.addSource}

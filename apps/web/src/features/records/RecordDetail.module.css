@@ -302,9 +302,9 @@ details[open] > summary .chev {
 }
 
 .linkBtnPrimary {
-  background: var(--murekkep);
-  border-color: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  border-color: var(--vurgu);
+  color: var(--vurgu-metin);
 }
 
 .panelFoot {

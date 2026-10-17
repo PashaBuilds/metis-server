@@ -22,18 +22,17 @@ test('kurulum, kaynak, alıntı-iddia, yayın ve İz paneli', async ({ page, bro
   await expect(page.getByRole('heading', { name: 'İlk bilgini ekle' })).toBeVisible();
   await page.getByRole('link', { name: 'Kaynak ekle' }).click();
 
-  // 3) Yeni kaynak: uzman notu
+  // 3) Yeni kaynak: projede kaynak yokken form doğrudan açılır
   await expect(page).toHaveURL(/\/katki/);
-  await page.getByRole('radio', { name: 'Yeni kaynak' }).click();
+  await expect(page.getByRole('radio', { name: 'Yeni kaynak' })).toBeChecked();
   await page.getByLabel('Başlık').fill(SOURCE_TITLE);
   await page.getByLabel('Uzman notu').fill(NOTE);
   await page.getByRole('button', { name: 'Kaynağı ekle' }).click();
   await expect(page.getByText('Seçili kaynak')).toBeVisible();
   await expect(page.getByText('Metin çıkarıldı; alıntı seçebilirsin.')).toBeVisible();
-  await page.getByRole('button', { name: 'Taslağa geç' }).click();
 
-  // 4) Kendim yazayım: alıntı seç → iddiaya bağla
-  await page.getByRole('button', { name: 'Editörü aç' }).click();
+  // 4) Kaynağın hemen altında iki yol: Kendim yazayım → alıntı seç → iddiaya bağla
+  await page.getByRole('button', { name: 'Yazmaya başla' }).click();
   await page.getByLabel('Başlık').fill('AXI kesme maskesi');
   await page.getByLabel('Özet').fill('Kesme maskesinin hangi kayıtta tutulduğu.');
   await page.getByRole('textbox', { name: 'Açıklama' }).fill(`Maske bilgisi için kaynak nota bakılır.\n\n${QUOTE}`);
@@ -70,14 +69,12 @@ test('kurulum, kaynak, alıntı-iddia, yayın ve İz paneli', async ({ page, bro
   await expect(rp.getByRole('heading', { name: 'Ne öğrenmek istiyorsun?' })).toBeVisible();
 
   await rp.goto(recordUrl);
-  const approve = rp.getByRole('button', { name: 'Onayla' });
+  const approve = rp.getByRole('button', { name: 'Onayla ve yayımla' });
   await expect(approve).toBeDisabled();
   await expect(rp.getByText('Onaylamak için kontrol kutusunu işaretle.')).toBeVisible();
   await rp.getByLabel('İddiaları ve kaynak desteğini kontrol ettim').check();
   await expect(approve).toBeEnabled();
   await approve.click();
-  await expect(rp.getByText('Onaylandı', { exact: true }).first()).toBeVisible();
-  await rp.getByRole('button', { name: 'Yayımla' }).click();
   await expect(rp.getByText('Yayımlandı', { exact: true }).first()).toBeVisible();
   await rp.getByRole('link', { name: 'Yayımlanan bilgiyi aç' }).click();
 
@@ -99,11 +96,11 @@ test('kurulum, kaynak, alıntı-iddia, yayın ve İz paneli', async ({ page, bro
   // 9) Yazar: İz panelinden "Yeni kaynak sürümü ekle" → yeni sürüm → bilgi "Kaynak değişti".
   await page.goto(publishedUrl);
   await page.getByRole('button', { name: /^Kaynak 1/ }).first().click();
-  await page.locator('#iz-panel').getByRole('link', { name: 'Yeni kaynak sürümü ekle' }).click();
+  await page.locator('#iz-panel').getByRole('link', { name: 'Yeni sürüm ekle' }).click();
   await expect(page).toHaveURL(/\/katki\?source=/);
-  await expect(page.getByRole('heading', { name: 'Yeni sürüm yükle' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Yeni sürüm ekle' })).toBeVisible();
   await page.getByLabel('Uzman notu').fill(`${NOTE}\nYeni sürümde maske kaydı değişti.`);
-  await page.getByRole('button', { name: 'Yeni sürümü yükle' }).click();
+  await page.getByRole('button', { name: 'Yeni sürümü ekle' }).click();
   await expect(page.getByText(/Yeni sürüm eklendi/)).toBeVisible();
   await expect(page.getByText('2. sürüm')).toBeVisible();
   await page.goto(publishedUrl);

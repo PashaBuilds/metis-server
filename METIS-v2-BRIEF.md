@@ -422,6 +422,8 @@ Hedef: şirket içi, internetsiz bir sunucuda çok kullanıcılı çalışma. Va
 ## 6. Tasarım dili: **İz**
 
 > Bu bölüm Claude'un tasarım yönüdür. Ürün sahibinin isteği: modern, canlı, gezinmesi keyifli, kendine özgü. Eski arayüzün mor/Inter/kart yığını görünümünden bilinçli olarak ayrılır.
+>
+> **Güncelleme (2026-10-17, ürün sahibinin onayı):** palet "Lehim yeşili + Turkuaz" olarak canlandırıldı. Eylem ve seçim için turkuaz **vurgu** rengi eklendi (birincil düğme, aktif menü/sekme, sayaç, bağlantı alt çizgisi, odak halkası); uyarı (`--dikkat`) altınla karışmasın diye turuncuya çekildi. Altın = kanıt kuralı aynen geçerli. Güncel değerler aşağıdaki tablolarda; tek kaynak `apps/web/src/design/tokens.css`.
 
 ### 6.1 Fikir
 METIS'in asıl değeri **iz sürülebilirlik**: her bilginin bir kaynağa giden izi var. "İz" kelimesi hem Türkçe *iz/ize* (provenance) hem de devre kartındaki *bakır iz*dir (PCB trace). Ekibin dünyası kartlar, lehim maskesi, ENIG altın kaplama pedler, via'lar, datasheet'ler. Tasarım bu dünyadan **dekor değil dil** çıkarır:
@@ -435,14 +437,17 @@ METIS'in asıl değeri **iz sürülebilirlik**: her bilginin bir kaynağa giden 
 **Açık tema**
 | Token | Hex | Kullanım |
 |---|---|---|
-| `--zemin` | `#F3F5F1` | Sayfa arka planı (soğuk silika; krem değil) |
+| `--zemin` | `#F4F7F6` | Sayfa arka planı (soğuk silika; krem değil) |
 | `--yuzey` | `#FFFFFF` | Paneller, okuma sütunu |
-| `--yuzey-gomuk` | `#EAEEE9` | Girdi alanları, kod blokları, gömülü bölgeler |
-| `--murekkep` | `#15201B` | Ana metin, birincil düğme dolgusu |
-| `--soluk` | `#59655F` | İkincil metin (zemin üzerinde ≥4.5:1) |
-| `--cizgi` | `#D8DED7` | Kenarlıklar, ayraçlar |
-| `--ray` | `#17382F` | Sol navigasyon rayı (lehim maskesi) |
-| `--ray-metin` | `#D7E4DD` | Ray üzerindeki metin |
+| `--yuzey-gomuk` | `#E9EFED` | Girdi alanları, kod blokları, gömülü bölgeler |
+| `--murekkep` | `#10201B` | Ana metin |
+| `--soluk` | `#56645F` | İkincil metin (zemin üzerinde ≥4.5:1) |
+| `--cizgi` | `#D6E0DC` | Kenarlıklar, ayraçlar |
+| `--ray` | `#0A4038` | Sol navigasyon rayı (lehim maskesi) |
+| `--ray-metin` | `#DCEFE9` | Ray üzerindeki metin |
+| `--ray-nokta` | `#5EEAD4` | Aktif menü noktası/ikonu, menü sayaçları |
+| `--vurgu` | `#0B8576` | Birincil düğme dolgusu, aktif sekme, sayaç, odak halkası (beyaz metinle ≥4.5:1) |
+| `--vurgu-yazi` | `#0A6B60` | Vurgu renginde metin |
 | `--iz` | `#A77B0A` | İz çizgileri, kanıt şeridi, via noktaları (grafik) |
 | `--iz-metin` | `#7A5900` | Altın metin (beyaz üzerinde ≥5:1) |
 | `--iz-zemin` | `#F7ECC4` | Alıntı vurgusu `<mark>` |
@@ -450,14 +455,15 @@ METIS'in asıl değeri **iz sürülebilirlik**: her bilginin bir kaynağa giden 
 **Koyu tema**
 | Token | Hex |
 |---|---|
-| `--zemin` | `#0E1613` |
-| `--yuzey` | `#141F1B` |
-| `--yuzey-gomuk` | `#1B2924` |
-| `--murekkep` | `#E6ECE7` |
-| `--soluk` | `#9DAAA3` |
-| `--cizgi` | `#2A3833` |
-| `--ray` | `#0F241D` |
-| `--ray-metin` | `#C9D8D0` |
+| `--zemin` | `#0B1412` |
+| `--yuzey` | `#111C19` |
+| `--yuzey-gomuk` | `#172622` |
+| `--murekkep` | `#E6EEEB` |
+| `--soluk` | `#9AABA5` |
+| `--cizgi` | `#243833` |
+| `--ray` | `#082A24` |
+| `--ray-metin` | `#CFE7E0` |
+| `--vurgu` | `#2DD4BF` (üstündeki metin `#06201B`) |
 | `--iz` | `#E2BC4E` |
 | `--iz-metin` | `#E8C664` |
 | `--iz-zemin` | `#3B3113` |
@@ -468,7 +474,7 @@ METIS'in asıl değeri **iz sürülebilirlik**: her bilginin bir kaynağa giden 
 | `--onay` | Yayımlandı, Kanıtla destekli, Güncel | `#2A7550` | `#7FCB9F` | ShieldCheck |
 | `--inceleme` | İncelemede | `#2D55C8` | `#8FA8F0` | Eye |
 | `--taslak` | Taslak, Henüz incelenmedi | `#5E6A64` | `#A3AFA9` | PencilLine |
-| `--dikkat` | Kısmen destekli, İnceleme zamanı, Kapsamı netleştirelim | `#9A5B00` | `#E9B261` | AlertTriangle |
+| `--dikkat` | Kısmen destekli, İnceleme zamanı, Kapsamı netleştir | `#C2410C` | `#FB923C` | AlertTriangle |
 | `--celiski` | Çelişki, Geri çekildi, hata | `#B3263F` | `#F08C9E` | GitFork / XCircle |
 
 Ön kontrol (brief hazırlanırken hesaplandı): tüm metin tokenları kendi zeminlerinde ≥5.2:1, durum renkleri yüzey üzerinde ≥5.4:1 (koyu temada ≥7.2:1), grafik `--iz` açık temada 3.8:1 (grafik eşiği 3:1). Kurallar: tüm metin/zemin çiftleri iki temada WCAG AA (Playwright + axe ile test). Tema: varsayılan **sistem** (`prefers-color-scheme`), kullanıcı Sistem / Açık / Koyu seçebilir, sunucuda kullanıcı tercihi olarak saklanır. `theme-color` meta temaya göre güncellenir.
@@ -539,7 +545,7 @@ METIS'in asıl değeri **iz sürülebilirlik**: her bilginin bir kaynağa giden 
 
 ```
 ┌──────┬──────────────────────────────────────────────────┬───────────────┐
-│ RAY  │ Üst çubuk: [Proje ▾] [Kapsam chip'leri]   [⌘K Ara] [＋ Yeni katkı] │
+│ RAY  │ Üst çubuk: [Proje ▾]                      [⌘K Ara] [＋ Yeni katkı] │
 │ (M)  ├──────────────────────────────────────────────────┤               │
 │      │                                                  │   İZ PANELİ   │
 │ Ana  │                  İÇERİK                          │ (açıkken; ≥1280│
@@ -556,9 +562,9 @@ METIS'in asıl değeri **iz sürülebilirlik**: her bilginin bir kaynağa giden 
 └──────┴──────────────────────────────────────────────────┴───────────────┘
 ```
 - Ray 232 px, daraltılınca 64 px (yalnız ikon + tooltip); seçim kalıcı. <760 px: ray çekmece olur, alt kısımda 4 öğelik sekme çubuğu (Ana sayfa, Bilgi, Mentor, Kayıtlar).
-- Aktif öğe: solda `--ray-metin` renginde dolu via noktası + tam opak metin; pasif öğeler %70 opaklık. Nav'da altın **kullanılmaz** — altın yalnız kanıta ayrılmıştır.
+- Aktif öğe: turkuaz zeminli satır, solda `--ray-nokta` renginde dolu via noktası ve ikon; pasif öğeler %70 opaklık. Nav'da altın **kullanılmaz** — altın yalnız kanıta ayrılmıştır.
 - Bildirim/sayı rozetleri: Kayıtlar'da "incelemeni bekleyen" sayısı, Görevler'de "yanıtını bekleyen" sayısı. Sıfırsa rozet yok.
-- Proje seçici gerçek çalışır; kapsam chip'leri aktif kapsamı gösterir ve tıklanınca kapsam seçiciyi açar.
+- Proje seçici gerçek çalışır (tek proje varsa yalnız adı görünür). **Güncelleme (2026-10-17):** üst çubukta kapsam gösterilmez; kapsam yalnız onu kullanan yerlerde (ana sayfa soru kutusu, Mentor, Kavram haritası) görünür ve oradan açılan pencerede seçilir.
 
 **Navigasyon (son hali):**
 - Ana sayfa `/`
@@ -642,6 +648,7 @@ Tek akış, iki adım; sahte 4 adımlı stepper yok.
    - *Metis hazırlasın* → worker işi başlar, ilerleme aynı sayfada canlı görünür; soru gelirse sayfada cevaplanır; bitince taslak açılır.
    - *Kendim yazayım* → editör (Yaz / Önizle), iddialar (her biri ayrı satır, kaynak alıntısı seçilerek bağlanır — metin seçimi → "Bu alıntıyı iddiaya bağla"), bilinen sınırlar.
 - Sonuç: "Taslak kaydedildi" → Kayıtlar'daki detayına git. Kaydedilmemiş metin uyarısı. Desteklenmeyen dosya asla "başarıyla işlendi" demez.
+- **Güncelleme (2026-10-17):** projede kaynak yoksa "Yeni kaynak" formu doğrudan açılır; kaynak seçilince/eklenince iki yol hemen altında sunulur (ara "Taslağa geç" adımı yok). Kaynak formunda kapsam çip + açılır seçici; sürüm/commit/dosya yolu "Ek bilgiler" altında katlı. İddia türü varsayılan "Uzman beyanı", gerekirse açılıp değiştirilir.
 
 ### 7.7 Kayıtlar `/kayitlar` ve inceleme detayı
 Liste: sekmeler **İncelemeni bekleyenler · Taslaklar · Yayımlananlar**; köken filtresi (Tümü / Kişi / Metis) küçük segmented kontrol (v1'deki üç dev kart değil). Filtreler kalıcı.
@@ -666,12 +673,13 @@ Detay (yeniden düzenlenmiş):
 ```
 - Zorunlu kontrol başarısızsa "Onayla" devre dışı ve **nedeni yazılı**.
 - Taban revizyon ilerlediyse: "Bu taslak eski bir sürüme dayanıyor — yeniden temellendir".
-- Onaylanınca aynı yerde "Yayımla"; yayınlanınca "Yayımlanan bilgiyi aç".
+- **Güncelleme (2026-10-17):** onay ve yayın tek düğme: "Onayla ve yayımla" (insan onayı, gerekçe kuralları, kontrol kutusu ve hash bağı aynen). Yayın tamamlanamazsa kayıt onaylı kalır ve "Yayımla" düğmesi görünür; yayınlanınca "Yayımlanan bilgiyi aç".
 - `owner_review` politikasında kendi taslağını onaylama izinli ama rozetle belirtilir ("Kişisel pilot incelemesi").
 - Silme her aşamada: onay diyaloğu → "Silindi · Geri al" toast'u (8 sn).
 
 ### 7.8 Metis görevleri `/gorevler`
 - İki görev türü kartı: "Taslağı düzenle ve karşılaştır", "Bilgi havuzunu denetle". Model seçimi açık (sessiz seçim yok).
+- **Güncelleme (2026-10-17):** "Bilgi havuzunu denetle" kartı kaldırıldı; aynı tarama Bilgi sağlığındaki "Şimdi denetle" ile (isteğe bağlı model) başlatılır.
 - Görev satırı: durum (Sırada / Çalışıyor / Yanıtını bekliyor / Tamamlandı / Hata), başlangıç saat:dakika, sonuç özeti tek cümle.
 - Detay: **önce sonuç** ("2 yeni iddia, 1 çelişki adayı bulundu → Taslağı incele"), sonra Metis'in soruları ve cevap alanı, en altta katlı "Teknik ayrıntılar" (adımlar, model çağrıları, bütçe, ham çıktı).
 - Polling yerine SSE.

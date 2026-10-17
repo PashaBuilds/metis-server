@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { Button, Field, Input } from '@/design/primitives';
-import { errorMessage } from '@/i18n/tr';
+import { errorMessage, tr } from '@/i18n/tr';
 import { api, ApiError, setCsrfToken } from '@/lib/api/client';
 import type { Me } from '@/app/session';
 import { AuthLayout } from './AuthLayout';
@@ -48,13 +48,13 @@ export function SetupPage() {
 
   if (done) {
     return (
-      <AuthLayout title="Yönetici hesabın hazır">
+      <AuthLayout title={tr.auth.importTitle}>
         <div className={s.form}>
-          <p className={s.lead}>v0.5.5 yedeğini sunucuda şu komutla aktar. Parola komut satırına yazılmaz; komut sorar.</p>
+          <p className={s.lead}>{tr.auth.importLead}</p>
           <pre className={s.codeBlock}>metis import-v1 C:\yedek\metis-yedek.metisbak --dry-run{'\n'}metis import-v1 C:\yedek\metis-yedek.metisbak</pre>
-          <p className={s.lead}>Önce --dry-run ile raporu incele. Aktarım tamamlanınca rapor Ayarlar › v0.5.5 aktarımı bölümünde görünür.</p>
+          <p className={s.lead}>{tr.auth.importAfter}</p>
           <Button variant="primary" onClick={() => navigate({ to: '/ayarlar', search: { tab: 'aktarim' } })}>
-            Aktarım raporunu aç
+            {tr.auth.importOpen}
           </Button>
         </div>
       </AuthLayout>
@@ -62,41 +62,41 @@ export function SetupPage() {
   }
 
   return (
-    <AuthLayout title="İlk kurulum">
+    <AuthLayout title={tr.auth.setupTitle}>
       <form className={s.form} onSubmit={submit} noValidate>
-        <p className={s.lead}>Kurulum betiğinin ekrana bastığı tek kullanımlık kodu gir. Kod 24 saat geçerlidir.</p>
+        <p className={s.lead}>{tr.auth.setupLead}</p>
         {error && (
           <p className={s.error} role="alert">
             {error}
           </p>
         )}
-        <Field label="Kurulum kodu" error={fields.code ? errorMessage('SETUP_CODE_INVALID') : null}>
+        <Field label={tr.auth.setupCode} error={fields.code ? errorMessage('SETUP_CODE_INVALID') : null}>
           {({ id, describedBy }) => <Input id={id} aria-describedby={describedBy} value={form.code} onChange={set('code')} autoComplete="off" className="mono" placeholder="XXXX-XXXX-XXXX-XXXX" />}
         </Field>
-        <Field label="Adın">{({ id }) => <Input id={id} value={form.display_name} onChange={set('display_name')} autoComplete="name" />}</Field>
-        <Field label="Kullanıcı adı" hint="Harf, rakam, nokta, tire" error={fields.username ? 'Kullanıcı adını kontrol et.' : null}>
+        <Field label={tr.auth.displayName}>{({ id }) => <Input id={id} value={form.display_name} onChange={set('display_name')} autoComplete="name" />}</Field>
+        <Field label={tr.auth.username} hint={tr.auth.usernameHint} error={fields.username ? tr.auth.usernameInvalid : null}>
           {({ id, describedBy }) => <Input id={id} aria-describedby={describedBy} value={form.username} onChange={set('username')} autoComplete="username" />}
         </Field>
-        <Field label="Parola" hint="En az 12 karakter" error={fields.password ? errorMessage('WEAK_PASSWORD') : null}>
+        <Field label={tr.auth.password} hint={tr.auth.pwHint} error={fields.password ? errorMessage('WEAK_PASSWORD') : null}>
           {({ id, describedBy }) => <Input id={id} aria-describedby={describedBy} type="password" value={form.password} onChange={set('password')} autoComplete="new-password" />}
         </Field>
-        <div className={s.choice} role="group" aria-label="Başlangıç">
+        <div className={s.choice} role="group" aria-label={tr.auth.start}>
           <button type="button" className={s.choiceBtn} aria-pressed={mode === 'empty'} onClick={() => setMode('empty')}>
-            <span>Boş başla</span>
-            <span>İlk projeyi oluştur</span>
+            <span>{tr.auth.startEmpty}</span>
+            <span>{tr.auth.startEmptyText}</span>
           </button>
           <button type="button" className={s.choiceBtn} aria-pressed={mode === 'import'} onClick={() => setMode('import')}>
-            <span>v0.5.5 yedeğinden aktar</span>
-            <span>Önceki bilgileri taşı</span>
+            <span>{tr.auth.startImport}</span>
+            <span>{tr.auth.startImportText}</span>
           </button>
         </div>
         {mode === 'empty' && (
-          <Field label="İlk proje adı" error={fields.project_name ? 'Proje adı gerekli.' : null}>
+          <Field label={tr.auth.projectName} error={fields.project_name ? tr.auth.projectNameRequired : null}>
             {({ id, describedBy }) => <Input id={id} aria-describedby={describedBy} value={form.project_name} onChange={set('project_name')} />}
           </Field>
         )}
         <Button type="submit" variant="primary" loading={busy}>
-          Kurulumu tamamla
+          {tr.auth.finish}
         </Button>
       </form>
     </AuthLayout>

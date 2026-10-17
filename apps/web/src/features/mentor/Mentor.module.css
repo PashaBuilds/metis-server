@@ -458,8 +458,8 @@
   height: 36px;
   padding: 0 var(--s4);
   border-radius: var(--r-chip);
-  background: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  color: var(--vurgu-metin);
   font-weight: 500;
   text-decoration: none;
 }

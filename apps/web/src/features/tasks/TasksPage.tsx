@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { GitCompare, ScanSearch, Sparkles } from 'lucide-react';
+import { GitCompare, Sparkles } from 'lucide-react';
 import { useId, useState, type ReactNode } from 'react';
 import { Button, EmptyState, Field, Select, SkeletonRows, Textarea, useToast } from '@/design/primitives';
 import { PageHeader } from '@/app/Shell';
@@ -59,7 +59,6 @@ export function TasksPage() {
       {canStart && (
         <div className={s.kinds}>
           <RefineCard models={models.data ?? []} modelsError={models.isError ? messageOf(models.error) : null} />
-          <AuditCard models={models.data ?? []} modelsError={models.isError ? messageOf(models.error) : null} />
         </div>
       )}
 
@@ -192,27 +191,3 @@ function RefineCard({ models, modelsError }: { models: AvailableModel[]; modelsE
   );
 }
 
-function AuditCard({ models, modelsError }: { models: AvailableModel[]; modelsError: string | null }) {
-  const navigate = useNavigate();
-  const [model, setModel] = useState('');
-  const reasonId = useId();
-  const { busy, error, start } = useStart((id) => navigate({ to: '/gorevler/$jobId', params: { jobId: id } }));
-  const reason = modelsError ?? (!model ? tr.jobs.modelRequired : null);
-  return (
-    <KindCard icon={<ScanSearch size={20} aria-hidden />} title={tr.jobs.auditTitle} text={tr.jobs.auditText}>
-      <Field label={tr.models.label}>
-        {({ id }) => <ModelSelect id={id} value={model} onChange={setModel} models={models} emptyLabel={tr.models.pick} />}
-      </Field>
-      <div className={s.kindAction}>
-        <Button variant="primary" loading={busy} disabled={!!reason} aria-describedby={reason || error ? reasonId : undefined} onClick={() => start({ kind: 'audit_pool', model_id: model })}>
-          {tr.jobs.start}
-        </Button>
-        {(error || reason) && (
-          <p id={reasonId} className={error ? s.error : s.reason} role={error ? 'alert' : undefined}>
-            {error ?? reason}
-          </p>
-        )}
-      </div>
-    </KindCard>
-  );
-}

@@ -1,6 +1,7 @@
 /*
  * İz tasarım dili — tek kaynak tokenlar.
  * Kural: altın (--iz*) YALNIZ kaynağa bağlı şeyler içindir (alıntı, via, kanıt şeridi, iz çizgisi).
+ * Turkuaz vurgu (--vurgu*) eylem ve seçim içindir: birincil düğme, aktif menü/sekme, sayaç, bağlantı, odak.
  */
 
 :root {
@@ -49,17 +50,24 @@
   --iz-panel-w: 440px;
 
   color-scheme: light;
-  --zemin: #f3f5f1;
+  --zemin: #f4f7f6;
   --yuzey: #ffffff;
-  --yuzey-gomuk: #eaeee9;
-  --murekkep: #15201b;
+  --yuzey-gomuk: #e9efed;
+  --murekkep: #10201b;
   --murekkep-ters: #ffffff;
-  --soluk: #59655f;
-  --cizgi: #d8ded7;
-  --cizgi-guclu: #b9c3bb;
-  --ray: #17382f;
-  --ray-metin: #d7e4dd;
-  --ray-vurgu: #24493e;
+  --soluk: #56645f;
+  --cizgi: #d6e0dc;
+  --cizgi-guclu: #b4c4be;
+  --ray: #0a4038;
+  --ray-metin: #dcefe9;
+  --ray-vurgu: #11524a;
+  --ray-aktif: rgb(45 212 191 / 0.2);
+  --ray-nokta: #5eead4;
+  --vurgu: #0b8576;
+  --vurgu-hover: #0f766e;
+  --vurgu-metin: #ffffff;
+  --vurgu-yazi: #0a6b60;
+  --vurgu-zemin: #dcf3ef;
   --iz: #a77b0a;
   --iz-metin: #7a5900;
   --iz-zemin: #f7ecc4;
@@ -70,30 +78,37 @@
   --inceleme-zemin: #e5ebfa;
   --taslak: #5e6a64;
   --taslak-zemin: #e9ece9;
-  --dikkat: #9a5b00;
-  --dikkat-zemin: #f8ecd9;
+  --dikkat: #c2410c;
+  --dikkat-zemin: #fff1e8;
   --celiski: #b3263f;
   --celiski-zemin: #f8e3e6;
 
-  --golge-diyalog: 0 18px 48px -12px rgb(21 32 27 / 0.28);
-  --odak: 0 0 0 2px var(--yuzey), 0 0 0 4px var(--murekkep);
+  --golge-diyalog: 0 18px 48px -12px rgb(16 32 27 / 0.28);
+  --odak: 0 0 0 2px var(--yuzey), 0 0 0 4px var(--vurgu);
 }
 
 /* Sistem teması: kullanıcı açık/koyu seçmediyse */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --zemin: #0e1613;
-    --yuzey: #141f1b;
-    --yuzey-gomuk: #1b2924;
-    --murekkep: #e6ece7;
-    --murekkep-ters: #0e1613;
-    --soluk: #9daaa3;
-    --cizgi: #2a3833;
-    --cizgi-guclu: #3c4d47;
-    --ray: #0f241d;
-    --ray-metin: #c9d8d0;
-    --ray-vurgu: #1b3a30;
+    --zemin: #0b1412;
+    --yuzey: #111c19;
+    --yuzey-gomuk: #172622;
+    --murekkep: #e6eeeb;
+    --murekkep-ters: #0b1412;
+    --soluk: #9aaba5;
+    --cizgi: #243833;
+    --cizgi-guclu: #36504a;
+    --ray: #082a24;
+    --ray-metin: #cfe7e0;
+    --ray-vurgu: #0f3a32;
+    --ray-aktif: rgb(45 212 191 / 0.18);
+    --ray-nokta: #5eead4;
+    --vurgu: #2dd4bf;
+    --vurgu-hover: #5eead4;
+    --vurgu-metin: #06201b;
+    --vurgu-yazi: #5eead4;
+    --vurgu-zemin: #0f3530;
     --iz: #e2bc4e;
     --iz-metin: #e8c664;
     --iz-zemin: #3b3113;
@@ -104,8 +119,8 @@
     --inceleme-zemin: #1b2647;
     --taslak: #a3afa9;
     --taslak-zemin: #222e2a;
-    --dikkat: #e9b261;
-    --dikkat-zemin: #3a2a12;
+    --dikkat: #fb923c;
+    --dikkat-zemin: #3a1f10;
     --celiski: #f08c9e;
     --celiski-zemin: #3f1a22;
 
@@ -116,17 +131,24 @@
 :root[data-theme='dark'],
 .theme-dark {
   color-scheme: dark;
-  --zemin: #0e1613;
-  --yuzey: #141f1b;
-  --yuzey-gomuk: #1b2924;
-  --murekkep: #e6ece7;
-  --murekkep-ters: #0e1613;
-  --soluk: #9daaa3;
-  --cizgi: #2a3833;
-  --cizgi-guclu: #3c4d47;
-  --ray: #0f241d;
-  --ray-metin: #c9d8d0;
-  --ray-vurgu: #1b3a30;
+  --zemin: #0b1412;
+  --yuzey: #111c19;
+  --yuzey-gomuk: #172622;
+  --murekkep: #e6eeeb;
+  --murekkep-ters: #0b1412;
+  --soluk: #9aaba5;
+  --cizgi: #243833;
+  --cizgi-guclu: #36504a;
+  --ray: #082a24;
+  --ray-metin: #cfe7e0;
+  --ray-vurgu: #0f3a32;
+  --ray-aktif: rgb(45 212 191 / 0.18);
+  --ray-nokta: #5eead4;
+  --vurgu: #2dd4bf;
+  --vurgu-hover: #5eead4;
+  --vurgu-metin: #06201b;
+  --vurgu-yazi: #5eead4;
+  --vurgu-zemin: #0f3530;
   --iz: #e2bc4e;
   --iz-metin: #e8c664;
   --iz-zemin: #3b3113;
@@ -137,8 +159,8 @@
   --inceleme-zemin: #1b2647;
   --taslak: #a3afa9;
   --taslak-zemin: #222e2a;
-  --dikkat: #e9b261;
-  --dikkat-zemin: #3a2a12;
+  --dikkat: #fb923c;
+  --dikkat-zemin: #3a1f10;
   --celiski: #f08c9e;
   --celiski-zemin: #3f1a22;
 
@@ -148,17 +170,24 @@
 /* Vitrin: iki temayı yan yana göstermek için kapsamlı tema sınıfı */
 .theme-light {
   color-scheme: light;
-  --zemin: #f3f5f1;
+  --zemin: #f4f7f6;
   --yuzey: #ffffff;
-  --yuzey-gomuk: #eaeee9;
-  --murekkep: #15201b;
+  --yuzey-gomuk: #e9efed;
+  --murekkep: #10201b;
   --murekkep-ters: #ffffff;
-  --soluk: #59655f;
-  --cizgi: #d8ded7;
-  --cizgi-guclu: #b9c3bb;
-  --ray: #17382f;
-  --ray-metin: #d7e4dd;
-  --ray-vurgu: #24493e;
+  --soluk: #56645f;
+  --cizgi: #d6e0dc;
+  --cizgi-guclu: #b4c4be;
+  --ray: #0a4038;
+  --ray-metin: #dcefe9;
+  --ray-vurgu: #11524a;
+  --ray-aktif: rgb(45 212 191 / 0.2);
+  --ray-nokta: #5eead4;
+  --vurgu: #0b8576;
+  --vurgu-hover: #0f766e;
+  --vurgu-metin: #ffffff;
+  --vurgu-yazi: #0a6b60;
+  --vurgu-zemin: #dcf3ef;
   --iz: #a77b0a;
   --iz-metin: #7a5900;
   --iz-zemin: #f7ecc4;
@@ -169,10 +198,10 @@
   --inceleme-zemin: #e5ebfa;
   --taslak: #5e6a64;
   --taslak-zemin: #e9ece9;
-  --dikkat: #9a5b00;
-  --dikkat-zemin: #f8ecd9;
+  --dikkat: #c2410c;
+  --dikkat-zemin: #fff1e8;
   --celiski: #b3263f;
   --celiski-zemin: #f8e3e6;
 
-  --golge-diyalog: 0 18px 48px -12px rgb(21 32 27 / 0.28);
+  --golge-diyalog: 0 18px 48px -12px rgb(16 32 27 / 0.28);
 }

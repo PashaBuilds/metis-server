@@ -43,7 +43,7 @@
   right: var(--s3);
   bottom: -1px;
   height: 2px;
-  background: var(--murekkep);
+  background: var(--vurgu);
   border-radius: 2px;
 }
 
@@ -98,8 +98,8 @@
 
 .segment[aria-checked='true'] {
   background: var(--yuzey);
-  color: var(--murekkep);
-  box-shadow: 0 0 0 1px var(--cizgi);
+  color: var(--vurgu-yazi);
+  box-shadow: 0 0 0 1px var(--vurgu);
 }
 
 /* Tooltip */

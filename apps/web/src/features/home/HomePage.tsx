@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Activity, ArrowRight, ClipboardList, CornerDownLeft, FilePlus2, Plus, Sparkles } from 'lucide-react';
+import { Activity, ArrowRight, Circle, ClipboardList, CornerDownLeft, FilePlus2, Plus, Sparkles } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
 import { Button, Chip, ChipButton, SkeletonRows, useToast } from '@/design/primitives';
-import { DIMS } from '@/app/ScopeBar';
+import { DIMS, useCatalog } from '@/app/ScopeBar';
 import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { api, type Schemas } from '@/lib/api/client';
@@ -40,6 +40,7 @@ export function HomePage() {
   const myDrafts = (drafts.data?.items ?? []).filter((c) => c.author_id === meId || c.requester_id === meId).slice(0, 5);
   const waiting = (inbox.data?.reviews_waiting ?? 0) + (inbox.data?.questions_waiting ?? 0);
   const emptyPool = pages.data?.total === 0;
+  const setup = useAdminSetup(pid, modelList);
 
   function ask(e: FormEvent) {
     e.preventDefault();
@@ -101,7 +102,7 @@ export function HomePage() {
         </div>
       </form>
 
-      <div className={[s.grid, waiting > 0 || !!inbox.data?.open_findings ? '' : s.gridSingle].join(' ')}>
+      <div className={[s.grid, waiting > 0 || !!inbox.data?.open_findings || setup.length > 0 ? '' : s.gridSingle].join(' ')}>
         <div className={s.mainCol}>
           {session.roles.has('contributor') && !(emptyPool && myDrafts.length === 0) && (
             <section className={s.section} aria-labelledby="home-resume">
@@ -182,6 +183,23 @@ export function HomePage() {
         </div>
 
         <aside className={s.sideCol} aria-label={tr.home.waiting}>
+          {setup.length > 0 && (
+            <section className={s.section} aria-labelledby="home-setup">
+              <h2 id="home-setup">{tr.home.setupTitle}</h2>
+              <p className={s.emptyLine}>{tr.home.setupLead}</p>
+              <ul className={s.waitList}>
+                {setup.map((item) => (
+                  <li key={item.key}>
+                    <Link to={item.to} search={item.search} className={s.waitItem}>
+                      <Circle size={16} aria-hidden />
+                      <span>{item.label}</span>
+                      <ArrowRight size={16} aria-hidden className={s.waitArrow} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {waiting > 0 && (
             <section className={s.section} aria-labelledby="home-waiting">
               <h2 id="home-waiting">{tr.home.waiting}</h2>
@@ -217,6 +235,28 @@ export function HomePage() {
       </div>
     </div>
   );
+}
+
+type SetupItem = { key: string; label: string; to: '/lab' | '/ayarlar'; search?: { tab: string } };
+
+/**
+ * Yönetici için ilk kurulum listesi: model, kapsam değerleri, ekip. Yalnız eksik olanlar görünür;
+ * hepsi tamamlanınca liste kaybolur. Kurgusal test modeli şirket verisiyle kullanılamadığı için sayılmaz.
+ */
+function useAdminSetup(pid: string | null, models: { eligible: boolean; is_fixture: boolean }[]): SetupItem[] {
+  const { isAdmin } = useSession();
+  const catalog = useCatalog(isAdmin ? pid : null);
+  const members = useQuery({
+    queryKey: ['members', pid],
+    queryFn: () => api.get<Schemas['MemberOut'][]>(`/projects/${pid}/members`),
+    enabled: isAdmin && !!pid,
+  });
+  if (!isAdmin || !catalog.data || !members.data) return [];
+  const items: SetupItem[] = [];
+  if (!models.some((m) => m.eligible && !m.is_fixture)) items.push({ key: 'model', label: tr.home.setupModel, to: '/lab' });
+  if (!DIMS.some((d) => (catalog.data[d] ?? []).length > 0)) items.push({ key: 'scope', label: tr.home.setupScope, to: '/ayarlar', search: { tab: 'kapsam' } });
+  if (members.data.length < 2) items.push({ key: 'members', label: tr.home.setupMembers, to: '/ayarlar', search: { tab: 'uyeler' } });
+  return items;
 }
 
 function FirstSteps() {

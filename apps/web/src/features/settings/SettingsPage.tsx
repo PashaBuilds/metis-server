@@ -18,25 +18,28 @@ interface SettingsTab {
   key: string;
   label: string;
   render: () => ReactNode;
-  adminOnly?: boolean;
+  /** Sekme yalnız düzenleyebilecek ya da görebilecek kişiye gösterilir. */
+  visible?: (s: { isAdmin: boolean; roles: Set<string> }) => boolean;
 }
 
+const admin = ({ isAdmin }: { isAdmin: boolean }) => isAdmin;
+
 const TABS: SettingsTab[] = [
-  { key: 'uyeler', label: tr.settings.tabs.uyeler!, render: () => <MembersTab /> },
-  { key: 'politika', label: tr.settings.tabs.politika!, render: () => <PolicyTab /> },
-  { key: 'kapsam', label: tr.settings.tabs.kapsam!, render: () => <ScopesTab /> },
-  { key: 'bakim', label: tr.settings.tabs.bakim!, render: () => <ScheduleTab /> },
-  { key: 'sistem', label: tr.settings.tabs.sistem!, render: () => <SystemTab />, adminOnly: true },
+  { key: 'uyeler', label: tr.settings.tabs.uyeler!, render: () => <MembersTab />, visible: (s) => s.isAdmin || s.roles.has('steward') },
+  { key: 'politika', label: tr.settings.tabs.politika!, render: () => <PolicyTab />, visible: admin },
+  { key: 'kapsam', label: tr.settings.tabs.kapsam!, render: () => <ScopesTab />, visible: (s) => s.roles.has('contributor') || s.roles.has('steward') },
+  { key: 'bakim', label: tr.settings.tabs.bakim!, render: () => <ScheduleTab />, visible: (s) => s.roles.has('steward') },
+  { key: 'sistem', label: tr.settings.tabs.sistem!, render: () => <SystemTab />, visible: admin },
   { key: 'disa-aktar', label: tr.settings.tabs['disa-aktar']!, render: () => <ExportTab /> },
-  { key: 'aktarim', label: tr.settings.tabs.aktarim!, render: () => <ImportTab />, adminOnly: true },
+  { key: 'aktarim', label: tr.settings.tabs.aktarim!, render: () => <ImportTab />, visible: admin },
   { key: 'gorunum', label: tr.settings.tabs.gorunum!, render: () => <AppearanceTab /> },
 ];
 
 export function SettingsPage() {
   const { tab } = route.useSearch();
   const navigate = useNavigate({ from: '/ayarlar' });
-  const { isAdmin } = useSession();
-  const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
+  const { isAdmin, roles } = useSession();
+  const tabs = TABS.filter((t) => !t.visible || t.visible({ isAdmin, roles }));
   const current = tabs.find((t) => t.key === tab) ?? tabs[0]!;
   return (
     <div className={s.page}>

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useSession } from './session';
 
 export type ThemePref = 'system' | 'light' | 'dark';
-const META: Record<'light' | 'dark', string> = { light: '#F3F5F1', dark: '#0E1613' };
+const META: Record<'light' | 'dark', string> = { light: '#F4F7F6', dark: '#0B1412' };
 
 export function applyTheme(theme: ThemePref) {
   const root = document.documentElement;
@@ -21,7 +21,6 @@ export function applyTheme(theme: ThemePref) {
 export function ThemeSync() {
   const { pref, me } = useSession();
   const theme = pref<ThemePref>('theme', 'system');
-  const density = pref<'comfortable' | 'compact'>('density', 'comfortable');
   useEffect(() => {
     if (!me) return;
     applyTheme(theme);
@@ -31,9 +30,6 @@ export function ThemeSync() {
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
   }, [theme, me]);
-  useEffect(() => {
-    document.documentElement.dataset.density = density;
-  }, [density]);
   return null;
 }
 

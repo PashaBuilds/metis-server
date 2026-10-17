@@ -455,7 +455,7 @@ function ModelTr({ m, checked, onCheck, testing, runState, onTest, onOpen, onCle
               {m.task_label}
             </span>
           ) : (
-            <span className={s.reason}>{modelReason(m.eligibility_reason)}</span>
+            <span className={s.reason}>{(m.eligibility_reason && tr.labReasons[m.eligibility_reason]) || modelReason(m.eligibility_reason)}</span>
           )}
         </div>
       </td>

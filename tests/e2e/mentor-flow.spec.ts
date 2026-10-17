@@ -27,7 +27,7 @@ test('Lab: sağlayıcı ekle, test et, benchmark → mentor kaynaklı cevap ve �
   await expect(page.getByRole('heading', { level: 1, name: 'Model laboratuvarı' })).toBeVisible();
   await page.getByRole('button', { name: 'Sağlayıcı ekle' }).click();
   const dialog = page.getByRole('dialog', { name: 'Sağlayıcı ekle' });
-  await dialog.getByLabel('Base URL').fill(MOCK_URL);
+  await dialog.getByLabel('Sunucu adresi').fill(MOCK_URL);
   await dialog.getByLabel('Model kimlikleri').fill('fixture-reference');
   await dialog.getByRole('button', { name: 'Sağlayıcı ekle' }).click();
   await expect(page.getByText('Sağlayıcı eklendi')).toBeVisible();
@@ -57,7 +57,7 @@ test('Lab: sağlayıcı ekle, test et, benchmark → mentor kaynaklı cevap ve �
   // 4) Ana sayfa model seçicisi: Otomatik + uygun model.
   await page.goto('/');
   const homeModel = page.getByLabel('Model');
-  await expect(homeModel.locator('option', { hasText: 'Otomatik (kalite kapısı → gecikme)' })).toHaveCount(1);
+  await expect(homeModel.locator('option', { hasText: 'Otomatik (önerilen)' })).toHaveCount(1);
   await expect(homeModel.locator('option', { hasText: 'fixture-reference (kurgusal test modeli)' })).toBeEnabled();
 
   // 5) Mentor: akışlı cevap → karar rozeti, ●n işaretli açıklama, alıntı kartı.
@@ -81,7 +81,7 @@ test('Lab: sağlayıcı ekle, test et, benchmark → mentor kaynaklı cevap ve �
   await expect(panel).toBeHidden();
 
   // 7) Üretim kaydı katlı: model ve prompt sürümü yalnız orada.
-  await answer.getByText('Kanıt, kapsam ve üretim kaydı').click();
+  await answer.getByText('Teknik ayrıntılar').click();
   await expect(answer.getByText('evidence-explain-v1')).toBeVisible();
   await expect(answer.getByText('fixture-reference', { exact: true })).toBeVisible();
 

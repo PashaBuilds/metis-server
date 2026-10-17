@@ -71,9 +71,9 @@ button.stepBtn:hover {
 }
 
 .stepCurrent .stepNo {
-  background: var(--murekkep);
-  border-color: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  border-color: var(--vurgu);
+  color: var(--vurgu-metin);
 }
 
 .stepValue {
@@ -556,8 +556,8 @@ button.stepBtn:hover {
   padding: 0 var(--s3);
   border: 0;
   border-radius: var(--r-chip);
-  background: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  color: var(--vurgu-metin);
   font-size: var(--fs-13);
   font-weight: 500;
   box-shadow: var(--golge-diyalog);
@@ -636,6 +636,17 @@ button.stepBtn:hover {
 
 .claimKind {
   max-width: 260px;
+  font-size: var(--fs-13);
+  color: var(--soluk);
+}
+
+.claimKind > summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.claimKind[open] > summary {
+  margin-bottom: var(--s2);
 }
 
 .unknownsBox {
@@ -650,21 +661,7 @@ button.stepBtn:hover {
   align-items: center;
 }
 
-.scopeLine {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s2);
-}
 
-.scopePop {
-  z-index: 70;
-  width: min(640px, calc(100vw - 24px));
-  background: var(--yuzey);
-  border: 1px solid var(--cizgi);
-  border-radius: var(--r-panel);
-  box-shadow: var(--golge-diyalog);
-}
 
 .saveBar {
   grid-area: save;
@@ -705,4 +702,27 @@ button.stepBtn:hover {
     min-width: 0;
     flex-basis: 100%;
   }
+}
+
+.scopeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.extra {
+  border-top: 1px solid var(--cizgi);
+  padding-top: var(--s3);
+}
+
+.extra > summary {
+  width: fit-content;
+  cursor: pointer;
+  font-size: var(--fs-14);
+  font-weight: 500;
+  color: var(--soluk);
+}
+
+.extra[open] > summary {
+  margin-bottom: var(--s3);
 }

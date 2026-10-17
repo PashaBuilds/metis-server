@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { Button, Field, Input } from '@/design/primitives';
-import { errorMessage } from '@/i18n/tr';
+import { errorMessage, tr } from '@/i18n/tr';
 import { api, ApiError, setCsrfToken } from '@/lib/api/client';
 import { useSession, type Me } from '@/app/session';
 import { AuthLayout } from './AuthLayout';
@@ -37,23 +37,23 @@ export function LoginPage() {
   }
 
   return (
-    <AuthLayout title="Giriş yap">
+    <AuthLayout title={tr.auth.loginTitle}>
       <form className={s.form} onSubmit={submit} noValidate>
         {error && (
           <p className={s.error} role="alert">
             {error}
           </p>
         )}
-        <Field label="Kullanıcı adı">
+        <Field label={tr.auth.username}>
           {({ id }) => <Input id={id} autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus />}
         </Field>
-        <Field label="Parola">
+        <Field label={tr.auth.password}>
           {({ id }) => <Input id={id} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />}
         </Field>
         <Button type="submit" variant="primary" loading={busy} disabled={!username || !password}>
-          Giriş yap
+          {tr.auth.login}
         </Button>
-        <p className={s.lead}>Parolanı unuttuysan yöneticinden geçici parola iste.</p>
+        <p className={s.lead}>{tr.auth.forgot}</p>
       </form>
     </AuthLayout>
   );

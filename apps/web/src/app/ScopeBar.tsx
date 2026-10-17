@@ -1,13 +1,12 @@
 import * as Popover from '@radix-ui/react-popover';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { Plus, SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button, Checkbox, Chip } from '@/design/primitives';
+import { Button, Checkbox, Chip, Dialog } from '@/design/primitives';
 import { tr } from '@/i18n/tr';
 import { api, type Schemas } from '@/lib/api/client';
-import { useMediaQuery } from '@/lib/hooks';
-import { EMPTY_SCOPE, scopeIsEmpty, useSession, type ScopeSel } from './session';
+import { EMPTY_SCOPE, useSession, type ScopeSel } from './session';
 import s from './ScopeBar.module.css';
 
 export const DIMS = ['domain', 'yatt', 'kart', 'proje'] as const;
@@ -22,10 +21,13 @@ export function useCatalog(projectId: string | null) {
   });
 }
 
-/** Üst çubuktaki aktif kapsam chip'leri; tıklayınca kapsam seçici açılır. */
-export function ScopeBar() {
+/**
+ * Kapsam seçici penceresi. Kabukta bir kez bağlanır; kapsamı kullanan ekranlar (soru kutusu, Mentor,
+ * Harita, komut paleti) `metis:open-scope` olayıyla açar. Üst çubukta ayrıca kapsam gösterilmez:
+ * kapsam yalnız onu kullanan ekranlarda görünür.
+ */
+export function ScopeDialog() {
   const session = useSession();
-  const mobile = useMediaQuery('(max-width: 759px)');
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -33,36 +35,10 @@ export function ScopeBar() {
     return () => window.removeEventListener('metis:open-scope', onOpen);
   }, []);
   if (!session.projectId) return null;
-  const scope = session.scope;
-  const chips = DIMS.flatMap((d) => scope[d].map((v) => ({ d, v })));
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <div className={s.bar}>
-        {!mobile &&
-          chips.slice(0, 4).map(({ d, v }) => (
-            <Chip
-              key={d + v}
-              label={tr.scope.dims[d]}
-              onRemove={() => session.setScope({ ...scope, [d]: scope[d].filter((x) => x !== v) })}
-            >
-              {v}
-            </Chip>
-          ))}
-        {!mobile && chips.length > 4 && <span className={s.more}>+{chips.length - 4}</span>}
-        <Popover.Trigger asChild>
-          <button type="button" className={s.trigger} aria-label={tr.scope.pick}>
-            {scopeIsEmpty(scope) ? <SlidersHorizontal size={15} aria-hidden /> : <Plus size={15} aria-hidden />}
-            <span className={mobile ? 'sr-only' : undefined}>{scopeIsEmpty(scope) ? tr.scope.all : tr.scope.label}</span>
-            {mobile && chips.length > 0 && <span className={s.count}>{chips.length}</span>}
-          </button>
-        </Popover.Trigger>
-      </div>
-      <Popover.Portal>
-        <Popover.Content className={s.popover} sideOffset={8} align="start" collisionPadding={12}>
-          <ScopePicker value={scope} onChange={session.setScope} onDone={() => setOpen(false)} />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+    <Dialog open={open} onOpenChange={setOpen} title={tr.scope.pick} width={640}>
+      <ScopePicker value={session.scope} onChange={session.setScope} onDone={() => setOpen(false)} />
+    </Dialog>
   );
 }
 
@@ -103,11 +79,34 @@ export function ScopePicker({ value, onChange, onDone, allowIndependent = false 
           </Button>
           {onDone && (
             <Button size="sm" variant="primary" onClick={onDone}>
-              Tamam
+              {tr.common.done}
             </Button>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Formlarda kapsam: seçili değerler çip olarak görünür, seçim açılır panelde yapılır. */
+export function ScopeField({ value, onChange, allowIndependent = false }: { value: ScopeSel; onChange: (s: ScopeSel) => void; allowIndependent?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const empty = DIMS.every((d) => value[d].length === 0);
+  return (
+    <div className={s.fieldLine}>
+      {empty ? <span className={s.fieldEmpty}>{tr.scope.unspecified}</span> : <ScopeChips scope={value} />}
+      <Popover.Root open={open} onOpenChange={setOpen}>
+        <Popover.Trigger asChild>
+          <Button size="sm" icon={<SlidersHorizontal size={15} aria-hidden />}>
+            {tr.scope.pick}
+          </Button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content className={s.fieldPop} sideOffset={6} align="start" collisionPadding={12}>
+            <ScopePicker value={value} onChange={onChange} onDone={() => setOpen(false)} allowIndependent={allowIndependent} />
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
     </div>
   );
 }

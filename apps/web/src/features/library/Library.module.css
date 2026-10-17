@@ -67,6 +67,11 @@
   gap: var(--s2);
 }
 
+/* "Diğer filtreler" açıkken kendi satırında durur. */
+.filterRow + .filterRow {
+  flex-basis: 100%;
+}
+
 .select {
   min-width: 150px;
 }
@@ -101,8 +106,8 @@
   height: 20px;
   padding: 0 6px;
   border-radius: var(--r-round);
-  background: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  color: var(--vurgu-metin);
   font-size: var(--fs-12);
   font-weight: 600;
   line-height: 20px;
@@ -163,9 +168,6 @@
   min-width: 0;
 }
 
-:global([data-density='compact']) .domainLink {
-  padding: var(--s2);
-}
 
 .domainLink:hover .domainName {
   text-decoration: underline;
@@ -213,9 +215,6 @@
   min-width: 0;
 }
 
-:global([data-density='compact']) .pageRow {
-  padding: 6px var(--s2);
-}
 
 .pageRow > svg:first-child {
   margin-top: 2px;
@@ -250,9 +249,6 @@
   white-space: nowrap;
 }
 
-:global([data-density='compact']) .summary {
-  display: none;
-}
 
 .pageMeta {
   display: flex;
@@ -287,8 +283,8 @@
   height: 36px;
   padding: 0 var(--s4);
   border-radius: var(--r-chip);
-  background: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  color: var(--vurgu-metin);
   font-weight: 500;
   text-decoration: none;
 }

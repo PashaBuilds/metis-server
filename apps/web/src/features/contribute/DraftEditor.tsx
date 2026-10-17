@@ -1,8 +1,7 @@
-import * as Popover from '@radix-ui/react-popover';
-import { AlertTriangle, Plus, Send, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Plus, Send, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Field, IconButton, Input, Select, TabPanel, Tabs, Textarea, useToast } from '@/design/primitives';
-import { ScopeChips, ScopePicker } from '@/app/ScopeBar';
+import { ScopeField } from '@/app/ScopeBar';
 import { useSession, type ScopeSel } from '@/app/session';
 import { errorMessage, tr } from '@/i18n/tr';
 import { api, ApiError, newIdempotencyKey, type Schemas } from '@/lib/api/client';
@@ -261,17 +260,19 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
                       <span className={s.quoteText}>{e.quote}</span>
                     </blockquote>
                   ))}
-                  <Field label={tr.contribute.claimKind} className={s.claimKind}>
-                    {({ id }) => (
-                      <Select id={id} value={c.kind} onChange={(e) => updateClaim(c.key, { kind: e.target.value })}>
-                        {CLAIM_KINDS.map((k) => (
-                          <option key={k} value={k}>
-                            {tr.claimKinds[k]}
-                          </option>
-                        ))}
-                      </Select>
-                    )}
-                  </Field>
+                  {/* İddia türü varsayılanla gelir ("Uzman beyanı"); gerekirse açılıp değiştirilir. */}
+                  <details className={s.claimKind}>
+                    <summary>
+                      {tr.contribute.claimKind}: {tr.claimKinds[c.kind] ?? c.kind}
+                    </summary>
+                    <Select aria-label={tr.contribute.claimKind} value={c.kind} onChange={(e) => updateClaim(c.key, { kind: e.target.value })}>
+                      {CLAIM_KINDS.map((k) => (
+                        <option key={k} value={k}>
+                          {tr.claimKinds[k]}
+                        </option>
+                      ))}
+                    </Select>
+                  </details>
                 </li>
               );
             })}
@@ -305,22 +306,7 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
             {tr.contribute.pScope}
           </h3>
           <p className={s.hint}>{tr.contribute.pScopeHint}</p>
-          <div className={s.scopeLine}>
-            <ScopeChips scope={v.scope} />
-            {Object.values(v.scope).every((x) => x.length === 0) && <span className={s.muted}>{tr.scope.unspecified}</span>}
-            <Popover.Root>
-              <Popover.Trigger asChild>
-                <Button size="sm" icon={<SlidersHorizontal size={15} aria-hidden />}>
-                  {tr.scope.pick}
-                </Button>
-              </Popover.Trigger>
-              <Popover.Portal>
-                <Popover.Content className={s.scopePop} sideOffset={6} align="start" collisionPadding={12}>
-                  <ScopePicker value={v.scope} onChange={(sc) => update({ scope: sc })} allowIndependent />
-                </Popover.Content>
-              </Popover.Portal>
-            </Popover.Root>
-          </div>
+          <ScopeField value={v.scope} onChange={(sc) => update({ scope: sc })} allowIndependent />
         </section>
       </div>
 

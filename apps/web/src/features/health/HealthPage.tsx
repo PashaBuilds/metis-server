@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router';
 import { Activity, Archive, ChevronDown, CircleCheck, FilePen, GitFork, ScanSearch } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
-import { Button, Dialog, EmptyState, Field, Segmented, Select, SkeletonRows, TabPanel, Tabs, Textarea, useToast } from '@/design/primitives';
+import { Button, Dialog, EmptyState, Field, Select, SkeletonRows, TabPanel, Tabs, Textarea, useToast } from '@/design/primitives';
 import { PageHeader } from '@/app/Shell';
 import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
@@ -17,7 +17,6 @@ import s from './Health.module.css';
 
 const route = getRouteApi('/app/saglik');
 type Tab = 'open' | 'resolved';
-type View = 'list' | 'kind';
 
 export function HealthPage() {
   const session = useSession();
@@ -25,7 +24,6 @@ export function HealthPage() {
   const search = route.useSearch();
   const navigate = useNavigate({ from: '/saglik' });
   const tab: Tab = search.tab === 'resolved' ? 'resolved' : 'open';
-  const view: View = search.group === 'kind' ? 'kind' : 'list';
   const kind = search.kind && (KIND_ORDER as readonly string[]).includes(search.kind) ? search.kind : undefined;
   const [scanOpen, setScanOpen] = useState(false);
   const [scanJob, setScanJob] = useState<string | null>(null);
@@ -89,16 +87,6 @@ export function HealthPage() {
         {(['open', 'resolved'] as const).map((t) => (
           <TabPanel key={t} value={t}>
             <div className={s.toolbar}>
-              <span className={s.toolLabel}>{tr.health.view}</span>
-              <Segmented<View>
-                label={tr.health.view}
-                value={view}
-                onChange={(v) => setSearch({ group: v === 'kind' ? 'kind' : undefined })}
-                options={[
-                  { value: 'list', label: tr.health.viewList },
-                  { value: 'kind', label: tr.health.viewGroup },
-                ]}
-              />
               <KindFilter value={kind ?? ''} onChange={(v) => setSearch({ kind: v || undefined })} />
             </div>
             {t !== tab ? null : findings.isLoading ? (
@@ -111,25 +99,8 @@ export function HealthPage() {
               <EmptyState icon={<Activity size={24} />} title={tr.health.emptyTitle[t]!}>
                 {tr.health.empty[t]}
               </EmptyState>
-            ) : view === 'list' ? (
-              list(items)
             ) : (
-              <div className={s.groups}>
-                {KIND_ORDER.filter((k) => items.some((f) => f.kind === k)).map((k) => {
-                  const rows = items.filter((f) => f.kind === k);
-                  return (
-                    <section key={k} className={s.group} aria-labelledby={`grp-${k}`}>
-                      <div className={s.groupHead}>
-                        <h2 id={`grp-${k}`} className={s.groupTitle}>
-                          {tr.health.kinds[k]}
-                        </h2>
-                        <span className={s.groupCount}>{tr.health.groupCount(rows.length)}</span>
-                      </div>
-                      {list(rows)}
-                    </section>
-                  );
-                })}
-              </div>
+              list(items)
             )}
           </TabPanel>
         ))}

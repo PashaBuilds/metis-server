@@ -10,8 +10,8 @@
   top: 8px;
   z-index: 100;
   padding: 8px 12px;
-  background: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  color: var(--vurgu-metin);
   border-radius: var(--r-chip);
 }
 
@@ -112,6 +112,11 @@
 .navActive {
   opacity: 1;
   font-weight: 600;
+  background: var(--ray-aktif);
+}
+
+.navActive .navIcon {
+  color: var(--ray-nokta);
 }
 
 /* Aktif öğe: solda ray-metin renginde dolu via noktası. Altın kullanılmaz. */
@@ -125,7 +130,7 @@
 }
 
 .navActive .navDot {
-  background: var(--ray-metin);
+  background: var(--ray-nokta);
 }
 
 .navIcon {
@@ -144,7 +149,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: var(--r-round);
-  background: var(--ray-metin);
+  background: var(--ray-nokta);
   color: var(--ray);
   font-size: var(--fs-12);
   font-weight: 600;
@@ -278,6 +283,17 @@
   border-color: var(--cizgi-guclu);
 }
 
+.projectStatic {
+  border-color: transparent;
+  background: transparent;
+  padding-left: 0;
+  cursor: default;
+}
+
+.projectStatic:hover {
+  border-color: transparent;
+}
+
 .projectName {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -327,14 +343,14 @@
   height: 34px;
   padding: 0 var(--s3);
   border-radius: var(--r-chip);
-  background: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  color: var(--vurgu-metin);
   font-weight: 500;
   text-decoration: none;
 }
 
 .newBtn:hover {
-  background: color-mix(in srgb, var(--murekkep) 86%, var(--yuzey));
+  background: var(--vurgu-hover);
 }
 
 .demoBanner {

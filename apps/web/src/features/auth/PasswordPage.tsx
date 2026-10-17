@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Navigate } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { Button, Field, Input } from '@/design/primitives';
-import { errorMessage } from '@/i18n/tr';
+import { errorMessage, tr } from '@/i18n/tr';
 import { api, ApiError, setCsrfToken } from '@/lib/api/client';
 import { useSession, type Me } from '@/app/session';
 import { AuthLayout } from './AuthLayout';
@@ -24,7 +24,7 @@ export function PasswordPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (next !== again) {
-      setError('Yeni parolalar eşleşmiyor.');
+      setError(tr.auth.pwMismatch);
       return;
     }
     setBusy(true);
@@ -41,21 +41,21 @@ export function PasswordPage() {
   }
 
   return (
-    <AuthLayout title="Parolanı değiştir">
+    <AuthLayout title={tr.auth.pwTitle}>
       <form className={s.form} onSubmit={submit} noValidate>
-        <p className={s.lead}>Yöneticinin verdiği geçici parolayı kendi parolanla değiştir.</p>
+        <p className={s.lead}>{tr.auth.pwLead}</p>
         {error && (
           <p className={s.error} role="alert">
             {error}
           </p>
         )}
-        <Field label="Geçici parola">{({ id }) => <Input id={id} type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />}</Field>
-        <Field label="Yeni parola" hint="En az 12 karakter">
+        <Field label={tr.auth.pwCurrent}>{({ id }) => <Input id={id} type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />}</Field>
+        <Field label={tr.auth.pwNew} hint={tr.auth.pwHint}>
           {({ id, describedBy }) => <Input id={id} aria-describedby={describedBy} type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />}
         </Field>
-        <Field label="Yeni parola (tekrar)">{({ id }) => <Input id={id} type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" />}</Field>
+        <Field label={tr.auth.pwAgain}>{({ id }) => <Input id={id} type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" />}</Field>
         <Button type="submit" variant="primary" loading={busy} disabled={!current || !next}>
-          Parolayı değiştir
+          {tr.auth.pwChange}
         </Button>
       </form>
     </AuthLayout>

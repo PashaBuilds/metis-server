@@ -42,7 +42,10 @@ export function DecisionPanel({ change }: { change: Change }) {
       apply(d);
       setReason('');
       setChecked(false);
-      toast.show(decision === 'approve' ? tr.record.approved : decision === 'reject' ? tr.record.rejected : tr.record.changesRequested);
+      // Onay ve yayın tek adım: onaylayan yayımlayabiliyorsa hemen yayımlanır. Yayın başarısız olursa kayıt
+      // onaylı kalır ve panel "Yayımla" düğmesini gösterir.
+      if (decision === 'approve' && d.state === 'approved' && d.can_publish) publish.mutate();
+      else toast.show(decision === 'approve' ? tr.record.approved : decision === 'reject' ? tr.record.rejected : tr.record.changesRequested);
     },
     onError,
   });
@@ -55,7 +58,11 @@ export function DecisionPanel({ change }: { change: Change }) {
       for (const pid of d.page_ids) qc.invalidateQueries({ queryKey: ['page', pid] });
       toast.show(tr.record.published);
     },
-    onError,
+    onError: (e) => {
+      // Onay geçerli; yalnız yayın tamamlanamadı. Panel güncel durumu göstersin.
+      qc.invalidateQueries({ queryKey: ['change', change.id] });
+      onError(e);
+    },
   });
   const submit = useMutation({
     mutationFn: () => api.post<Change>(`/changes/${change.id}/submit`),
@@ -121,11 +128,11 @@ export function DecisionPanel({ change }: { change: Change }) {
             variant="primary"
             icon={<Check size={16} aria-hidden />}
             disabled={approveReasons.length > 0 || busy}
-            loading={review.isPending && review.variables === 'approve'}
+            loading={(review.isPending && review.variables === 'approve') || publish.isPending}
             aria-describedby={approveReasons.length ? blockersId : undefined}
             onClick={() => decide('approve')}
           >
-            {tr.record.approve}
+            {tr.record.approvePublish}
           </Button>
           {approveReasons.length > 0 && (
             <ul id={blockersId} className={s.blockers}>

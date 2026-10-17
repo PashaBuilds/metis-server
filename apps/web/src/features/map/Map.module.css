@@ -302,8 +302,8 @@
   height: 30px;
   padding: 0 var(--s3);
   border-radius: var(--r-chip);
-  background: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  color: var(--vurgu-metin);
   font-size: var(--fs-13);
   font-weight: 500;
   text-decoration: none;

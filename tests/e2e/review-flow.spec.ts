@@ -30,8 +30,7 @@ test('taslak → düzeltme iste → düzenle → yeniden gönder → onayla → 
   // 1) Yazar: var olan kaynağı seçer, iki alıntıyı iddiaya bağlar, kaydedip incelemeye gönderir.
   await author.goto('/katki');
   await author.getByRole('button', { name: new RegExp(SOURCE_TITLE) }).click();
-  await author.getByRole('button', { name: 'Taslağa geç' }).click();
-  await author.getByRole('button', { name: 'Editörü aç' }).click();
+  await author.getByRole('button', { name: 'Yazmaya başla' }).click();
   await author.getByLabel('Başlık').fill('ISR temizleme kuralı');
   await author.getByRole('textbox', { name: 'Açıklama' }).fill('ISR içinde yalnız durum bitleri temizlenir.');
   await selectInViewer(author, 'ISR içinde yalnız durum bitleri temizlenir.');
@@ -39,9 +38,9 @@ test('taslak → düzeltme iste → düzenle → yeniden gönder → onayla → 
   await expect(author.getByRole('textbox', { name: 'İddia 1' })).toHaveValue('ISR içinde yalnız durum bitleri temizlenir.');
   // İddia alıntıdan saparsa uyarı görünür, düzeltince kaybolur.
   await author.getByRole('textbox', { name: 'İddia 1' }).fill('ISR her şeyi yapar.');
-  await expect(author.getByText('Bu iddia kaynakta birebir geçmiyor; mentor bu iddiayı kullanamaz.')).toBeVisible();
+  await expect(author.getByText('İddia metni seçtiğin alıntıda birebir geçmiyor; mentor bu iddiayı kullanamaz. Alıntıdaki ifadeyi kullan.')).toBeVisible();
   await author.getByRole('textbox', { name: 'İddia 1' }).fill('ISR içinde yalnız durum bitleri temizlenir.');
-  await expect(author.getByText('Bu iddia kaynakta birebir geçmiyor; mentor bu iddiayı kullanamaz.')).toBeHidden();
+  await expect(author.getByText('İddia metni seçtiğin alıntıda birebir geçmiyor; mentor bu iddiayı kullanamaz. Alıntıdaki ifadeyi kullan.')).toBeHidden();
   await author.getByRole('button', { name: 'Kaydet ve incelemeye gönder' }).click();
   await expect(author).toHaveURL(/\/kayitlar\/[0-9a-f-]{36}$/);
   const recordUrl = author.url();
@@ -68,15 +67,13 @@ test('taslak → düzeltme iste → düzenle → yeniden gönder → onayla → 
   await expect(author).toHaveURL(recordUrl);
   await expect(author.getByText('İncelemede', { exact: true })).toBeVisible();
 
-  // 4) İnceleyici: kontrol kutusu → Onayla → Yayımla.
+  // 4) İnceleyici: kontrol kutusu → Onayla ve yayımla (tek adım).
   await reviewer.reload();
   await expect(reviewer.getByText('İncelemede', { exact: true })).toBeVisible();
   await reviewer.getByText('Geçmiş ve bağlam').click();
   await expect(reviewer.getByText('Özet eksik; tek cümlelik özet ekle.')).toBeVisible();
   await reviewer.getByLabel('İddiaları ve kaynak desteğini kontrol ettim').check();
-  await reviewer.getByRole('button', { name: 'Onayla' }).click();
-  await expect(reviewer.getByText('Onaylandı', { exact: true }).first()).toBeVisible();
-  await reviewer.getByRole('button', { name: 'Yayımla' }).click();
+  await reviewer.getByRole('button', { name: 'Onayla ve yayımla' }).click();
   await expect(reviewer.getByText('Yayımlandı', { exact: true }).first()).toBeVisible();
   await reviewer.getByRole('link', { name: 'Yayımlanan bilgiyi aç' }).click();
   await expect(reviewer.getByRole('heading', { level: 1, name: 'ISR temizleme kuralı' })).toBeVisible();

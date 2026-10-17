@@ -24,7 +24,7 @@ export function JobStateBadge({ state, size = 'md' }: { state: string; size?: 's
 
 export function jobErrorText(code: string | null | undefined): string | null {
   if (!code) return null;
-  return tr.jobs.errors[code] ?? tr.jobs.errorGeneric(code);
+  return tr.jobs.errors[code] ?? tr.jobs.errorGeneric;
 }
 
 /**

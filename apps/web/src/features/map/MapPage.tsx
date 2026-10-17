@@ -2,7 +2,7 @@ import '@xyflow/react/dist/style.css';
 import { useQuery } from '@tanstack/react-query';
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router';
 import { MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, useStore, type NodeMouseHandler } from '@xyflow/react';
-import { ExternalLink, Focus, Maximize, Network, SlidersHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
+import { ExternalLink, Filter, Focus, Maximize, Network, SlidersHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Button, EmptyState, IconButton, Segmented, Select, SkeletonRows } from '@/design/primitives';
 import { PageHeader } from '@/app/Shell';
@@ -74,6 +74,7 @@ export default function MapPage() {
   const all = search.all === '1' || (view === 'list' && !search.focus);
   const depth: Depth = search.depth === '1' || search.depth === '3' ? search.depth : '2';
   const predicate = search.predicate && PREDICATES.includes(search.predicate) ? search.predicate : undefined;
+  const [moreOpen, setMoreOpen] = useState(!!predicate || depth !== '2');
   const scope = session.scope;
   const predId = useId();
 
@@ -120,6 +121,7 @@ export default function MapPage() {
   const sel = selectedId ? byId.get(selectedId) : undefined;
   const selEdges = sel ? visibleEdges.filter((e) => e.source === sel.id || e.target === sel.id) : [];
 
+  const moreCount = (predicate ? 1 : 0) + (depth !== '2' ? 1 : 0);
   return (
     <div className={s.page}>
       <PageHeader title={tr.map.title}>
@@ -133,6 +135,11 @@ export default function MapPage() {
               { value: 'list', label: tr.map.viewList },
             ]}
           />
+          <Button size="sm" variant="secondary" icon={<Filter size={15} aria-hidden />} aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
+            {moreCount ? tr.library.moreFiltersN(moreCount) : tr.library.moreFilters}
+          </Button>
+          {moreOpen && (
+          <>
           <span className={s.control}>
             <label htmlFor={predId} className={s.controlLabel}>
               {tr.map.predicate}
@@ -155,6 +162,8 @@ export default function MapPage() {
               options={(['1', '2', '3'] as const).map((d) => ({ value: d, label: tr.map.depthN(Number(d)) }))}
             />
           </span>
+          </>
+          )}
           <Button size="sm" variant={all ? 'primary' : 'secondary'} aria-pressed={all} icon={<Network size={15} aria-hidden />} onClick={() => setSearch({ all: all ? undefined : '1' })}>
             {tr.map.showAll}
           </Button>
@@ -230,7 +239,7 @@ export default function MapPage() {
                         const out = e.source === sel.id;
                         return (
                           <li key={e.id}>
-                            <span className={s.nbRel}>{out ? relLabel(e.predicate) : tr.page.relationIn(relLabel(e.predicate))}</span>
+                            <span className={s.nbRel}>{out ? relLabel(e.predicate) : (tr.relationsIn[e.predicate] ?? e.predicate)}</span>
                             <button type="button" className={s.nbLink} onClick={() => recenter(other.id)}>
                               {other.title}
                             </button>

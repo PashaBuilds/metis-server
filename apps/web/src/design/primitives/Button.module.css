@@ -32,12 +32,12 @@
 }
 
 .primary {
-  background: var(--murekkep);
-  color: var(--murekkep-ters);
+  background: var(--vurgu);
+  color: var(--vurgu-metin);
 }
 
 .primary:not(:disabled):hover {
-  background: color-mix(in srgb, var(--murekkep) 86%, var(--yuzey));
+  background: var(--vurgu-hover);
 }
 
 .secondary {

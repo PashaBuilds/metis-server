@@ -29,7 +29,7 @@ import { api } from '@/lib/api/client';
 import { useMediaQuery } from '@/lib/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { CommandPalette, useCommandPalette } from './CommandPalette';
-import { ScopeBar } from './ScopeBar';
+import { ScopeDialog } from './ScopeBar';
 import { useSession } from './session';
 import s from './Shell.module.css';
 
@@ -134,7 +134,6 @@ export function Shell() {
             </IconButton>
           )}
           <ProjectPicker />
-          <ScopeBar />
           <div className={s.topActions}>
             <button type="button" className={s.searchBtn} onClick={() => palette.setOpen(true)} aria-label={`${tr.nav.search} (Ctrl+K)`}>
               <Search size={16} aria-hidden />
@@ -163,6 +162,7 @@ export function Shell() {
       {iz.active && <IzPanel mode={wide ? 'docked' : 'overlay'} />}
       <IzTrace />
       <CommandPalette open={palette.open} onOpenChange={palette.setOpen} />
+      <ScopeDialog />
       {mobile && (
         <Drawer open={drawer} onOpenChange={setDrawer} title="METIS" side="left" width={300}>
           <div className={s.drawerNav}>
@@ -209,6 +209,15 @@ function ProjectPicker() {
   const session = useSession();
   const members = session.me?.memberships ?? [];
   if (!session.project) return null;
+  if (members.length <= 1) {
+    // Tek proje: seçilecek bir şey yok, yalnız adı göster.
+    return (
+      <span className={[s.projectBtn, s.projectStatic].join(' ')}>
+        <span className={s.projectName}>{session.project.project_name}</span>
+        {session.project.is_demo && <span className={s.demoTag}>{tr.common.demoBadge}</span>}
+      </span>
+    );
+  }
   return (
     <DM.Root>
       <DM.Trigger asChild>

@@ -4,7 +4,10 @@ import { errorMessage, tr } from '@/i18n/tr';
 import { api, ApiError, type Schemas } from '@/lib/api/client';
 
 export function messageOf(e: unknown): string {
-  return e instanceof ApiError ? errorMessage(e.code) : errorMessage('NETWORK');
+  if (!(e instanceof ApiError)) return errorMessage('NETWORK');
+  const msg = errorMessage(e.code);
+  // Tanınmayan / beklenmeyen hatada kimliği göster: yönetici günlükte bulabilsin.
+  return !tr.errors[e.code] || e.code === 'INTERNAL' ? `${msg} ${tr.common.errorId(e.correlationId)}` : msg;
 }
 
 export function useProject(projectId: string | null) {

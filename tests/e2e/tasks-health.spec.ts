@@ -3,7 +3,7 @@ import { ADMIN, apiCall, apiLogin } from './helpers';
 
 /**
  * Faz 5/6 kabul (arayüz): kurgusal çalışma alanındaki açık çelişki "Çelişkiden çözüme" akışıyla
- * incelemeye giden bir kayda dönüşür; "Bilgi havuzunu denetle" görevi başlatılır ve SSE ile canlı tamamlanır.
+ * incelemeye giden bir kayda dönüşür; model destekli tarama görevi başlatılır ve SSE ile canlı tamamlanır.
  * Önkoşul: mentor-flow (kurgusal model eklendi ve benchmark'ı geçti).
  */
 
@@ -20,7 +20,7 @@ test('Çelişkiden çözüme → kayıt incelemede; havuz denetimi SSE ile tamam
   // 1) Bilgi sağlığı: açık çelişki bulgusu ve iki tarafın alıntısı.
   await page.goto('/saglik');
   await expect(page.getByRole('heading', { level: 1, name: 'Bilgi sağlığı' })).toBeVisible();
-  const finding = page.getByRole('listitem').filter({ hasText: 'İki onaylı kayıt aynı özellik için farklı değer bildiriyor.' });
+  const finding = page.getByRole('listitem').filter({ hasText: 'İki onaylı bilgi aynı özellik için farklı değer veriyor.' });
   await expect(finding).toBeVisible();
   await expect(finding.getByRole('link', { name: 'Hata ayıklama UART hızı' })).toBeVisible();
   await finding.getByRole('button', { name: 'Ayrıntılar' }).click();
@@ -44,7 +44,7 @@ test('Çelişkiden çözüme → kayıt incelemede; havuz denetimi SSE ile tamam
   await expect(page).toHaveURL(/\/kayitlar\/[0-9a-f-]{36}$/);
   await expect(page.getByText('İncelemede', { exact: true }).first()).toBeVisible();
 
-  // 3) Şimdi denetle (model seçmeden: kural tabanlı) → görev bağlantısı.
+  // 3) Şimdi denetle (model seçmeden: hızlı tarama) → görev bağlantısı.
   await page.goto('/saglik');
   await page.getByRole('button', { name: 'Şimdi denetle' }).click();
   const scan = page.getByRole('dialog', { name: 'Bilgi havuzunu şimdi denetle' });
@@ -53,14 +53,13 @@ test('Çelişkiden çözüme → kayıt incelemede; havuz denetimi SSE ile tamam
   await expect(page.getByText('Tarama görevi sıraya alındı.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Görevi aç' })).toBeVisible();
 
-  // 4) Metis görevleri: "Bilgi havuzunu denetle" — model açıkça seçilmeden başlatılamaz.
-  await page.goto('/gorevler');
-  const audit = page.getByRole('region', { name: 'Bilgi havuzunu denetle' });
-  const start = audit.getByRole('button', { name: 'Görevi başlat' });
-  await expect(start).toBeDisabled();
-  await expect(audit.getByText('Başlatmak için bir model seç.')).toBeVisible();
-  await audit.getByLabel('Model').selectOption({ label: 'fixture-reference (kurgusal test modeli)' });
-  await start.click();
+  // 4) Model destekli tarama: model açıkça seçilir (sessiz seçim yok); görev sayfasına geçilir.
+  await page.reload();
+  await page.getByRole('button', { name: 'Şimdi denetle' }).click();
+  const scan2 = page.getByRole('dialog', { name: 'Bilgi havuzunu şimdi denetle' });
+  await scan2.getByLabel('Model (isteğe bağlı)').selectOption({ label: 'fixture-reference (kurgusal test modeli)' });
+  await scan2.getByRole('button', { name: 'Taramayı başlat' }).click();
+  await page.getByRole('link', { name: 'Görevi aç' }).click();
   await expect(page).toHaveURL(/\/gorevler\/[0-9a-f-]{36}$/);
 
   // 5) Canlı (SSE): sırada/çalışıyor → tamamlandı; önce sonuç, en altta katlı teknik ayrıntılar.
@@ -72,6 +71,6 @@ test('Çelişkiden çözüme → kayıt incelemede; havuz denetimi SSE ile tamam
 
   // 6) Liste: satırda durum ve tek cümlelik sonuç.
   await page.goto('/gorevler');
-  const jobRow = page.getByRole('listitem').filter({ hasText: 'Bilgi havuzunu denetle' }).first();
+  const jobRow = page.getByRole('listitem').filter({ hasText: 'Bakım taraması' }).first();
   await expect(jobRow.getByText('Tamamlandı')).toBeVisible();
 });
