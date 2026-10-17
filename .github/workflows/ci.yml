@@ -131,10 +131,11 @@ jobs:
           & "$pgbin\psql.exe" -U postgres -h 127.0.0.1 -c "SELECT version();"
       - name: pytest (Windows, PG servisi)
         shell: pwsh
+        timeout-minutes: 30
         run: |
           python -m pip install -e ".[dev]"
           $env:METIS_PG_BIN = $env:PGBIN
-          pytest -q tests/api tests/legacy_import tests/ops
+          pytest -q -rfE --durations=15 tests/api tests/legacy_import tests/ops
       - name: Paketi üret (internet açık)
         shell: pwsh
         run: |
@@ -231,6 +232,7 @@ jobs:
       - name: Servis günlükleri
         if: always()
         shell: pwsh
+        timeout-minutes: 3
         run: Get-ChildItem C:\METIS\data\logs, C:\metis-logs -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 50 }
       - uses: actions/upload-artifact@v4
         with: { name: metis-server-win64, path: "dist/METIS-*-server-win64.zip*", retention-days: 14 }
