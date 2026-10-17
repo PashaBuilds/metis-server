@@ -76,15 +76,24 @@ def version() -> str:
     return m.group(1)
 
 
-def build_wheelhouse(target: str, wheelhouse: Path) -> list[str]:
+def build_wheelhouse(target: str, wheelhouse: Path, lock: Path | None = None) -> list[str]:
+    """Kilit verilirse üçüncü taraf paketler tam olarak kilitteki sürüm ve hash'lerle indirilir (tekrarlanabilir
+    derleme; PyPI'da yeni sürüm çıkması paketi değiştirmez). Kilit yoksa bağımlılıklar çözülür."""
     wheelhouse.mkdir(parents=True)
     sh([sys.executable, "-m", "pip", "wheel", "--no-deps", "-w", str(wheelhouse), str(ROOT)])
     own = next(wheelhouse.glob("metis-*.whl"))
-    sh([
-        sys.executable, "-m", "pip", "download", "--only-binary=:all:", *PLATFORM[target],
-        "--python-version", "3.12", "--implementation", "cp", "--abi", "cp312", "--abi", "abi3", "--abi", "none",
-        "-d", str(wheelhouse), str(own),
-    ])
+    if lock is not None:
+        sh([
+            sys.executable, "-m", "pip", "download", "--only-binary=:all:", *PLATFORM[target],
+            "--python-version", "3.12", "--implementation", "cp", "--abi", "cp312", "--abi", "abi3", "--abi", "none",
+            "--no-deps", "--require-hashes", "-d", str(wheelhouse), "-r", str(lock),
+        ])
+    else:
+        sh([
+            sys.executable, "-m", "pip", "download", "--only-binary=:all:", *PLATFORM[target],
+            "--python-version", "3.12", "--implementation", "cp", "--abi", "cp312", "--abi", "abi3", "--abi", "none",
+            "-d", str(wheelhouse), str(own),
+        ])
     complete_for_target(target, wheelhouse)
     lines = []
     for whl in sorted(wheelhouse.glob("*.whl")):
@@ -192,9 +201,11 @@ def main() -> int:
         raise SystemExit("apps/web/dist/index.html yok; önce web arayüzünü derle.")
     shutil.copytree(web, stage / "web")
 
-    lines = build_wheelhouse(args.target, stage / "wheelhouse")
-    if args.locked and not (LOCKS / f"{args.target}.lock").exists():
+    lock = LOCKS / f"{args.target}.lock"
+    if args.locked and not lock.exists():
         raise SystemExit("--locked verildi ama kilit dosyası yok.")
+    # --locked: kilitten kur; kilitte eksik bir bağımlılık varsa complete_for_target onu indirir ve check_lock durur.
+    lines = build_wheelhouse(args.target, stage / "wheelhouse", lock if args.locked and not args.update_lock else None)
     check_lock(args.target, lines, args.update_lock)
     (stage / "requirements.lock").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
