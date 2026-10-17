@@ -78,15 +78,18 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": {"message": "not found"}})
 
     def do_POST(self) -> None:  # noqa: N802
+        # Gövde her yanıttan önce okunur: okunmamış veriyle kapanan soket Windows'ta RST gönderir ve
+        # istemci 401/404 yerine bağlantı hatası görür.
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length)
         if not self.path.rstrip("/").endswith("/chat/completions") or self.path.count("/v1/") > 1:
             self._send(404, {"error": {"message": "not found"}})
             return
         if self.headers.get("Authorization") == "Bearer wrong-key":
             self._send(401, {"error": {"message": "invalid api key"}})
             return
-        length = int(self.headers.get("Content-Length", "0"))
         try:
-            body = json.loads(self.rfile.read(length))
+            body = json.loads(raw)
         except ValueError:
             self._send(400, {"error": {"message": "bad json"}})
             return
