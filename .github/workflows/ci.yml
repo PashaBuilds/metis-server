@@ -140,21 +140,26 @@ jobs:
           Move-Item (Join-Path $tmp "pgsql") $root
           $pgbin = "$root\bin"
           $data = "C:\pgdata"
-          $pw = Join-Path $env:RUNNER_TEMP "pgpw.txt"
-          Set-Content -NoNewline $pw "root"
-          & "$pgbin\initdb.exe" -D $data -U postgres -A scram-sha-256 --pwfile $pw -E UTF8
+          # initdb yönetici olarak kısıtlı belirteçle çalışır ve RUNNER_TEMP'teki --pwfile'ı okuyamıyor: önce trust,
+          # parola SQL ile verilir, sonra pg_hba scram-sha-256'ya çevrilip yeniden yüklenir.
+          & "$pgbin\initdb.exe" -D $data -U postgres -A trust -E UTF8
           if ($LASTEXITCODE) { throw "initdb başarısız" }
-          Remove-Item $pw
           icacls $data /grant "NT AUTHORITY\NetworkService:(OI)(CI)F" /T /Q | Out-Null
           & "$pgbin\pg_ctl.exe" register -N postgresql-x64-16 -U "NT AUTHORITY\NetworkService" -D $data -S auto
           if ($LASTEXITCODE) { throw "servis kaydı başarısız" }
           Start-Service postgresql-x64-16
           "PGBIN=$pgbin" | Out-File -Append $env:GITHUB_ENV
           "$pgbin" | Out-File -Append $env:GITHUB_PATH
-          $env:PGPASSWORD = "root"
           for ($i = 0; $i -lt 30; $i++) { & "$pgbin\pg_isready.exe" -h 127.0.0.1 -q; if (-not $LASTEXITCODE) { break }; Start-Sleep 1 }
-          & "$pgbin\psql.exe" -U postgres -h 127.0.0.1 -c "SELECT version();"
-          if ($LASTEXITCODE) { throw "PostgreSQL'e bağlanılamadı" }
+          & "$pgbin\psql.exe" -w -U postgres -h 127.0.0.1 -c "ALTER USER postgres PASSWORD 'root'"
+          if ($LASTEXITCODE) { throw "postgres parolası verilemedi" }
+          $hba = Join-Path $data "pg_hba.conf"
+          (Get-Content $hba) -replace '\btrust$', 'scram-sha-256' | Set-Content $hba
+          & "$pgbin\psql.exe" -w -U postgres -h 127.0.0.1 -c "SELECT pg_reload_conf();" | Out-Null
+          $env:PGPASSWORD = "root"
+          & "$pgbin\psql.exe" -w -U postgres -h 127.0.0.1 -c "SELECT version();"
+          if ($LASTEXITCODE) { throw "PostgreSQL'e parolayla bağlanılamadı" }
+          if (Select-String -Path $hba -Pattern '\btrust$' -Quiet) { throw "pg_hba hâlâ trust" }
       - name: pytest (Windows, PG servisi)
         shell: pwsh
         timeout-minutes: 30
@@ -281,7 +286,9 @@ jobs:
         run: |
           # Önce başlatıcı günlükleri (METIS-Baslat.exe gizli pencerede çalışır; ayrıntı yalnız buradadır).
           Get-ChildItem (Join-Path $env:TEMP "METIS") -File -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 120 }
-          Get-ChildItem C:\METIS\data\logs, C:\metis-logs -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 50 }
+          # Önce var olanları süz: olmayan bir yol -Recurse ile verilirse PowerShell adı üst klasörde (C:\) özyinelemeli arar
+          # ve adım zaman sınırına takılır.
+          @("C:\METIS\data\logs", "C:\metis-logs") | Where-Object { Test-Path $_ } | Get-ChildItem -Recurse -File | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 50 }
       - uses: actions/upload-artifact@v4
         with: { name: metis-server-win64, path: "dist/METIS-*-server-win64.zip*", retention-days: 14 }
 
