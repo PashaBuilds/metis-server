@@ -37,6 +37,9 @@ jobs:
           run=false
           if [ "${GITHUB_EVENT_NAME}" != "push" ] || [ "${GITHUB_REF_TYPE}" = "tag" ]; then run=true
           elif printf '%s' "$MESSAGE" | grep -qF '[windows]'; then run=true
+          # deploy/RELEASE henüz etiketlenmemiş bir sürüm adı taşıyorsa (yayımlanacak): Windows işi ve release koşmalı.
+          # Yalnız son gönderimin farkına bakmak yetmez: önceki gönderimin koşusu iptal edilmiş olabilir.
+          elif tag="$(tr -d '[:space:]' < deploy/RELEASE 2>/dev/null)" && [ -n "$tag" ] && ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then run=true
           elif [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then run=true
           elif git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -qE '^(deploy/|pyproject\.toml$|services/metis/(ops|legacy_import)/|services/metis/cli\.py$|services/metis/modules/sources/pdf_extract\.py$)'; then run=true
           fi
