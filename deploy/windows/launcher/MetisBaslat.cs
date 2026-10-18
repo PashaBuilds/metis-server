@@ -31,6 +31,9 @@ internal static class MetisBaslat
         psi.UseShellExecute = false;
         psi.CreateNoWindow = true;  // sorular ileti kutusuyla sorulur; yönetici adımları kendi penceresinde görünür
         psi.WorkingDirectory = dir;
+        // PowerShell 7 içinden açılınca devralınan PSModulePath, Windows PowerShell 5.1'in kendi modüllerini gölgeler
+        // (Get-FileHash vb. bulunamaz). Değişken kaldırılınca 5.1 varsayılan yolunu kendisi kurar.
+        psi.EnvironmentVariables.Remove("PSModulePath");
         try
         {
             using (Process p = Process.Start(psi))

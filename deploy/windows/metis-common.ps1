@@ -12,6 +12,14 @@ function Assert-Admin {
 
 function Get-BundleVersion([string]$Bundle) { (Get-Content (Join-Path $Bundle "VERSION") -TotalCount 1).Trim() }
 
+function Get-Sha256([string]$Path) {
+  # Get-FileHash yerine .NET: modül yolu bozuk bir oturumda da (ör. PowerShell 7'den açılan 5.1) çalışır.
+  $sha = [Security.Cryptography.SHA256]::Create()
+  $stream = [IO.File]::OpenRead($Path)
+  try { return (($sha.ComputeHash($stream)) | ForEach-Object { $_.ToString("x2") }) -join "" }
+  finally { $stream.Dispose(); $sha.Dispose() }
+}
+
 function Test-BundleIntegrity([string]$Bundle) {
   Write-Step "Paket bütünlüğü doğrulanıyor (SHA256SUMS)"
   $sums = Join-Path $Bundle "SHA256SUMS"
@@ -24,7 +32,7 @@ function Test-BundleIntegrity([string]$Bundle) {
     $file = Join-Path $Bundle ($rel -replace "/", [IO.Path]::DirectorySeparatorChar)
     $n++
     if (-not (Test-Path -LiteralPath $file)) { $bad += "eksik: $rel"; continue }
-    $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant()
+    $actual = Get-Sha256 $file
     if ($actual -ne $hash) { $bad += "değişmiş: $rel" }
   }
   if ($bad.Count -gt 0) { throw ("Paket bütünlüğü bozuk; kurulum durduruldu:`n  " + ($bad -join "`n  ")) }
