@@ -29,14 +29,22 @@ param(
   [ValidateSet("", "kur", "yukselt", "servis", "kod")]
   [string]$Islem = "",
   [string]$KodDosyasi = "",
+  [string]$Gunluk = "",
   [switch]$Demo
 )
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
-$Bundle = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptPath = $MyInvocation.MyCommand.Path  # işlevlerin içinde $PSCommandPath güvenilir değil: yol burada alınır
+$Bundle = Split-Path -Parent $ScriptPath
 . (Join-Path $Bundle "metis-common.ps1")
 try { $Host.UI.RawUI.WindowTitle = "METIS başlatıcı" } catch { }
+# Günlük: başlatıcının penceresi gizli olduğundan her adım %TEMP%\METIS altına yazılır (sorun bildirirken bu dosyalar).
+$LogDir = Join-Path ([IO.Path]::GetTempPath()) "METIS"
+New-Item -ItemType Directory -Force -Path $LogDir -ErrorAction SilentlyContinue | Out-Null
+$ChildLog = Join-Path $LogDir "baslat-yonetici.log"
+if ($Islem) { if (-not $Gunluk) { $Gunluk = $ChildLog } } else { $Gunluk = Join-Path $LogDir "baslat.log" }
+try { Start-Transcript -Path $Gunluk -Append -ErrorAction Stop | Out-Null } catch { }
 
 function Test-IsAdmin {
   $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -114,27 +122,33 @@ function Get-State {
   }
 }
 
+function Get-ChildLogTail {
+  if (-not (Test-Path $ChildLog)) { return "" }
+  return ((Get-Content $ChildLog -Tail 40 -ErrorAction SilentlyContinue) -join "`n")
+}
+
 function Write-Result($State, [string]$Note) {
   if (-not $SonucDosyasi) { return }
   $State["sonuc"] = $Note
+  if ($Note -notin @("durum", "kuruldu", "acildi", "vazgecildi")) { $State["ayrinti"] = Get-ChildLogTail }
   [IO.File]::WriteAllText($SonucDosyasi, ($State | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 }
 
 function Invoke-Elevated([string]$Action, [string]$CodeFile = "", [switch]$WithDemo) {
-  $named = [ordered]@{ "-Islem" = $Action; "-InstallRoot" = $InstallRoot; "-PgBin" = $PgBin; "-ApiPort" = "$ApiPort" }
+  $named = [ordered]@{ "-Islem" = $Action; "-InstallRoot" = $InstallRoot; "-PgBin" = $PgBin; "-ApiPort" = "$ApiPort"; "-Gunluk" = $ChildLog }
   if ($CodeFile) { $named["-KodDosyasi"] = $CodeFile }
   $flags = @()
   if ($WithDemo) { $flags += "-Demo" }
   if ($Onayla) { $flags += "-Onayla" }
   if ($Onayla -and (Test-IsAdmin)) {
     # Otomasyon (CI): soru yok, zaten yönetici; aynı süreçte çalış (PowerShell argümanları kendisi tırnaklar).
-    $direct = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $PSCommandPath)
+    $direct = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $ScriptPath)
     foreach ($k in $named.Keys) { $direct += @($k, $named[$k]) }
     & powershell.exe @($direct + $flags) | Out-Host  # çıktı ekrana; işlevin dönüş değeri yalnız çıkış kodu olsun
     return $LASTEXITCODE
   }
   # Start-Process argümanları boşlukla birleştirir: boşluk içeren değerler elle tırnaklanır.
-  $line = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+  $line = "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
   foreach ($k in $named.Keys) { $line += " $k `"$($named[$k])`"" }
   if ($flags) { $line += " " + ($flags -join " ") }
   try {
@@ -198,7 +212,8 @@ if ($Islem) {
   } catch {
     Write-Host ""
     Write-Host "HATA: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Günlükler: $InstallRoot\data\logs. Bu pencereyi kapatmadan önce mesajı not al."
+    Write-Host $_.ScriptStackTrace
+    Write-Host "Günlükler: $Gunluk ve $InstallRoot\data\logs. Bu pencereyi kapatmadan önce mesajı not al."
     if (-not $Onayla) { Read-Host "Kapatmak için Enter'a bas" | Out-Null }
     exit 1
   }
@@ -233,7 +248,10 @@ if (-not $state.kurulu) {
   $rc = Invoke-Elevated "kur" $codeFile -WithDemo:($Onayla -and -not $DemoYok)
   $code = Read-CodeFile $codeFile
   $state = Get-State
-  if ($rc -ne 0 -or -not $state.calisiyor) { Write-Result $state "kurulum_basarisiz"; exit 1 }
+  if ($rc -ne 0 -or -not $state.calisiyor) {
+    Show-Message "METIS kurulamadı. Ayrıntı: $ChildLog`n`nBu dosyayı sorun bildirirken gönder." "Error" | Out-Null
+    Write-Result $state "kurulum_basarisiz"; exit 1
+  }
   $url = Get-PublicUrl
   Open-Browser $(if ($code) { "$url/kurulum#kod=$code" } else { $url })
   Write-Result $state "kuruldu"; exit 0

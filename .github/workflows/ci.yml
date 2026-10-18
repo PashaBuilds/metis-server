@@ -252,7 +252,10 @@ jobs:
         if: always()
         shell: pwsh
         timeout-minutes: 3
-        run: Get-ChildItem C:\METIS\data\logs, C:\metis-logs -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 50 }
+        run: |
+          # Önce başlatıcı günlükleri (METIS-Baslat.exe gizli pencerede çalışır; ayrıntı yalnız buradadır).
+          Get-ChildItem (Join-Path $env:TEMP "METIS") -File -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 120 }
+          Get-ChildItem C:\METIS\data\logs, C:\metis-logs -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 50 }
       - uses: actions/upload-artifact@v4
         with: { name: metis-server-win64, path: "dist/METIS-*-server-win64.zip*", retention-days: 14 }
 
