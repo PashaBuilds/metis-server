@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "metis"
 dynamic = ["version"]
-description = "METIS v2 — Ekibin teknik bilgisi, kaynaklarıyla."
+description = "METIS — Ekibin teknik bilgisi, kaynaklarıyla."
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115,<1",

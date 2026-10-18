@@ -1,8 +1,20 @@
-METIS v2 sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-server-win64.zip`; yanındaki `.sha256` ile doğrulanabilir.
+METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-server-win64.zip`; yanındaki `.sha256` ile doğrulanabilir.
 
 **Kurulum:** ZIP'i aç, `BASLA.txt` ve `KURULUM.md` dosyalarını oku. Önkoşul: PostgreSQL 16.
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
+
+**2.0.8 — başlatıcı düzeltmesi (çift tıklayınca "hiçbir şey olmuyordu"):**
+- Düzeltme: 2.0.7'de `METIS-Baslat.exe` çalışıyordu ama soruları ("yükseltilsin mi?", "kurulsun mu?") açık
+  pencerelerin **arkasında** ve görev çubuğunda düğmesi olmadan açıyordu; ekranda bir şey görünmüyordu. İleti kutuları
+  artık her zaman en üstte ve görev çubuğunda görünür.
+- Başlatıcı zaten açıkken yeniden çift tıklanırsa ikinci bir kurulum/yükseltme başlamaz; "zaten çalışıyor" denir.
+- Türkçe Windows'ta yedek/geri yükleme hata iletileri (pg_dump/pg_restore) okunamayan karakter yüzünden
+  kaybolabiliyordu; artık her durumda gösterilir.
+- Ürün adı her yerde yalnız "METIS".
+- Bu ZIP yerel bir Windows 10 bilgisayarda derlendi ve çift tıklamayla denendi (2.0.0 → 2.0.8 yükseltmesi, yedek,
+  Chrome'da açılış, sol menüde "Sürüm 2.0.8").
+- Şema değişmedi.
 
 **2.0.7 — yeni sürüm adı, görünen sürüm, yükseltme düzeltmesi:**
 - Sürümler artık büyük.küçük.ilerleme biçiminde: bu sürüm **2.0.7** (önceki ön sürümler rc.1–rc.7). Sonraki sürümler
@@ -93,8 +105,9 @@ tıkla. Komutla kurulum: yönetici PowerShell ile
 `powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl http://localhost:8000 -AllowHttp`.
 Kaldırma: `uninstall.ps1 -RemoveAll`.
 
-**Doğrulama:** bu paket CI'da Windows Server 2022 üzerinde ağ kapalıyken kuruldu; giriş, servis yeniden başlatma, yedek,
-geri yükleme tatbikatı, örnek içerik, yükseltme ve kaldırma denendi.
+**Doğrulama:** yayımlanan ZIP yerel Windows 10 bilgisayarda derlenip çift tıklamayla denendi. Aynı commit CI'da Windows
+Server 2022 üzerinde ağ kapalıyken kuruldu; giriş, servis yeniden başlatma, yedek, geri yükleme tatbikatı, örnek içerik,
+yükseltme ve kaldırma denendi (CI kendi derlediği paketle sınar; o paket yayımlanmaz).
 
-**Henüz denenmedi:** gerçek şirket sunucusu (IIS/ARR + TLS), Windows 10/11 masaüstünde paketin kendisi, şirket modeliyle bağlantı,
+**Henüz denenmedi:** gerçek şirket sunucusu (IIS/ARR + TLS), Windows 11, şirket modeliyle bağlantı,
 gerçek v0.5.5 yedeğinin aktarılması. 2.0.x sürümleri pilot sürümleridir.

@@ -1,4 +1,4 @@
-"""METIS v2 veri modeli (brief 5.3).
+"""METIS veri modeli (brief 5.3).
 
 Tüm ID'ler UUID, zamanlar timestamptz. Silme = deleted_at + deleted_by. Değişmez
 tablolar `metis.core.db.IMMUTABLE_TABLES` içinde; PostgreSQL trigger'ı ve ORM kancası

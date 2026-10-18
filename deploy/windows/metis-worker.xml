@@ -2,7 +2,7 @@
 <service>
   <id>metis-worker</id>
   <name>METIS Worker</name>
-  <description>METIS v2 arka plan işleri: taslak hazırlama, bilgi havuzu denetimi, benchmark, zamanlanmış bakım.</description>
+  <description>METIS arka plan işleri: taslak hazırlama, bilgi havuzu denetimi, benchmark, zamanlanmış bakım.</description>
   <executable>{{ROOT}}\app\current\python\python.exe</executable>
   <arguments>-m metis.cli worker --slots {{SLOTS}}</arguments>
   <env name="METIS_CONFIG" value="{{ENV}}"/>

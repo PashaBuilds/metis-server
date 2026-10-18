@@ -1,4 +1,4 @@
-# METIS v2
+# METIS
 
 **Ekibin teknik bilgisi, kaynaklarıyla.**
 

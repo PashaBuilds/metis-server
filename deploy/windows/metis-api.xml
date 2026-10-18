@@ -2,7 +2,7 @@
 <service>
   <id>metis-api</id>
   <name>METIS API</name>
-  <description>METIS v2 web/API sunucusu. Yalnız 127.0.0.1 üzerinde dinler; dış erişim IIS/ARR ters vekiliyle (TLS).</description>
+  <description>METIS web/API sunucusu. Yalnız 127.0.0.1 üzerinde dinler; dış erişim IIS/ARR ters vekiliyle (TLS).</description>
   <executable>{{ROOT}}\app\current\python\python.exe</executable>
   <arguments>-m metis.cli serve --host 127.0.0.1 --port {{PORT}} --workers {{WORKERS}}</arguments>
   <env name="METIS_CONFIG" value="{{ENV}}"/>

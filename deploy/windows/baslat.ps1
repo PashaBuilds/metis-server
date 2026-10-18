@@ -53,10 +53,21 @@ function Test-IsAdmin {
 
 function Show-Message([string]$Text, [string]$Kind = "Information", [string]$Buttons = "OK") {
   if ($Onayla) { Write-Host $Text; return "Yes" }
-  Add-Type -AssemblyName System.Windows.Forms
-  # Başlatıcının penceresi gizli: ileti kutusu başka pencerelerin arkasında kalmasın diye en üstte duran bir sahibe bağlanır.
-  $owner = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true; ShowInTaskbar = $false }
-  try { return [string][System.Windows.Forms.MessageBox]::Show($owner, $Text, "METIS", $Buttons, $Kind) } finally { $owner.Dispose() }
+  # Başlatıcının penceresi gizli ve Windows odak kuralı gizli bir sürecin penceresini öne almaz. 2.0.7'de WinForms
+  # ileti kutusu (gösterilmemiş TopMost sahiple) açık pencerelerin ARKASINDA, görev çubuğu düğmesi olmadan açılıyordu:
+  # çift tıklayınca "hiçbir şey olmuyor" sanılıyordu. Sahipsiz Win32 MessageBox + MB_SYSTEMMODAL + MB_SETFOREGROUND
+  # + MB_TOPMOST: her zaman en üstte ve görev çubuğunda görünür (METIS-Baslat.exe öne gelme iznini bu sürece devreder).
+  # Windows 10'da (19045) yalnız MB_TOPMOST pencereyi en üste almadı; MB_SYSTEMMODAL aldı (ölçüldü).
+  if (-not ("MetisUi" -as [type])) {
+    Add-Type -Namespace "" -Name "MetisUi" -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+public static extern int MessageBoxW(System.IntPtr hWnd, string text, string caption, uint type);
+'@
+  }
+  $icon = @{ Information = 0x40; Question = 0x20; Warning = 0x30; Error = 0x10 }[$Kind]
+  $btn = @{ OK = 0x0; YesNo = 0x4 }[$Buttons]
+  $r = [MetisUi]::MessageBoxW([IntPtr]::Zero, $Text, "METIS", [uint32]($btn -bor $icon -bor 0x1000 -bor 0x10000 -bor 0x40000))
+  switch ($r) { 1 { return "OK" } 6 { return "Yes" } 7 { return "No" } default { return "None" } }
 }
 
 function Get-InstalledVersion {

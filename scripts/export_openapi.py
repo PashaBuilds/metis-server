@@ -12,5 +12,5 @@ from metis.app import create_app  # noqa: E402
 
 out = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parents[1] / "apps" / "web" / "openapi.json")
 spec = create_app().openapi()
-out.write_text(json.dumps(spec, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+out.write_bytes((json.dumps(spec, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8"))  # Windows'ta da LF
 print(f"wrote {out} ({len(spec['paths'])} paths)")

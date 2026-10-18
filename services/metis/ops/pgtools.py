@@ -53,7 +53,8 @@ def _env(parts: dict[str, str]) -> dict[str, str]:
 
 def run(name: str, args: list[str], url: str, timeout: int = 3600) -> subprocess.CompletedProcess[str]:
     parts = libpq_parts(url)
-    proc = subprocess.run([tool(name), *args], env=_env(parts), capture_output=True, text=True, timeout=timeout, check=False)
+    # errors="replace": Türkçe Windows'ta (cp1254) PG araçlarının çıktısında çözülemeyen bayt olursa hata iletisi kaybolmasın.
+    proc = subprocess.run([tool(name), *args], env=_env(parts), capture_output=True, text=True, errors="replace", timeout=timeout, check=False)
     if proc.returncode != 0:
         msg = (proc.stderr or proc.stdout).strip().replace(parts["password"] or "\0", "***")[-2000:]
         raise PgToolError(f"{name} başarısız (kod {proc.returncode}): {msg}")
@@ -69,4 +70,4 @@ def restore(url: str, source: Path) -> None:
 
 
 def version(name: str) -> str:
-    return subprocess.run([tool(name), "--version"], capture_output=True, text=True, check=False).stdout.strip()
+    return subprocess.run([tool(name), "--version"], capture_output=True, text=True, errors="replace", check=False).stdout.strip()

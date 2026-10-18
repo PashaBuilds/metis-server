@@ -1,6 +1,6 @@
-# METIS v2 — Teslim
+# METIS — Teslim
 
-Bu belge METIS v2'nin teslim özetidir: neyin yapıldığı, neyin nasıl doğrulandığı, neyin bu ortamda
+Bu belge METIS'in teslim özetidir: neyin yapıldığı, neyin nasıl doğrulandığı, neyin bu ortamda
 doğrulanamadığı ve ürün sahibinin yapması gerekenler. Ayrıntılı günlük `docs/PROGRESS.md`'de.
 
 Doğrulama türleri ayrı yazılır:

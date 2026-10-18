@@ -5,10 +5,12 @@ name: CI
 # - aynı daldaki eski koşu, yenisi başlayınca iptal edilir,
 # - Windows işi yalnız paketi/Windows davranışını etkileyen değişikliklerde, sürüm yayımlarken,
 #   commit mesajında [windows] varsa veya elle (Actions → CI → Run workflow) çalıştırılınca koşar.
+# Release CI'da derlenmez/yayımlanmaz (ürün sahibinin kararı, 2026-10-18): yayımlanan ZIP, yerel Windows'ta derlenip
+# çift tıklamayla denenmiş ZIP'in kendisidir (scripts/release.ps1). Windows işi yalnız testtir: temiz Windows
+# Server'da ağ kapalı kurulum, yükseltme, yedek ve kaldırma. scripts/release.ps1 bu commit'te CI yeşil olmadan yayımlamaz.
 on:
   push:
     branches: [main]
-    tags: ["v*"]
     paths-ignore: ["docs/**", "**/*.md"]
   workflow_dispatch:
 
@@ -35,9 +37,9 @@ jobs:
           MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           run=false
-          if [ "${GITHUB_EVENT_NAME}" != "push" ] || [ "${GITHUB_REF_TYPE}" = "tag" ]; then run=true
+          if [ "${GITHUB_EVENT_NAME}" != "push" ]; then run=true
           elif printf '%s' "$MESSAGE" | grep -qF '[windows]'; then run=true
-          # deploy/RELEASE henüz etiketlenmemiş bir sürüm adı taşıyorsa (yayımlanacak): Windows işi ve release koşmalı.
+          # deploy/RELEASE henüz etiketlenmemiş bir sürüm adı taşıyorsa (yayımlanacak): Windows testi koşmalı.
           # Yalnız son gönderimin farkına bakmak yetmez: önceki gönderimin koşusu iptal edilmiş olabilir.
           elif tag="$(tr -d '[:space:]' < deploy/RELEASE 2>/dev/null)" && [ -n "$tag" ] && ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then run=true
           elif [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then run=true
@@ -167,7 +169,7 @@ jobs:
           python -m pip install -e ".[dev]"
           $env:METIS_PG_BIN = $env:PGBIN
           pytest -q -rfE --durations=15 tests/api tests/legacy_import tests/ops
-      - name: Paketi üret (internet açık)
+      - name: Paketi üret (internet açık; yalnız bu testler için — yayımlanmaz)
         shell: pwsh
         run: |
           npm ci
@@ -289,36 +291,3 @@ jobs:
           # Önce var olanları süz: olmayan bir yol -Recurse ile verilirse PowerShell adı üst klasörde (C:\) özyinelemeli arar
           # ve adım zaman sınırına takılır.
           @("C:\METIS\data\logs", "C:\metis-logs") | Where-Object { Test-Path $_ } | Get-ChildItem -Recurse -File | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 50 }
-      - uses: actions/upload-artifact@v4
-        with: { name: metis-server-win64, path: "dist/METIS-*-server-win64.zip*", retention-days: 14 }
-
-  release:
-    # İki yol: v* etiketi gönderilirse o etiket; main'e gönderimde deploy/RELEASE dosyasındaki ad (henüz yoksa).
-    # Etiketi gerekirse GitHub'ın kendi jetonu oluşturur (ajan oturumları etiket gönderemez).
-    name: Release (tek ZIP)
-    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
-    needs: [linux, windows]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Sürüm adı
-        id: tag
-        env: { GH_TOKEN: "${{ github.token }}" }
-        run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then tag="${GITHUB_REF_NAME}"; else tag="$(tr -d '[:space:]' < deploy/RELEASE)"; fi
-          case "$tag" in v[0-9]*) ;; *) echo "geçerli sürüm adı yok ('$tag'); release atlanıyor"; exit 0;; esac
-          if gh release view "$tag" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then echo "$tag zaten yayımlanmış; atlanıyor"; exit 0; fi
-          echo "name=$tag" >> "$GITHUB_OUTPUT"
-      - uses: actions/download-artifact@v4
-        if: steps.tag.outputs.name != ''
-        with: { name: metis-server-win64, path: dist }
-      - name: GitHub Release
-        if: steps.tag.outputs.name != ''
-        env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ steps.tag.outputs.name }}" }
-        run: |
-          # Tire içeren adlar (eski v2.0.0-rc.N biçimi) ön sürüm olarak işaretlenir; v2.0.7 gibi adlar normal sürümdür.
-          pre=""; case "$TAG" in *-*) pre="--prerelease";; esac
-          gh release create "$TAG" dist/* --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" $pre \
-            --title "METIS $TAG" --notes-file deploy/RELEASE_NOTES.md

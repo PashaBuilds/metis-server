@@ -1,4 +1,4 @@
-# METIS v2 — geliştirme ajanı çalışma kuralları
+# METIS — geliştirme ajanı çalışma kuralları
 
 Bu dosya repodaki geliştirme ajanlarına (Claude Code) yöneliktir; uygulamanın model sistem mesajı değildir.
 Tek ürün talimatı kaynağı: `METIS-v2-BRIEF.md`. İlerleme ve kararlar: `docs/PROGRESS.md`.
@@ -12,8 +12,8 @@ Tek ürün talimatı kaynağı: `METIS-v2-BRIEF.md`. İlerleme ve kararlar: `doc
 - Yeni oturumda önce `git status` ve `docs/PROGRESS.md`'nin son bölümünü oku; oradan devam et.
 - **Git akışı (ürün sahibinin kararı, 2026-10-11):** bu reponun tek push'layanı ajan. PR açma; doğrulanmış değişikliği doğrudan `main`'e commit + push et (oturum başka dal verse bile). Push öncesi hızlı denetimleri (ruff, ilgili pytest, tsc/eslint) yerelde çalıştır; push sonrası `main` CI'ını (Linux + Windows) izle, kırmızıysa hemen düzelt. Geçmişi yeniden yazma (force-push yok).
 - **Depo herkese açık (public).** Koda, belgelere, commit mesajlarına ve test verisine şirket adı, gerçek proje/kart adı, kişi adı, e-posta, iç ağ adresi veya gerçek kaynak içeriği yazma; örnek veri kurgusal olmalı. Commit yazarı GitHub noreply e-postası.
-- **CI:** public depoda standart Actions dakikaları ücretsiz; yine de değişiklikleri biriktirip tek push yap. Yalnız belge değişikliği CI çalıştırmaz; Windows işi yalnız `deploy/`, `ops/`, `legacy_import/`, `cli.py`, `pdf_extract.py`, `pyproject.toml` değişince, sürüm yayımlarken veya commit mesajında `[windows]` varken koşar. Takılan bir koşu fark edersen kullanıcıya iptal ettir (ajan iptal edemiyor).
-- **Sürüm yayımlama:** ajan oturumu etiket (tag) gönderemez. sürüm büyük.küçük.ilerleme (ör. `2.0.7`; ürün sahibinin kararı 2026-10-18, rc adı yok). Tek kaynak `services/metis/__init__.py` `__version__`; `deploy/RELEASE` (`v2.0.7`) ve iki `package.json` aynı olmalı (`tests/ops/test_version.py`). Sürümü yükselt, `deploy/RELEASE_NOTES.md`'yi güncelle, `main`'e push et; CI Linux + Windows yeşil olunca release işi etiketi ve ZIP'li release'i oluşturur.
+- **CI:** public depoda standart Actions dakikaları ücretsiz; yine de değişiklikleri biriktirip tek push yap. Yalnız belge değişikliği CI çalıştırmaz; Windows işi (yalnız test: temiz Windows Server'da ağ kapalı kurulum, yükseltme, yedek, kaldırma) `deploy/`, `ops/`, `legacy_import/`, `cli.py`, `pdf_extract.py`, `pyproject.toml` değişince, `deploy/RELEASE` henüz yayımlanmamış bir sürüm taşırken veya commit mesajında `[windows]` varken koşar. CI release oluşturmaz. Takılan koşuyu `gh run cancel <id>` ile iptal et.
+- **Sürüm yayımlama (ürün sahibinin kararı 2026-10-18):** sürüm büyük.küçük.ilerleme (ör. `2.0.8`; rc adı yok). Tek kaynak `services/metis/__init__.py` `__version__`; `deploy/RELEASE` (`v2.0.8`), iki `package.json`, `package-lock.json` ve `apps/web/openapi.json` aynı olmalı (`tests/ops/test_version.py`). Yayımlanan ZIP **yerel Windows bilgisayarda derlenip gerçek Windows'ta çift tıklamayla denenmiş ZIP'in kendisidir**; CI'da yeniden derlenmez. Akış: sürümü yükselt + `deploy/RELEASE_NOTES.md` → commit + push → `scripts\release.ps1 -Derle` (temiz main = origin/main, ruff, pytest + masaüstü testi, `build-bundle.py --locked --require-launcher`, ZIP özeti `dist\aday.json`'a) → ZIP'i ayrı klasöre aç, `METIS-Baslat.exe`'ye çift tıkla (kurulum/yükseltme, Chrome, sol menüde sürüm) → `scripts\release.ps1 -Yayimla` (ZIP değişmemiş, commit hâlâ origin/main, o commit'te CI yeşil; `gh release create` etiketi sunucuda oluşturur). Denenmemiş ZIP yayımlanmaz; deneme sonucu `docs/PROGRESS.md`'ye yazılır.
 
 ## Değişmez ilkeler (brief Bölüm 2 — özet)
 İnsan yayımlar, model yayımlamaz (sunucu tarafı yetki; varsayılan "Yazar yayımlar" + yayın öncesi otomatik çelişki/tekrar kontrolü, ürün sahibinin kararı 2026-10-18) · revizyonlar değişmez (ORM kancası + PG trigger) · onay hash'e bağlı · atomik yayın ·
@@ -32,6 +32,24 @@ npx playwright test -c apps/web/playwright.config.ts       # görsel + axe + har
 npx playwright test -c apps/web/playwright.e2e.config.ts   # uçtan uca akışlar (kendi geçici DB'si ve sunucusu)
 .venv/bin/python scripts/export_openapi.py && (cd apps/web && npx openapi-typescript openapi.json -o src/lib/api/schema.d.ts)
 ```
+
+### Windows'ta (geliştirme bilgisayarı)
+PowerShell; `.venv\Scripts\…` yolu. Python ≥3.12 yeter (paket hedefi ayrıca gömülü 3.12'dir). PostgreSQL 16 servisi
+(`C:\Program Files\PostgreSQL\16`). Bilgisayarda deneme amaçlı kurulu METIS'in `metis_owner`/`metis_app` rollerine
+ve `metis` veritabanına **dokunma**; testler ayrı `metisdev` rolüyle (CREATEDB, kurgusal parola) çalışır. Rol bir kez,
+`postgres` parolasını bilen kişi tarafından açılır; adı `metis_` ile başlamaz (`uninstall.ps1 -RemoveAll` o önekli rolleri siler).
+```powershell
+py -3 -m venv .venv; .venv\Scripts\python -m pip install -e ".[dev]"; npm install
+& "C:\Program Files\PostgreSQL\16\bin\psql.exe" -h 127.0.0.1 -U postgres -c "CREATE ROLE metisdev LOGIN CREATEDB PASSWORD 'metis-dev'"  # bir kez
+$env:METIS_TEST_ADMIN_DSN = "postgresql://metisdev:metis-dev@127.0.0.1:5432/postgres"
+$env:METIS_PG_BIN = "C:\Program Files\PostgreSQL\16\bin"; $env:Path = "$env:METIS_PG_BIN;$env:Path"  # pg_dump
+.venv\Scripts\python -m pytest -q                        # METIS_DESKTOP_TEST=1: başlatıcı ileti kutusu gerçek masaüstünde
+.venv\Scripts\python -m ruff check services tests evals deploy
+.venv\Scripts\python deploy\build-bundle.py --target win64 --locked --require-launcher   # dist\METIS-<sürüm>-server-win64.zip
+```
+`scripts/dev-up.sh` bash'e özgüdür; Windows'ta geliştirme yığını gerekirse `metis migrate/serve/worker/mock-llm`
+komutları `METIS_DATABASE_URL` ayrı bir veritabanını (ör. `metisdev`) gösterecek biçimde elle çalıştırılır.
+`npm install` `package-lock.json`'a yalnız `"peer": true` satırları ekliyorsa (npm sürüm farkı) commit'leme.
 
 ## Kod düzeni
 - Backend: `services/metis/modules/<modül>/{router,schemas,service,repo}.py`. `AppError` servis katmanında; HTTP zarfı yalnız `metis.app`'te.

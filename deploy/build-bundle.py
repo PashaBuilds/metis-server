@@ -108,7 +108,7 @@ def build_launcher(stage: Path, required: bool, ver: str) -> None:
             f'[assembly: AssemblyInformationalVersion("{ver}")]\n',
             encoding="utf-8",
         )
-        sh([str(csc), "/nologo", "/optimize+", "/target:winexe", "/codepage:65001", "/reference:System.Windows.Forms.dll",
+        sh([str(csc), "/nologo", "/optimize+", "/target:winexe", "/codepage:65001",
             f"/out:{stage / 'METIS-Baslat.exe'}", str(src), str(info)])
 
 

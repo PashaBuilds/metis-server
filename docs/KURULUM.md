@@ -1,4 +1,4 @@
-# METIS v2 — Sunucu kurulum rehberi
+# METIS — Sunucu kurulum rehberi
 
 Bu rehber METIS'i şirket içindeki bir **Windows Server** makinesine internet bağlantısı olmadan kurmayı anlatır.
 Linux (systemd) kurulumu sondaki ekte. Varsayılanlar (brief Bölüm 11): Windows Server, yerel hesaplar,
@@ -231,8 +231,12 @@ Bilmen gerekenler:
 - Mentor ve görevler bir yapay zekâ modeli ister. Model eklemeden kaynak yükleme, katkı, inceleme, yayın, bilgi havuzu ve
   arama denenebilir; Mentor "model kullanılamıyor" der.
 - Servisler bilgisayar her açıldığında kendiliğinden başlar; kaldırma betiği bunları da siler.
-- Bu senaryo CI'da Windows Server 2022'de denendi (exe soru sormayan modda: kurulum, ikinci açılış, yükseltme);
-  Windows 10/11 masaüstünde ve etkileşimli adımlarla (UAC, ileti kutuları, parola sorusu) **denenmedi**.
+- Çift tıkladıktan sonra birkaç saniye içinde bir METIS sorusu en üstte açılır (görev çubuğunda da görünür). Açılmazsa
+  tekrar tıklamadan önce `%TEMP%\METIS\baslat.log` dosyasına bak; başlatıcı zaten açıksa "zaten çalışıyor" der.
+  (2.0.7 ve öncesinde sorular pencerelerin arkasında açılabiliyordu; 2.0.8'de düzeltildi.)
+- Bu senaryo CI'da Windows Server 2022'de soru sormayan modda (kurulum, ikinci açılış, yükseltme), 2.0.8'den itibaren
+  ayrıca Windows 10 masaüstünde çift tıklamayla (yükseltme, Chrome'da açılış) denendi. Windows 10'da etkileşimli ilk
+  kurulum (UAC + parola sorusu) ve Windows 11 **denenmedi**.
 
 ## Ek: Linux (systemd)
 
