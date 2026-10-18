@@ -350,3 +350,19 @@ details[open] > summary .chev {
 .figuresGrid img {
   max-height: 200px;
 }
+
+.moreDecisions {
+  border-top: 1px solid var(--cizgi);
+  padding-top: var(--s3);
+}
+
+.moreDecisions > summary {
+  cursor: pointer;
+  color: var(--soluk);
+  font-size: var(--fs-13);
+  font-weight: 500;
+}
+
+.moreDecisions[open] > summary {
+  margin-bottom: var(--s3);
+}

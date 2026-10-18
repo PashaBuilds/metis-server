@@ -39,8 +39,8 @@ test('Çelişkiden çözüme → kayıt incelemede; havuz denetimi SSE ile tamam
   await expect(dialog.getByText('Devam etmek için onay kutusunu işaretle.')).toBeVisible();
   await dialog.getByLabel(/Geri çekilecek bilginin tamamının yayından kalkacağını anladım/).check();
   await dialog.getByRole('button', { name: 'Çözüm kaydını oluştur' }).click();
-  await expect(dialog.getByText(/Çözüm kaydı oluşturuldu ve incelemeye gönderildi/)).toBeVisible();
-  await dialog.getByRole('link', { name: 'Kaydı incele' }).click();
+  await expect(dialog.getByText(/Çözüm kaydı oluşturuldu/)).toBeVisible();
+  await dialog.getByRole('link', { name: 'Kaydı aç' }).click();
   await expect(page).toHaveURL(/\/kayitlar\/[0-9a-f-]{36}$/);
   await expect(page.getByText('İncelemede', { exact: true }).first()).toBeVisible();
 

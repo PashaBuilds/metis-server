@@ -14,7 +14,7 @@ class ProjectOut(BaseModel):
     name: str
     description: str
     is_demo: bool
-    review_policy: Literal["independent", "owner_review"]
+    review_policy: Literal["independent", "owner_review", "self_publish"]
     review_interval_days: int
     active_publication_id: uuid.UUID | None
     created_at: datetime
@@ -29,7 +29,7 @@ class ProjectCreateInput(BaseModel):
 class ProjectUpdateInput(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=180)
     description: str | None = Field(default=None, max_length=4000)
-    review_policy: Literal["independent", "owner_review"] | None = None
+    review_policy: Literal["independent", "owner_review", "self_publish"] | None = None
     review_interval_days: int | None = Field(default=None, ge=7, le=730)
 
 

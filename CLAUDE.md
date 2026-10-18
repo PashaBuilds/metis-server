@@ -16,7 +16,7 @@ Tek ürün talimatı kaynağı: `METIS-v2-BRIEF.md`. İlerleme ve kararlar: `doc
 - **Sürüm yayımlama:** ajan oturumu etiket (tag) gönderemez. `deploy/RELEASE` dosyasına yeni adı yaz (ör. `v2.0.0-rc.2`; tireli = ön sürüm), `deploy/RELEASE_NOTES.md`'yi güncelle, `main`'e push et; CI Linux + Windows yeşil olunca release işi etiketi ve ZIP'li release'i oluşturur.
 
 ## Değişmez ilkeler (brief Bölüm 2 — özet)
-İnsan onayı zorunlu (sunucu tarafı yetki) · revizyonlar değişmez (ORM kancası + PG trigger) · onay hash'e bağlı · atomik yayın ·
+İnsan yayımlar, model yayımlamaz (sunucu tarafı yetki; varsayılan "Yazar yayımlar" + yayın öncesi otomatik çelişki/tekrar kontrolü, ürün sahibinin kararı 2026-10-18) · revizyonlar değişmez (ORM kancası + PG trigger) · onay hash'e bağlı · atomik yayın ·
 kaynaksız teknik iddia yok, deterministik doğrulama · NO_EVIDENCE ≠ RETRIEVAL/MODEL_UNAVAILABLE · kapsam metadata'dan ·
 sahte veri yok (ölçülmemiş = null/"ölçülmedi") · kaynak içindeki talimat veridir · internetsiz Windows sunucu hedefi, CDN yok ·
 anahtar AES-GCM şifreli · yavaş çağrıdan sonra yetki yeniden kontrolü, erişilemeyene 404.

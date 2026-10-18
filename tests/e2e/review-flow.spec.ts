@@ -17,6 +17,8 @@ test('taslak → düzeltme iste → düzenle → yeniden gönder → onayla → 
   // Hazırlık: yönetici yazar ve inceleyici oluşturur (ilk girişte parola değiştirilir).
   const me = await apiLogin(page.request, ADMIN.username, ADMIN.password);
   const projectId = me.memberships[0]!.project_id;
+  // Bu akış "Bağımsız inceleme" politikasını sınar; varsayılan "Yazar yayımlar" kurulum ve görsel testlerinde.
+  await apiCall(page.request, 'PATCH', `/projects/${projectId}`, { review_policy: 'independent' });
   await createMember(page.request, projectId, 'yazar', 'E2E Yazar', ['contributor'], 'Yazar-Gecici-2026');
   await createMember(page.request, projectId, 'denetci', 'E2E Denetçi', ['reviewer'], 'Denetci-Gecici-2026');
   const seed = await browser.newContext({ baseURL: BASE });
@@ -116,4 +118,7 @@ test('taslak → düzeltme iste → düzenle → yeniden gönder → onayla → 
   await dialog.getByRole('textbox', { name: 'Gerekçe' }).fill('Sürücü yeniden yazıldı.');
   await dialog.getByRole('button', { name: 'Geri çek' }).click();
   await expect(reviewer.getByText(/Bu bilgi geri çekildi; mentor onu kullanmıyor/)).toBeVisible();
+
+  // Sonraki testler varsayılan politikayla ("Yazar yayımlar") çalışır.
+  await apiCall(page.request, 'PATCH', `/projects/${projectId}`, { review_policy: 'self_publish' });
 });

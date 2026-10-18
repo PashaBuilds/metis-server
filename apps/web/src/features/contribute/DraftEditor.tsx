@@ -1,4 +1,4 @@
-import { AlertTriangle, ImagePlus, Plus, Send, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ImagePlus, Plus, Send, Trash2, Upload, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Button, Field, IconButton, Input, Select, TabPanel, Tabs, Textarea, useToast } from '@/design/primitives';
 import { ScopeField } from '@/app/ScopeBar';
@@ -6,6 +6,8 @@ import { useSession, type ScopeSel } from '@/app/session';
 import { errorMessage, tr } from '@/i18n/tr';
 import { api, ApiError, newIdempotencyKey, type Schemas } from '@/lib/api/client';
 import { Banner } from '@/features/shared/Banner';
+import { useProject } from '@/features/shared/hooks';
+import { usePublishFlow } from '@/features/shared/PublishCheck';
 import { CLAIM_KINDS, PAGE_KINDS } from '@/features/shared/kinds';
 import { BodyWithFigures, figureToken, figureUrl, removeFigureFromBody, type FigureData } from '@/features/shared/Figure';
 import { FigurePicker } from './FigurePicker';
@@ -44,18 +46,25 @@ interface Props {
   onPickSource: () => void;
   onDirty: (dirty: boolean) => void;
   onSaved: (changeId: string) => void;
+  /** Yazar yayımlar: yayın tamamlandı. */
+  onPublished: (change: Schemas['ChangeDetailOut']) => void;
+  /** Yayın öncesi uyarıdan "Taslağa dön": kaydedilmiş taslak editörde yeniden açılır. */
+  onReopen: (changeId: string) => void;
 }
 
 let keySeq = 0;
 export const claimKey = () => `c${++keySeq}`;
 
-export function DraftEditor({ initial, target, source, onPickSource, onDirty, onSaved }: Props) {
+export function DraftEditor({ initial, target, source, onPickSource, onDirty, onSaved, onPublished, onReopen }: Props) {
   const session = useSession();
   const toast = useToast();
   const [v, setV] = useState<DraftValues>(initial);
   const [bodyTab, setBodyTab] = useState('write');
   const [idemKey] = useState(newIdempotencyKey);
-  const [busy, setBusy] = useState<'save' | 'submit' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'submit' | 'publish' | null>(null);
+  const project = useProject(session.projectId);
+  const selfPublish = project.data?.review_policy === 'self_publish';
+  const flow = usePublishFlow(onPublished);
   const [linking, setLinking] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -116,7 +125,8 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
     update({ figures: v.figures.filter((_, i) => i !== n - 1), body_md: removeFigureFromBody(v.body_md, n) });
   }
 
-  async function save(submit: boolean) {
+  async function save(mode: 'save' | 'submit' | 'publish') {
+    const submit = mode === 'submit';
     if (busy) return;
     const errs: Record<string, string> = {};
     if (!v.title.trim()) errs.title = tr.contribute.titleRequired;
@@ -126,7 +136,7 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
     setErrors(errs);
     setFormError(null);
     if (Object.keys(errs).length) return;
-    setBusy(submit ? 'submit' : 'save');
+    setBusy(mode);
     const item = {
       page_id: target.pageId,
       base_revision_id: target.baseRevisionId,
@@ -151,6 +161,12 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
         id = res.id;
       }
       onDirty(false);
+      if (mode === 'publish') {
+        // Taslak kaydedildi; yayın öncesi kontrol sorun bulursa pencere açılır, aksi hâlde doğrudan yayımlanır.
+        const outcome = await flow.start(id);
+        if (outcome === 'failed') onSaved(id);
+        return;
+      }
       toast.show(submit ? tr.contribute.submitted : tr.contribute.saved);
       onSaved(id);
     } catch (e) {
@@ -387,13 +403,21 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
       </div>
 
       <div className={s.saveBar}>
-        <Button variant="primary" icon={<Send size={16} aria-hidden />} loading={busy === 'submit'} disabled={!!busy} onClick={() => save(true)}>
-          {tr.contribute.saveSubmit}
-        </Button>
-        <Button loading={busy === 'save'} disabled={!!busy} onClick={() => save(false)}>
+        {selfPublish ? (
+          <Button variant="primary" icon={<Upload size={16} aria-hidden />} loading={busy === 'publish'} disabled={!!busy || !project.data} onClick={() => save('publish')}>
+            {tr.publishCheck.publish}
+          </Button>
+        ) : (
+          <Button variant="primary" icon={<Send size={16} aria-hidden />} loading={busy === 'submit'} disabled={!!busy || !project.data} onClick={() => save('submit')}>
+            {tr.contribute.saveSubmit}
+          </Button>
+        )}
+        <Button loading={busy === 'save'} disabled={!!busy} onClick={() => save('save')}>
           {tr.contribute.save}
         </Button>
+        {selfPublish && <p className={s.saveHint}>{tr.publishCheck.hint}</p>}
       </div>
+      {flow.dialog(onReopen)}
     </div>
   );
 }

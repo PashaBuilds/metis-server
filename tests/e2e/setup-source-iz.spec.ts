@@ -42,19 +42,22 @@ test('kurulum, kaynak, alıntı-iddia, yayın ve İz paneli', async ({ page, bro
   await expect(page.getByTestId('source-viewer').locator('mark')).toHaveText(QUOTE);
   await page.getByRole('button', { name: 'Taslağı kaydet' }).click();
 
-  // 5) Kayıt detayı: taslak → incelemeye gönder
+  // 5) Kayıt detayı: "Yazar yayımlar" — Metis yayın öncesi kontrolü yapar; sorun yoksa doğrudan yayımlanır.
   await expect(page).toHaveURL(/\/kayitlar\/[0-9a-f-]{36}$/);
   await expect(page.getByText('Taslak kaydedildi')).toBeVisible();
-  const recordUrl = page.url();
-  await page.getByRole('button', { name: 'İncelemeye gönder' }).click();
-  await expect(page.getByText('İncelemede', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'İncelemeye gönder' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Yayımla', exact: true }).click();
+  await expect(page.getByText(/^Yayımlandı/).first()).toBeVisible();
+  await page.getByRole('link', { name: 'Yayımlanan bilgiyi aç' }).click();
+  await expect(page.getByText('Yayımlayan: E2E Yönetici')).toBeVisible();
+  const pageUrl = page.url();
 
   // 6) API ile ikinci kullanıcı (inceleyici)
   const me = await apiCall<{ memberships: { project_id: string }[] }>(page.request, 'GET', '/auth/me');
   const projectId = me.memberships[0]!.project_id;
   await createMember(page.request, projectId, 'inceleyici', 'E2E İnceleyici', ['reviewer'], 'Gecici-Parola-2026');
 
-  // 7) İnceleyici: ilk girişte parola değişimi, onayla + yayımla
+  // 7) İnceleyici: ilk girişte parola değişimi, yayımlanan bilgiyi açar
   const ctx = await browser.newContext({ baseURL: 'http://localhost:8001', viewport: { width: 1440, height: 900 } });
   const rp = await ctx.newPage();
   await rp.goto('/giris');
@@ -67,16 +70,7 @@ test('kurulum, kaynak, alıntı-iddia, yayın ve İz paneli', async ({ page, bro
   await rp.getByLabel('Yeni parola (tekrar)').fill('Inceleyici-Parola-2026');
   await rp.getByRole('button', { name: 'Parolayı değiştir' }).click();
   await expect(rp.getByRole('heading', { name: 'Ne öğrenmek istiyorsun?' })).toBeVisible();
-
-  await rp.goto(recordUrl);
-  const approve = rp.getByRole('button', { name: 'Onayla ve yayımla' });
-  await expect(approve).toBeDisabled();
-  await expect(rp.getByText('Onaylamak için kontrol kutusunu işaretle.')).toBeVisible();
-  await rp.getByLabel('İddiaları ve kaynak desteğini kontrol ettim').check();
-  await expect(approve).toBeEnabled();
-  await approve.click();
-  await expect(rp.getByText('Yayımlandı', { exact: true }).first()).toBeVisible();
-  await rp.getByRole('link', { name: 'Yayımlanan bilgiyi aç' }).click();
+  await rp.goto(pageUrl);
 
   // 8) Bilgi sayfası: ●1 → İz paneli; Esc → odak işarete döner
   await expect(rp.getByRole('heading', { level: 1, name: 'AXI kesme maskesi' })).toBeVisible();

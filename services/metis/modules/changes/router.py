@@ -81,6 +81,22 @@ def publish(
     return service.change_detail(db, user, change_id)
 
 
+@router.post("/changes/{change_id}/check", response_model=schemas.PrepublishCheckOut)
+def prepublish_check(change_id: uuid.UUID, user: User = Depends(current_user)) -> schemas.PrepublishCheckOut:
+    """Yayın öncesi kontrol (kural + varsa model). Model çağrıları istek oturumu dışında yapılır."""
+    from metis.modules.changes.prepublish import run_check
+
+    return run_check(user.id, change_id)
+
+
+@router.post("/changes/{change_id}/publish-direct", response_model=schemas.ChangeDetailOut)
+def publish_direct(
+    change_id: uuid.UUID, data: schemas.PublishDirectIn, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")
+) -> schemas.ChangeDetailOut:
+    service.publish_direct(db, user, change_id, data)
+    return service.change_detail(db, user, change_id)
+
+
 @router.post("/changes/{change_id}/rebase", response_model=schemas.ChangeDetailOut, status_code=201)
 def rebase(
     change_id: uuid.UUID, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")

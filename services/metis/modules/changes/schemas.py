@@ -84,6 +84,31 @@ class ReviewIn(BaseModel):
     hash: str = Field(min_length=64, max_length=64)
 
 
+class PrepublishIssue(BaseModel):
+    kind: Literal["conflict", "duplicate", "overlap"]
+    page_id: uuid.UUID
+    page_title: str
+    ours: str = ""
+    theirs: str = ""
+    reason: str = ""
+    detected_by: Literal["rule", "model"]
+
+
+class PrepublishCheckOut(BaseModel):
+    """Yayın öncesi kontrol. model_status: ok | not_configured (uygun model yok) | failed (model yanıt vermedi)."""
+
+    hash: str
+    model_status: Literal["ok", "not_configured", "failed"]
+    model_name: str | None
+    issues: list[PrepublishIssue]
+    checked_at: datetime
+
+
+class PublishDirectIn(BaseModel):
+    hash: str = Field(min_length=64, max_length=64)
+    acknowledge_issues: bool = False
+
+
 class ReviewOut(BaseModel):
     id: uuid.UUID
     reviewer_id: uuid.UUID
@@ -160,6 +185,8 @@ class ChangeDetailOut(ChangeOut):
     can_edit: bool
     can_review: bool
     can_publish: bool
+    can_publish_direct: bool = False
+    prepublish: PrepublishCheckOut | None = None
     can_delete: bool
     approve_blockers: list[str]
     self_review: bool

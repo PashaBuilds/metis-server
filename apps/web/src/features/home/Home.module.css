@@ -424,3 +424,16 @@
     max-width: none;
   }
 }
+
+.updateText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.updateMeta {
+  color: var(--soluk);
+  font-size: var(--fs-12);
+  font-weight: 400;
+}

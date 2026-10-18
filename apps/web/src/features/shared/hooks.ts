@@ -19,11 +19,7 @@ export function useProject(projectId: string | null) {
   });
 }
 
-export interface InboxCounts {
-  reviews_waiting: number;
-  questions_waiting: number;
-  open_findings: number;
-}
+export type InboxCounts = Schemas['InboxOut'];
 
 export function useInbox(projectId: string | null) {
   return useQuery({

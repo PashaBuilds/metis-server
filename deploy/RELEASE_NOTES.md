@@ -4,6 +4,19 @@ METIS v2 sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-s
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**rc.4 — yazar yayımlar, yayın öncesi kontrol:**
+- İkinci kişinin onayı kalktı (varsayılan politika "Yazar yayımlar"): taslağını yazan kişi "Yayımla" ile kendisi yayımlar.
+- "Yayımla"ya basınca Metis taslağı yayındaki bilgilerle karşılaştırır: kural kontrolü (aynı ifade, farklı değer, örtüşen
+  kapsam) ve bağlı yapay zekâ modeli varsa anlam kontrolü (çelişki, tekrar, aynı konu). Sorun yoksa hemen yayımlanır; varsa
+  "Yayımlamadan önce bak" penceresi iki tarafı yan yana gösterir: "Taslağa dön" ya da "Yine de yayımla". Bilerek geçilen
+  çelişki Bilgi sağlığına kaydedilir. Model yoksa ya da yanıt vermezse bu açıkça yazılır, kural kontrolüyle yayımlanabilir.
+- Başkasının bilgisini güncellersen de doğrudan yayımlarsın; bilginin sahibi ana sayfada "Bilgilerin güncellendi"
+  bildirimini görür ("Gördüm" ile kapanır).
+- Bilgi sayfasında "Yayımlayan: …". Ayarlar → Yayın politikası'ndan "Bağımsız inceleme" seçilirse eski akış aynen geçerli.
+- Model ve worker yine hiçbir şey yayımlamaz; yayın her zaman bir kişinin eylemidir ve içerik hash'ine bağlı kaydedilir.
+- Şema 0004: mevcut projeler "Yazar yayımlar" politikasına geçer (yöneticiler Ayarlar'dan değiştirebilir); `upgrade.ps1`
+  geçişi kendiliğinden uygular.
+
 **rc.3 — açıklayıcı görseller:**
 - Bilgi taslağına görsel eklenebilir (Yeni katkı → Kendim yazayım → "Görsel ekle"): var olan bir görsel kaynağı seç ya da
   PNG/JPEG yükle, açıklama yaz. Görsel bilgi sayfasında metnin içinde, açıklamasıyla görünür; tıklayınca büyür.

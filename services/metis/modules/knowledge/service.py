@@ -307,8 +307,8 @@ def page_detail(db: Session, user: User, page_id: uuid.UUID, rev_id: uuid.UUID |
             reviewer = db.get(User, review.reviewer_id)
             approved_by = reviewer.display_name if reviewer else None
             approved_at = review.created_at
-            if review.policy == "owner_review":
-                badge = "owner_review"
+            if review.policy in ("owner_review", "self_publish"):
+                badge = review.policy
     open_changes = db.scalars(
         select(ChangeSet.id)
         .join(ChangeSetItem, ChangeSetItem.change_set_id == ChangeSet.id)

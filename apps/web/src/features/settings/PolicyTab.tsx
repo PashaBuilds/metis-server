@@ -7,7 +7,7 @@ import { api, type Schemas } from '@/lib/api/client';
 import { messageOf, useProject } from '@/features/shared/hooks';
 import s from './Settings.module.css';
 
-type Policy = 'independent' | 'owner_review';
+type Policy = Schemas['ProjectOut']['review_policy'];
 
 export function PolicyTab() {
   const session = useSession();
@@ -28,9 +28,11 @@ export function PolicyTab() {
   if (!project.data) return <p className={s.error}>{messageOf(project.error)}</p>;
   const value = (m.isPending ? m.variables : project.data.review_policy) as Policy;
   const options: { value: Policy; label: string; text: string }[] = [
+    { value: 'self_publish', label: tr.settings.policySelf, text: tr.settings.policySelfText },
     { value: 'independent', label: tr.settings.policyIndependent, text: tr.settings.policyIndependentText },
-    { value: 'owner_review', label: tr.settings.policyOwner, text: tr.settings.policyOwnerText },
   ];
+  // Eski "kişisel pilot" politikası yalnız seçiliyse görünür (yeni kurulumda sunulmaz).
+  if (value === 'owner_review') options.push({ value: 'owner_review', label: tr.settings.policyOwner, text: tr.settings.policyOwnerText });
   return (
     <section className={s.block} aria-labelledby="policy-h">
       <h2 id="policy-h" className={s.blockTitle}>

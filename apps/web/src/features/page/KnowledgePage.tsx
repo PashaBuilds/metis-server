@@ -163,7 +163,7 @@ function PageView({ page }: { page: PageDetail }) {
           <ScopeChips scope={asScope(r.scope)} />
           {page.approved_by && (
             <p className={s.approved}>
-              <span>{tr.shared.approvedBy(page.approved_by)}</span>
+              <span>{page.review_policy_badge === 'self_publish' ? tr.shared.publishedBy(page.approved_by) : tr.shared.approvedBy(page.approved_by)}</span>
               <time dateTime={page.approved_at ?? undefined} className={s.time}>
                 {formatDateTime(page.approved_at)}
               </time>

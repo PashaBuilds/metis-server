@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
@@ -59,10 +60,18 @@ def set_member(
     return Response(status_code=204)
 
 
+class UpdatedPage(schemas.BaseModel):  # type: ignore[name-defined]
+    page_id: uuid.UUID
+    title: str
+    by_name: str
+    published_at: datetime
+
+
 class InboxOut(schemas.BaseModel):  # type: ignore[name-defined]
     reviews_waiting: int
     questions_waiting: int
     open_findings: int
+    updated_pages: list[UpdatedPage] = []
 
 
 @router.get("/projects/{project_id}/inbox", response_model=InboxOut)

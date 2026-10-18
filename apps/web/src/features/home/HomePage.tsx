@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Activity, ArrowRight, Circle, ClipboardList, CornerDownLeft, FilePlus2, Plus, Sparkles } from 'lucide-react';
+import { Activity, ArrowRight, BellRing, Circle, ClipboardList, CornerDownLeft, FilePlus2, Plus, Sparkles } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
 import { Button, Chip, ChipButton, SkeletonRows, useToast } from '@/design/primitives';
 import { DIMS, useCatalog } from '@/app/ScopeBar';
@@ -9,7 +9,7 @@ import { tr } from '@/i18n/tr';
 import { api, type Schemas } from '@/lib/api/client';
 import { formatDateTime, formatWhen } from '@/lib/format';
 import { ChangeStateBadge, EvidenceCount, PageKindIcon } from '@/features/shared/kinds';
-import { messageOf, useInbox } from '@/features/shared/hooks';
+import { messageOf, useInbox, type InboxCounts } from '@/features/shared/hooks';
 import { ModelSelect, useAvailableModels } from '@/features/shared/models';
 import s from './Home.module.css';
 
@@ -19,6 +19,15 @@ export function HomePage() {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const inbox = useInbox(pid);
+  const qc = useQueryClient();
+  const updates = inbox.data?.updated_pages ?? [];
+  /** "Gördüm": son görülen yayın zamanı sunucunun saatinden alınır (istemci saati kaymış olsa da doğru). */
+  const markSeen = () => {
+    const latest = updates.map((u) => u.published_at).sort().at(-1);
+    if (!latest) return;
+    session.setPref('updates_seen_at', latest);
+    qc.setQueryData<InboxCounts>(['inbox', pid], (old) => (old ? { ...old, updated_pages: [] } : old));
+  };
   const models = useAvailableModels(pid);
   const modelFieldId = useId();
   const savedModel = session.pref<string | null>('mentor_model_id', null);
@@ -102,7 +111,7 @@ export function HomePage() {
         </div>
       </form>
 
-      <div className={[s.grid, waiting > 0 || !!inbox.data?.open_findings || setup.length > 0 ? '' : s.gridSingle].join(' ')}>
+      <div className={[s.grid, waiting > 0 || updates.length > 0 || !!inbox.data?.open_findings || setup.length > 0 ? '' : s.gridSingle].join(' ')}>
         <div className={s.mainCol}>
           {session.roles.has('contributor') && !(emptyPool && myDrafts.length === 0) && (
             <section className={s.section} aria-labelledby="home-resume">
@@ -193,6 +202,32 @@ export function HomePage() {
                     <Link to={item.to} search={item.search} className={s.waitItem}>
                       <Circle size={16} aria-hidden />
                       <span>{item.label}</span>
+                      <ArrowRight size={16} aria-hidden className={s.waitArrow} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {updates.length > 0 && (
+            <section className={s.section} aria-labelledby="home-updated">
+              <div className={s.sectionHead}>
+                <h2 id="home-updated">{tr.home.updatedTitle}</h2>
+                <Button size="sm" variant="ghost" onClick={markSeen}>
+                  {tr.home.updatedSeen}
+                </Button>
+              </div>
+              <ul className={s.waitList}>
+                {updates.map((u) => (
+                  <li key={u.page_id}>
+                    <Link to="/bilgi/$pageId" params={{ pageId: u.page_id }} search={{}} className={s.waitItem}>
+                      <BellRing size={18} aria-hidden />
+                      <span className={s.updateText}>
+                        <span>{u.title}</span>
+                        <span className={s.updateMeta}>
+                          {tr.home.updatedBy(u.by_name)} · {formatWhen(u.published_at)}
+                        </span>
+                      </span>
                       <ArrowRight size={16} aria-hidden className={s.waitArrow} />
                     </Link>
                   </li>

@@ -40,6 +40,7 @@ METIS, bir şirketin gömülü yazılım ekibinin teknik bilgisini **kaynakları
 Bunlar pazarlık konusu değildir. Her faz bunlara karşı test edilir.
 
 1. **İnsan onayı zorunlu.** LLM veya worker hiçbir zaman onaylamaz, yayımlamaz, silmez, yetki değiştirmez, anahtar okumaz. Bu, prompt ile değil **sunucu tarafı yetki denetimiyle** sağlanır.
+   > **Güncelleme (2026-10-18, ürün sahibinin kararı):** onay ilkesi "**yazar + otomatik kontrol**" olarak değişti. Varsayılan politika `self_publish` ("Yazar yayımlar"): katkı sahibi taslağını (kendi ya da başkasının bilgisi için) **kendisi** yayımlar; ikinci bir kişinin onayı gerekmez. Yayından hemen önce Metis taslağı yayındaki bilgilerle karşılaştırır — kural (aynı biçimli, farklı değerli iddia, örtüşen kapsam) + uygun model varsa yapay zekâ (çelişki, tekrar, örtüşme) — ve sorun varsa yan yana gösterip uyarır. Kullanıcı "Yine de yayımla" derse çelişki Bilgi sağlığına bulgu olarak düşer; model yoksa ya da yanıt vermezse bu açıkça yazılır ve yalnız kural sonucuyla yayımlanabilir. Başkasının bilgisi güncellenince sahibine ana sayfada "Bilgilerin güncellendi" bildirimi gider. Değişmeyenler: yayın yine bir **insanın** açık eylemidir (model/worker yayımlamaz), onay kaydı (`policy=self_publish`) içerik hash'ine bağlıdır, kontrol sonucu hash'e bağlıdır (içerik değişince yeniden kontrol), atomik yayın, kanıt kuralları. "Bağımsız inceleme" politikası Ayarlar'dan seçilebilir; seçilirse eski akış aynen geçerlidir.
 2. **Revizyonlar değişmez.** Kaynak, sayfa, ilişki ve kanıt revizyonları immutable'dır (ORM hook + PostgreSQL trigger). Düzenleme = yeni revizyon.
 3. **Onay hash'e bağlıdır.** Onay, değişiklik setinin içerik hash'ine bağlanır. Onaydan sonra tek karakter değişirse yeniden onay gerekir. Taban revizyon ilerlediyse `409 REVISION_CONFLICT`.
 4. **Atomik yayın.** Yayın: proje satır kilidi → manifest → arama indeksi → en son aktif yayın işaretçisi. Arada hata olursa eski yayın hizmete devam eder.
@@ -676,6 +677,7 @@ Detay (yeniden düzenlenmiş):
 - Taban revizyon ilerlediyse: "Bu taslak eski bir sürüme dayanıyor — yeniden temellendir".
 - **Güncelleme (2026-10-17):** onay ve yayın tek düğme: "Onayla ve yayımla" (insan onayı, gerekçe kuralları, kontrol kutusu ve hash bağı aynen). Yayın tamamlanamazsa kayıt onaylı kalır ve "Yayımla" düğmesi görünür; yayınlanınca "Yayımlanan bilgiyi aç".
 - `owner_review` politikasında kendi taslağını onaylama izinli ama rozetle belirtilir ("Kişisel pilot incelemesi").
+- **Güncelleme (2026-10-18):** `self_publish` ("Yazar yayımlar", varsayılan) politikasında karar panelinde tek "Yayımla" düğmesi: yayın öncesi kontrol → sorun yoksa yayımlanır; varsa "Yayımlamadan önce bak" penceresi (tür: Çelişebilir / Zaten var olabilir / Aynı konuyu kapsıyor; iki tarafın ifadesi yan yana; yayındaki bilgiye bağlantı; kontrolün kural mı model mi olduğu) → "Taslağa dön" ya da "Yine de yayımla". Editörde birincil düğme de "Yayımla". Bilgi sayfasında "Yayımlayan: …". İncelemedeki kayıtta inceleyici "Düzeltme iste ya da reddet" katlı bölümünü kullanabilir.
 - Silme her aşamada: onay diyaloğu → "Silindi · Geri al" toast'u (8 sn).
 
 ### 7.8 Metis görevleri `/gorevler`

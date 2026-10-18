@@ -56,7 +56,7 @@ def update(db: Session, user: User, project_id: uuid.UUID, data: schemas.Project
     require_member(db, user, project_id, ["steward"])
     project = lock_project(db, project_id)
     if data.review_policy is not None and data.review_policy != project.review_policy:
-        # owner_review yalnız yöneticinin açıkça seçtiği projelerde (brief 5.4).
+        # İnceleme politikasını yalnız yönetici değiştirir.
         require_admin(user)
         project.review_policy = data.review_policy
     if data.name is not None:
@@ -106,7 +106,7 @@ def set_member(db: Session, user: User, project_id: uuid.UUID, data: schemas.Mem
     audit(db, user.id, "member.set", "project", project_id, user_id=target.id, roles=sorted(set(data.roles)))
 
 
-def inbox(db: Session, user: User, project_id: uuid.UUID) -> dict[str, int]:
+def inbox(db: Session, user: User, project_id: uuid.UUID) -> dict:
     from sqlalchemy import func, or_
 
     from metis.core.models import ChangeSet, Finding, Job
@@ -143,4 +143,50 @@ def inbox(db: Session, user: User, project_id: uuid.UUID) -> dict[str, int]:
         )
         or 0
     )
-    return {"reviews_waiting": reviews, "questions_waiting": questions, "open_findings": findings}
+    return {
+        "reviews_waiting": reviews,
+        "questions_waiting": questions,
+        "open_findings": findings,
+        "updated_pages": updated_pages(db, user, project_id),
+    }
+
+
+def updated_pages(db: Session, user: User, project_id: uuid.UUID, limit: int = 10) -> list[dict]:
+    """Sahibi olduğun bilgileri başkası yayımladıysa (son 'gördüm'den sonra): 'Bilgilerin güncellendi'."""
+    from datetime import datetime
+
+    from metis.core.access import unreadable_revisions
+    from metis.core.models import Page, PageRevision, Publication, PublicationPage, UserPreference
+
+    pref = db.scalar(select(UserPreference.value).where(UserPreference.user_id == user.id, UserPreference.key == "updates_seen_at"))
+    try:
+        seen = datetime.fromisoformat(pref) if isinstance(pref, str) else user.created_at
+    except ValueError:
+        seen = user.created_at
+    rows = db.execute(
+        select(Page.id, PageRevision.id, PageRevision.title, Publication.created_by, Publication.created_at)
+        .join(PublicationPage, PublicationPage.page_id == Page.id)
+        .join(Publication, Publication.id == PublicationPage.publication_id)
+        .join(PageRevision, PageRevision.id == PublicationPage.revision_id)
+        .where(
+            Page.project_id == project_id,
+            Page.owner_id == user.id,
+            Page.deleted_at.is_(None),
+            Publication.kind == "publish",
+            Publication.created_by.is_not(None),
+            Publication.created_by != user.id,
+            Publication.created_at > seen,
+        )
+        .order_by(Publication.created_at.desc())
+    ).all()
+    hidden = unreadable_revisions(db, user, project_id, [r[1] for r in rows])
+    out, seen_pages = [], set()
+    for page_id, rev_id, title, by, at in rows:
+        if page_id in seen_pages or rev_id in hidden:
+            continue
+        seen_pages.add(page_id)
+        actor = db.get(User, by)
+        out.append({"page_id": page_id, "title": title, "by_name": actor.display_name if actor else "", "published_at": at})
+        if len(out) >= limit:
+            break
+    return out

@@ -580,7 +580,7 @@ def review(db: Session, user: User, change_id: uuid.UUID, data: schemas.ReviewIn
         raise AppError(
             "REASON_REQUIRED", "reason required for this decision", fields=[{"field": "reason", "type": "missing"}]
         )
-    policy = "owner_review" if (project.review_policy == "owner_review" and _is_owner(user, change)) else "independent"
+    policy = project.review_policy if (project.review_policy in ("owner_review", "self_publish") and _is_owner(user, change)) else "independent"
     db.add(
         Review(
             change_set_id=change.id,
@@ -611,6 +611,11 @@ def publish_change(db: Session, user: User, change_id: uuid.UUID) -> ChangeSet:
     current_hash = compute_change_hash(db, change)
     if current_hash != change.hash or not _valid_approval(db, change):
         raise AppError("HASH_MISMATCH", "approval does not match current content; review again")
+    return _publish_approved(db, user, change, project)
+
+
+def _publish_approved(db: Session, user: User, change: ChangeSet, project: Project) -> ChangeSet:
+    """Onaylı (hash'e bağlı) kaydı atomik olarak yayımlar. Çağıran yetkiyi ve onay geçerliliğini denetlemiştir."""
     upserts: dict[uuid.UUID, uuid.UUID] = {}
     removals: set[uuid.UUID] = set()
     for item in _items(db, change):
@@ -670,6 +675,109 @@ def publish_change(db: Session, user: User, change_id: uuid.UUID) -> ChangeSet:
         removed=list(removals),
     )
     return change
+
+
+def can_publish_direct(db: Session, user: User, change: ChangeSet) -> bool:
+    """'Yazar yayımlar' politikası: katkı sahibi (kendi ya da başkasının bilgisi için) açık kaydı doğrudan yayımlar."""
+    project = db.get(Project, change.project_id)
+    assert project is not None
+    return (
+        project.review_policy == "self_publish"
+        and user.kind == "human"
+        and "contributor" in _roles(db, user, change)
+        and change.state in ("draft", "in_review", "approved")
+        and change.deleted_at is None
+    )
+
+
+def publish_direct(db: Session, user: User, change_id: uuid.UUID, data: schemas.PublishDirectIn) -> ChangeSet:
+    """Yazar yayımlar: insan (yayımlayan kişi) karar verir, sistem yayın öncesi kontrolü yapmış olmalıdır.
+
+    Onay ilkesi korunur: yayın yine bir insanın açık eylemiyle olur ve onay kaydı (policy=self_publish) içerik
+    hash'ine bağlanır. Kontrolde bulunan çelişkiler, yayımlayan bilerek geçtiyse Bilgi sağlığına bulgu olarak düşer.
+    """
+    require_human(user)
+    change = accessible_change(db, user, change_id)
+    project = lock_project(db, change.project_id)
+    db.refresh(change, with_for_update=True)
+    if project.review_policy != "self_publish":
+        raise AppError("REVIEW_REQUIRED", "this project requires an independent review before publishing")
+    if not can_publish_direct(db, user, change):
+        raise AppError("ROLE_REQUIRED", "publishing requires the contributor role", state=change.state)
+    if data.hash != change.hash or compute_change_hash(db, change) != change.hash:
+        raise AppError("HASH_MISMATCH", "record content changed after you opened it", current_hash=change.hash)
+    check = change.detail.get("prepublish") or {}
+    if check.get("hash") != change.hash:
+        raise AppError("CHECK_REQUIRED", "run the pre-publish check for the current content first")
+    issues = check.get("issues") or []
+    if issues and not data.acknowledge_issues:
+        raise AppError("CHECK_WARNINGS", "the pre-publish check found possible conflicts", issues=len(issues))
+    blockers = [b for b in approve_blockers(db, user, change) if b not in ("self_review", "role", "not_in_review")]
+    if blockers:
+        if "base_outdated" in blockers:
+            raise AppError("REVISION_CONFLICT", "record is based on an outdated revision", blockers=blockers)
+        raise AppError("EVIDENCE_REQUIRED", "record does not satisfy publish checks", blockers=blockers)
+    db.add(
+        Review(
+            change_set_id=change.id,
+            hash=change.hash,
+            reviewer_id=user.id,
+            decision="approve",
+            reason="Yayımlayan kişi onayladı; yayın öncesi kontrol yapıldı.",
+            evidence_checked=True,
+            policy="self_publish",
+        )
+    )
+    change.state = "approved"
+    audit(
+        db, user.id, "change.review", "change_set", change.id, decision="approve", hash=change.hash, policy="self_publish",
+        model_status=check.get("model_status"), issues=len(issues),
+    )
+    db.flush()
+    _publish_approved(db, user, change, project)
+    _record_acknowledged_conflicts(db, user, change, issues)
+    return change
+
+
+def _record_acknowledged_conflicts(db: Session, user: User, change: ChangeSet, issues: list[dict]) -> None:
+    """Bilerek geçilen çelişki uyarıları kaybolmaz: Bilgi sağlığına bulgu olarak eklenir."""
+    from metis.core.util import fingerprint
+    from metis.modules.health.maintenance import _open_finding, _strip_numbers
+
+    new_pages = {i.page_id: db.get(PageRevision, i.proposed_revision_id) for i in _items(db, change) if i.proposed_revision_id}
+    for issue in issues:
+        if issue.get("kind") != "conflict":
+            continue
+        other = uuid.UUID(issue["page_id"])
+        ours_page = next(iter(new_pages), None)
+        if ours_page is None:
+            continue
+        ours_title = new_pages[ours_page].title if new_pages[ours_page] else ""
+        fp = fingerprint("conflict", *sorted([str(ours_page), str(other)]), _strip_numbers(issue.get("ours") or issue.get("theirs") or ""))
+        other_page = db.get(Page, other)
+        sides = [
+            {"page_id": str(ours_page), "page_title": ours_title, "quote": issue.get("ours", ""), "evidence_id": _claim_evidence(db, new_pages[ours_page], issue.get("ours", ""))},
+            {"page_id": str(other), "page_title": issue.get("page_title", ""), "quote": issue.get("theirs", ""), "evidence_id": _claim_evidence(db, db.get(PageRevision, other_page.published_revision_id) if other_page and other_page.published_revision_id else None, issue.get("theirs", ""))},
+        ]
+        if not all(s["evidence_id"] for s in sides):
+            continue  # çözüm vakası kanıtsız taraf açamaz; bakım taraması yayındaki hâlinden yeniden bulur
+        _open_finding(
+            db, change.project_id, "conflict", fp, [ours_page, other], "high",
+            {"sides": sides, "detected_by": issue.get("detected_by", "rule"), "acknowledged_at_publish": True, "reason": issue.get("reason", "")},
+            user.id,
+        )
+
+
+def _claim_evidence(db: Session, revision: PageRevision | None, statement: str) -> str | None:
+    if revision is None or not statement:
+        return None
+    ev = db.scalar(
+        select(ClaimEvidence.evidence_id)
+        .join(Claim, Claim.id == ClaimEvidence.claim_id)
+        .where(Claim.page_revision_id == revision.id, Claim.statement == statement)
+        .limit(1)
+    )
+    return str(ev) if ev else None
 
 
 def rebase(db: Session, user: User, change_id: uuid.UUID) -> ChangeSet:
@@ -1081,6 +1189,8 @@ def change_detail(db: Session, user: User, change_id: uuid.UUID) -> schemas.Chan
         and bool(roles & {"reviewer", "steward"})
         and change.state == "approved"
         and _valid_approval(db, change) is not None,
+        can_publish_direct=can_publish_direct(db, user, change),
+        prepublish=change.detail.get("prepublish") if (change.detail.get("prepublish") or {}).get("hash") == change.hash else None,
         can_delete=_can_delete(db, user, change),
         approve_blockers=blockers,
         self_review=_is_owner(user, change),

@@ -10,6 +10,8 @@ def team(client, make_client):  # noqa: ANN001, ANN201
     """Yönetici + katkı sahibi + inceleyici + okur + üye olmayan kullanıcı, ortak kapsam kataloğu."""
     me = setup_admin(client)
     pid = me["memberships"][0]["project_id"]
+    # Bu testler bağımsız inceleme akışını sınar; varsayılan "yazar yayımlar" test_self_publish.py'de.
+    assert client.patch(f"/api/v1/projects/{pid}", json={"review_policy": "independent"}).status_code == 200
     add_scope_values(
         client, pid, {"domain": ["Gömülü yazılım"], "kart": ["VPK120", "K2"], "proje": ["Atlas"], "yatt": ["Y1"]}
     )

@@ -112,7 +112,9 @@ class Project(Base):
     name: Mapped[str] = mapped_column(String(180), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    review_policy: Mapped[str] = mapped_column(String(20), nullable=False, default="independent")
+    # self_publish: yazar yayımlar (yayın öncesi otomatik kontrol); independent: başka bir inceleyici onaylar;
+    # owner_review: eski "kişisel pilot incelemesi" (aktarılan veriler için geçerli kalır).
+    review_policy: Mapped[str] = mapped_column(String(20), nullable=False, default="self_publish")
     review_interval_days: Mapped[int] = mapped_column(Integer, nullable=False, default=90)
     active_publication_id: Mapped[uuid.UUID | None] = mapped_column(
         UUIDPK, ForeignKey("publications.id", use_alter=True, name="fk_projects_active_publication"), nullable=True
@@ -120,7 +122,7 @@ class Project(Base):
     created_at: Mapped[datetime] = ts()
     deleted_at: Mapped[datetime | None] = ts(nullable=True)
     deleted_by: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, nullable=True)
-    __table_args__ = (CheckConstraint("review_policy in ('independent','owner_review')", name="ck_projects_policy"),)
+    __table_args__ = (CheckConstraint("review_policy in ('independent','owner_review','self_publish')", name="ck_projects_policy"),)
 
 
 class ProjectMember(Base):

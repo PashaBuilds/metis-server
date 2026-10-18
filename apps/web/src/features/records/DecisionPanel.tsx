@@ -7,6 +7,7 @@ import { tr } from '@/i18n/tr';
 import { api, ApiError, type Schemas } from '@/lib/api/client';
 import { formatDateTime } from '@/lib/format';
 import { messageOf, useUndoableDelete } from '@/features/shared/hooks';
+import { usePublishFlow } from '@/features/shared/PublishCheck';
 import s from './RecordDetail.module.css';
 
 type Change = Schemas['ChangeDetailOut'];
@@ -23,6 +24,7 @@ export function DecisionPanel({ change }: { change: Change }) {
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const blockersId = useId();
+  const flow = usePublishFlow(() => undefined);
 
   const apply = (d: Change) => {
     qc.setQueryData(['change', change.id], d);
@@ -73,7 +75,7 @@ export function DecisionPanel({ change }: { change: Change }) {
     onError,
   });
 
-  const busy = review.isPending || publish.isPending || submit.isPending;
+  const busy = review.isPending || publish.isPending || submit.isPending || !!flow.busy;
   const decide = (decision: Decision) => {
     setError(null);
     setReasonError(null);
@@ -88,8 +90,82 @@ export function DecisionPanel({ change }: { change: Change }) {
   const approveReasons = [...blockers, ...(checked ? [] : [tr.record.checkRequired])];
   const publishedPage = change.published_page_ids[0];
 
+  const reviewForm = (approve: boolean) => (
+    <div className={s.decision}>
+      <Field label={tr.record.reason} hint={approve ? tr.record.reasonHint : tr.record.reasonRequired} error={reasonError}>
+        {({ id, describedBy }) => (
+          <Textarea
+            id={id}
+            aria-describedby={describedBy}
+            invalid={!!reasonError}
+            rows={approve ? 4 : 3}
+            value={reason}
+            onChange={(e) => {
+              setReason(e.target.value);
+              setReasonError(null);
+            }}
+          />
+        )}
+      </Field>
+      {approve && <Checkbox label={tr.record.checked} checked={checked} onChange={setChecked} />}
+      {approve && change.review_policy === 'owner_review' && change.self_review && <span className={s.ownerBadge}>{tr.shared.ownerReview}</span>}
+      <div className={s.decisionButtons}>
+        {approve && (
+          <Button
+            variant="primary"
+            icon={<Check size={16} aria-hidden />}
+            disabled={approveReasons.length > 0 || busy}
+            loading={(review.isPending && review.variables === 'approve') || publish.isPending}
+            aria-describedby={approveReasons.length ? blockersId : undefined}
+            onClick={() => decide('approve')}
+          >
+            {tr.record.approvePublish}
+          </Button>
+        )}
+        {approve && approveReasons.length > 0 && (
+          <ul id={blockersId} className={s.blockers}>
+            {approveReasons.map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+        )}
+        <Button icon={<PencilLine size={16} aria-hidden />} disabled={busy} loading={review.isPending && review.variables === 'request_changes'} onClick={() => decide('request_changes')}>
+          {tr.record.requestChanges}
+        </Button>
+        <Button variant="danger" icon={<X size={16} aria-hidden />} disabled={busy} loading={review.isPending && review.variables === 'reject'} onClick={() => decide('reject')}>
+          {tr.record.reject}
+        </Button>
+      </div>
+    </div>
+  );
+
   let body: ReactNode = null;
-  if (change.state === 'draft') {
+  if (change.can_publish_direct) {
+    // Yazar yayımlar: kontrol + yayın tek düğme. İncelemedeki (ör. Metis'in hazırladığı) kayıtta inceleyici
+    // ayrıca düzeltme isteyebilir ya da reddedebilir.
+    body = (
+      <div className={s.decision}>
+        <p className={s.note}>{tr.publishCheck.hint}</p>
+        <div className={s.panelActions}>
+          <Button variant="primary" icon={<Upload size={16} aria-hidden />} loading={!!flow.busy} disabled={busy} onClick={() => void flow.start(change.id)}>
+            {tr.publishCheck.publish}
+          </Button>
+          {change.can_edit && (
+            <Link to="/katki" search={{ change: change.id }} className={s.linkBtn}>
+              <PencilLine size={16} aria-hidden />
+              {tr.record.edit}
+            </Link>
+          )}
+        </div>
+        {change.state === 'in_review' && change.can_review && !change.self_review && (
+          <details className={s.moreDecisions}>
+            <summary>{tr.record.otherDecisions}</summary>
+            {reviewForm(false)}
+          </details>
+        )}
+      </div>
+    );
+  } else if (change.state === 'draft') {
     body = change.can_edit ? (
       <div className={s.panelActions}>
         <Button variant="primary" icon={<Send size={16} aria-hidden />} loading={submit.isPending} disabled={busy} onClick={() => submit.mutate()}>
@@ -105,50 +181,7 @@ export function DecisionPanel({ change }: { change: Change }) {
     );
   } else if (change.state === 'in_review') {
     body = change.can_review ? (
-      <div className={s.decision}>
-        <Field label={tr.record.reason} hint={tr.record.reasonHint} error={reasonError}>
-          {({ id, describedBy }) => (
-            <Textarea
-              id={id}
-              aria-describedby={describedBy}
-              invalid={!!reasonError}
-              rows={4}
-              value={reason}
-              onChange={(e) => {
-                setReason(e.target.value);
-                setReasonError(null);
-              }}
-            />
-          )}
-        </Field>
-        <Checkbox label={tr.record.checked} checked={checked} onChange={setChecked} />
-        {change.review_policy === 'owner_review' && change.self_review && <span className={s.ownerBadge}>{tr.shared.ownerReview}</span>}
-        <div className={s.decisionButtons}>
-          <Button
-            variant="primary"
-            icon={<Check size={16} aria-hidden />}
-            disabled={approveReasons.length > 0 || busy}
-            loading={(review.isPending && review.variables === 'approve') || publish.isPending}
-            aria-describedby={approveReasons.length ? blockersId : undefined}
-            onClick={() => decide('approve')}
-          >
-            {tr.record.approvePublish}
-          </Button>
-          {approveReasons.length > 0 && (
-            <ul id={blockersId} className={s.blockers}>
-              {approveReasons.map((r) => (
-                <li key={r}>{r}</li>
-              ))}
-            </ul>
-          )}
-          <Button icon={<PencilLine size={16} aria-hidden />} disabled={busy} loading={review.isPending && review.variables === 'request_changes'} onClick={() => decide('request_changes')}>
-            {tr.record.requestChanges}
-          </Button>
-          <Button variant="danger" icon={<X size={16} aria-hidden />} disabled={busy} loading={review.isPending && review.variables === 'reject'} onClick={() => decide('reject')}>
-            {tr.record.reject}
-          </Button>
-        </div>
-      </div>
+      reviewForm(true)
     ) : (
       <p className={s.note}>{change.self_review ? tr.record.waitingReview : tr.record.noRights}</p>
     );
@@ -232,6 +265,7 @@ export function DecisionPanel({ change }: { change: Change }) {
           }).catch(() => undefined);
         }}
       />
+      {flow.dialog()}
     </aside>
   );
 }

@@ -177,6 +177,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/changes/{change_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepublish Check
+         * @description Yayın öncesi kontrol (kural + varsa model). Model çağrıları istek oturumu dışında yapılır.
+         */
+        post: operations["prepublish_check_api_v1_changes__change_id__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/changes/{change_id}/publish": {
         parameters: {
             query?: never;
@@ -188,6 +208,23 @@ export interface paths {
         put?: never;
         /** Publish */
         post: operations["publish_api_v1_changes__change_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/changes/{change_id}/publish-direct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Direct */
+        post: operations["publish_direct_api_v1_changes__change_id__publish_direct_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1587,6 +1624,11 @@ export interface components {
             can_edit: boolean;
             /** Can Publish */
             can_publish: boolean;
+            /**
+             * Can Publish Direct
+             * @default false
+             */
+            can_publish_direct: boolean;
             /** Can Review */
             can_review: boolean;
             /** Counts */
@@ -1624,6 +1666,7 @@ export interface components {
             page_ids: string[];
             /** Predecessor Id */
             predecessor_id: string | null;
+            prepublish?: components["schemas"]["PrepublishCheckOut"] | null;
             /**
              * Project Id
              * Format: uuid
@@ -2183,6 +2226,11 @@ export interface components {
             questions_waiting: number;
             /** Reviews Waiting */
             reviews_waiting: number;
+            /**
+             * Updated Pages
+             * @default []
+             */
+            updated_pages: components["schemas"]["UpdatedPage"][];
         };
         /** ItemIn */
         ItemIn: {
@@ -2734,6 +2782,63 @@ export interface components {
             /** Value */
             value: unknown;
         };
+        /**
+         * PrepublishCheckOut
+         * @description Yayın öncesi kontrol. model_status: ok | not_configured (uygun model yok) | failed (model yanıt vermedi).
+         */
+        PrepublishCheckOut: {
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Hash */
+            hash: string;
+            /** Issues */
+            issues: components["schemas"]["PrepublishIssue"][];
+            /** Model Name */
+            model_name: string | null;
+            /**
+             * Model Status
+             * @enum {string}
+             */
+            model_status: "ok" | "not_configured" | "failed";
+        };
+        /** PrepublishIssue */
+        PrepublishIssue: {
+            /**
+             * Detected By
+             * @enum {string}
+             */
+            detected_by: "rule" | "model";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "conflict" | "duplicate" | "overlap";
+            /**
+             * Ours
+             * @default
+             */
+            ours: string;
+            /**
+             * Page Id
+             * Format: uuid
+             */
+            page_id: string;
+            /** Page Title */
+            page_title: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /**
+             * Theirs
+             * @default
+             */
+            theirs: string;
+        };
         /** ProjectCreateInput */
         ProjectCreateInput: {
             /**
@@ -2772,7 +2877,7 @@ export interface components {
              * Review Policy
              * @enum {string}
              */
-            review_policy: "independent" | "owner_review";
+            review_policy: "independent" | "owner_review" | "self_publish";
         };
         /** ProjectUpdateInput */
         ProjectUpdateInput: {
@@ -2783,7 +2888,7 @@ export interface components {
             /** Review Interval Days */
             review_interval_days?: number | null;
             /** Review Policy */
-            review_policy?: ("independent" | "owner_review") | null;
+            review_policy?: ("independent" | "owner_review" | "self_publish") | null;
         };
         /** ProviderIn */
         ProviderIn: {
@@ -2811,6 +2916,16 @@ export interface components {
              * @default 60
              */
             timeout_s: number;
+        };
+        /** PublishDirectIn */
+        PublishDirectIn: {
+            /**
+             * Acknowledge Issues
+             * @default false
+             */
+            acknowledge_issues: boolean;
+            /** Hash */
+            hash: string;
         };
         /** RelatedPage */
         RelatedPage: {
@@ -3399,6 +3514,23 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** UpdatedPage */
+        UpdatedPage: {
+            /** By Name */
+            by_name: string;
+            /**
+             * Page Id
+             * Format: uuid
+             */
+            page_id: string;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            /** Title */
+            title: string;
+        };
         /** UserCreateInput */
         UserCreateInput: {
             /** Display Name */
@@ -3866,6 +3998,37 @@ export interface operations {
             };
         };
     };
+    prepublish_check_api_v1_changes__change_id__check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepublishCheckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     publish_api_v1_changes__change_id__publish_post: {
         parameters: {
             query?: never;
@@ -3876,6 +4039,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_direct_api_v1_changes__change_id__publish_direct_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishDirectIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

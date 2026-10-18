@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getRouteApi, Link, useBlocker, useNavigate } from '@tanstack/react-router';
 import { PenLine } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -70,6 +70,7 @@ const EMPTY_VALUES: DraftValues = { title: '', kind: 'concept', summary: '', bod
 export function ContributePage() {
   const search = route.useSearch();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const answerMode = !!search.answer && !search.change && !search.page;
   const editMode = !!search.change || !!search.page || answerMode;
 
@@ -269,6 +270,18 @@ export function ContributePage() {
                   onPickSource={() => setStep('source')}
                   onDirty={(d) => setDirty('editor', d)}
                   onSaved={(id) => go(() => navigate({ to: '/kayitlar/$changeId', params: { changeId: id } }))}
+                  onPublished={(d) => {
+                    const pageId = d.published_page_ids[0];
+                    go(() => (pageId ? navigate({ to: '/bilgi/$pageId', params: { pageId }, search: {} }) : navigate({ to: '/kayitlar/$changeId', params: { changeId: d.id } })));
+                  }}
+                  onReopen={(id) => {
+                    // Aynı sayfada kalınır: kaydedilmiş taslak (güncel hash ile) editörde yeniden açılır.
+                    void qc.invalidateQueries({ queryKey: ['change', id] });
+                    allowNav.current = true;
+                    void navigate({ to: '/katki', search: { change: id } }).finally(() => {
+                      allowNav.current = false;
+                    });
+                  }}
                 />
               ) : (
                 <SkeletonRows rows={5} />

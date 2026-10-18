@@ -193,6 +193,7 @@ PREFERENCE_KEYS = {
     "active_project_id",
     "active_scope",
     "mentor_model_id",
+    "updates_seen_at",
     "filters.library",
     "filters.records",
     "filters.health",

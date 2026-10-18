@@ -600,6 +600,11 @@
             "title": "Can Publish",
             "type": "boolean"
           },
+          "can_publish_direct": {
+            "default": false,
+            "title": "Can Publish Direct",
+            "type": "boolean"
+          },
           "can_review": {
             "title": "Can Review",
             "type": "boolean"
@@ -680,6 +685,16 @@
               }
             ],
             "title": "Predecessor Id"
+          },
+          "prepublish": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrepublishCheckOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "project_id": {
             "format": "uuid",
@@ -2054,6 +2069,14 @@
           "reviews_waiting": {
             "title": "Reviews Waiting",
             "type": "integer"
+          },
+          "updated_pages": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/UpdatedPage"
+            },
+            "title": "Updated Pages",
+            "type": "array"
           }
         },
         "required": [
@@ -3514,6 +3537,109 @@
         "title": "PreferenceInput",
         "type": "object"
       },
+      "PrepublishCheckOut": {
+        "description": "Yayın öncesi kontrol. model_status: ok | not_configured (uygun model yok) | failed (model yanıt vermedi).",
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "hash": {
+            "title": "Hash",
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/PrepublishIssue"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "model_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Name"
+          },
+          "model_status": {
+            "enum": [
+              "ok",
+              "not_configured",
+              "failed"
+            ],
+            "title": "Model Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hash",
+          "model_status",
+          "model_name",
+          "issues",
+          "checked_at"
+        ],
+        "title": "PrepublishCheckOut",
+        "type": "object"
+      },
+      "PrepublishIssue": {
+        "properties": {
+          "detected_by": {
+            "enum": [
+              "rule",
+              "model"
+            ],
+            "title": "Detected By",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "conflict",
+              "duplicate",
+              "overlap"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "ours": {
+            "default": "",
+            "title": "Ours",
+            "type": "string"
+          },
+          "page_id": {
+            "format": "uuid",
+            "title": "Page Id",
+            "type": "string"
+          },
+          "page_title": {
+            "title": "Page Title",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          },
+          "theirs": {
+            "default": "",
+            "title": "Theirs",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "page_id",
+          "page_title",
+          "detected_by"
+        ],
+        "title": "PrepublishIssue",
+        "type": "object"
+      },
       "ProjectCreateInput": {
         "properties": {
           "description": {
@@ -3585,7 +3711,8 @@
           "review_policy": {
             "enum": [
               "independent",
-              "owner_review"
+              "owner_review",
+              "self_publish"
             ],
             "title": "Review Policy",
             "type": "string"
@@ -3650,7 +3777,8 @@
               {
                 "enum": [
                   "independent",
-                  "owner_review"
+                  "owner_review",
+                  "self_publish"
                 ],
                 "type": "string"
               },
@@ -3713,6 +3841,26 @@
           "model_ids"
         ],
         "title": "ProviderIn",
+        "type": "object"
+      },
+      "PublishDirectIn": {
+        "properties": {
+          "acknowledge_issues": {
+            "default": false,
+            "title": "Acknowledge Issues",
+            "type": "boolean"
+          },
+          "hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hash"
+        ],
+        "title": "PublishDirectIn",
         "type": "object"
       },
       "RelatedPage": {
@@ -5076,6 +5224,36 @@
         "title": "SystemStatus",
         "type": "object"
       },
+      "UpdatedPage": {
+        "properties": {
+          "by_name": {
+            "title": "By Name",
+            "type": "string"
+          },
+          "page_id": {
+            "format": "uuid",
+            "title": "Page Id",
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id",
+          "title",
+          "by_name",
+          "published_at"
+        ],
+        "title": "UpdatedPage",
+        "type": "object"
+      },
       "UserCreateInput": {
         "properties": {
           "display_name": {
@@ -5803,6 +5981,50 @@
         ]
       }
     },
+    "/api/v1/changes/{change_id}/check": {
+      "post": {
+        "description": "Yayın öncesi kontrol (kural + varsa model). Model çağrıları istek oturumu dışında yapılır.",
+        "operationId": "prepublish_check_api_v1_changes__change_id__check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrepublishCheckOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prepublish Check",
+        "tags": [
+          "changes"
+        ]
+      }
+    },
     "/api/v1/changes/{change_id}/publish": {
       "post": {
         "operationId": "publish_api_v1_changes__change_id__publish_post",
@@ -5841,6 +6063,59 @@
           }
         },
         "summary": "Publish",
+        "tags": [
+          "changes"
+        ]
+      }
+    },
+    "/api/v1/changes/{change_id}/publish-direct": {
+      "post": {
+        "operationId": "publish_direct_api_v1_changes__change_id__publish_direct_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishDirectIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Publish Direct",
         "tags": [
           "changes"
         ]
