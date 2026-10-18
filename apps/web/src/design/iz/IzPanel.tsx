@@ -114,6 +114,9 @@ export function IzPanel({ mode }: { mode: 'docked' | 'overlay' }) {
                 {tr.iz.newRevision}
               </Link>
             </div>
+            {data.can_download && data.revision.media_type.startsWith('image/') && (
+              <img className={s.sourceImage} src={`/api/v1/source-revisions/${data.revision.id}/download`} alt={data.source.title} />
+            )}
             <div ref={bodyRef} className={s.sourceText} tabIndex={0} aria-label={tr.iz.fullText}>
               <SourceText text={data.text} highlight={data.highlight} />
             </div>

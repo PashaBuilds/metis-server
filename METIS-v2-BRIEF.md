@@ -628,6 +628,7 @@ METIS'in asıl değeri **iz sürülebilirlik**: her bilginin bir kaynağa giden 
 └────────────────────────────────────────────────────────┘
 ```
 - ●n işareti → İz paneli + iz çizgisi.
+- **Açıklayıcı görseller (2026-10-18, ürün sahibinin isteği):** gövdede kendi satırında `{{görsel N}}` ile metnin içinde, açıklamasıyla gösterilir; tıklayınca büyür. Görsel bir görsel kaynağın (PNG/JPEG) belirli revizyonudur; revizyona değişmez satır olarak bağlanır (`page_revision_figures`), onay hash'ine dahildir, kaynağına erişimi olmayan sayfayı göremez, kaynak yeni sürüm alınca sayfa "Kaynak değişti" olur. **Kanıt değildir:** altın işaret almaz, iddia desteği yine alıntılanabilir metinden gelir. Editörde "Görsel ekle": var olan görsel kaynağı seç ya da yükle + açıklama; yer tutucu imlecin olduğu yere girer. Kayıt detayında inceleyici görselleri görür; Markdown dışa aktarımında `gorseller/` altında yer alır.
 - Geri çekilmiş / kaynağı değişmiş sayfada üstte açık banner (ne oldu + ne yapılabilir).
 - "Geçmiş": revizyon zaman çizelgesi; iki revizyonu karşılaştırma.
 - "Sorun bildir" → bulgu oluşturur.

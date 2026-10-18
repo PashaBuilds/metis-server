@@ -2031,6 +2031,50 @@ export interface components {
              */
             rating: "helpful" | "not_helpful";
         };
+        /**
+         * FigureIn
+         * @description Açıklayıcı görsel: bir görsel kaynak revizyonu + açıklama. Gövdede `{{görsel N}}` satırıyla yerleşir.
+         */
+        FigureIn: {
+            /**
+             * Caption
+             * @default
+             */
+            caption: string;
+            /**
+             * Source Revision Id
+             * Format: uuid
+             */
+            source_revision_id: string;
+        };
+        /**
+         * FigureView
+         * @description Açıklayıcı görsel (kanıt değil). Dosya: /source-revisions/{source_revision_id}/download.
+         */
+        FigureView: {
+            /** Caption */
+            caption: string;
+            /** Media Type */
+            media_type: string;
+            /** Ord */
+            ord: number;
+            /**
+             * Source Id
+             * Format: uuid
+             */
+            source_id: string;
+            /** Source Is Current */
+            source_is_current: boolean;
+            /**
+             * Source Revision Id
+             * Format: uuid
+             */
+            source_revision_id: string;
+            /** Source Revision Number */
+            source_revision_number: number;
+            /** Source Title */
+            source_title: string;
+        };
         /** FindingBrief */
         FindingBrief: {
             /**
@@ -2159,6 +2203,8 @@ export interface components {
             body_md: string;
             /** Claims */
             claims?: components["schemas"]["ClaimIn"][];
+            /** Figures */
+            figures?: components["schemas"]["FigureIn"][];
             /**
              * Kind
              * @default concept
@@ -3007,6 +3053,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Figures
+             * @default []
+             */
+            figures: components["schemas"]["FigureView"][];
             /** Hash */
             hash: string;
             /**

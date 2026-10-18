@@ -321,3 +321,32 @@ details[open] > summary .chev {
     position: static;
   }
 }
+
+.figures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.figuresTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin: 0;
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.figuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s3);
+}
+
+.figuresGrid figure {
+  margin: 0;
+}
+
+.figuresGrid img {
+  max-height: 200px;
+}

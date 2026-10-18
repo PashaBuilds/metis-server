@@ -2,7 +2,8 @@
 
 Yalnız kullanıcının okuyabildiği aktif yayın sayfaları; her sayfa bir .md dosyası (iddialar ve kaynak dipnotları),
 `index.md` (türe göre içindekiler) ve `kaynaklar.md` (kaynak listesi, revizyon, SHA-256). Kaynak dosyaları
-ZIP'e eklenmez (erişim listesi ve boyut nedeniyle); bağlantı METIS'teki İz paneline verilir.
+ZIP'e eklenmez (erişim listesi ve boyut nedeniyle); bağlantı METIS'teki İz paneline verilir. İstisna: sayfanın
+açıklayıcı görselleri sayfanın parçasıdır; `gorseller/` altına eklenir ve metinde yerinde gösterilir.
 """
 
 from __future__ import annotations
@@ -17,7 +18,9 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from metis.core.access import require_member
-from metis.core.models import Project, User
+from metis.core.blobs import read_blob
+from metis.core.models import Project, SourceRevision, User
+from metis.modules.knowledge.figures import FIGURE_LINE
 from metis.modules.knowledge.service import _active_rows
 from metis.modules.knowledge.views import revision_views
 from metis.modules.scopes.semantics import DIMENSIONS, normalize_scope
@@ -57,10 +60,24 @@ def export_zip(db: Session, user: User, project_id: uuid.UUID) -> tuple[str, byt
         used.add(name)
         names[page.id] = f"sayfalar/{name}.md"
     sources: dict[uuid.UUID, dict] = {}
+    images: dict[uuid.UUID, str] = {}
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
         for page, rev in rows:
             view = views[rev.id]
+            for fig in view.figures:
+                if fig.source_revision_id not in images:
+                    sr = db.get(SourceRevision, fig.source_revision_id)
+                    assert sr is not None
+                    ext = ".png" if sr.media_type == "image/png" else ".jpg"
+                    images[fig.source_revision_id] = f"gorseller/{fig.source_revision_id}{ext}"
+                    z.writestr(images[fig.source_revision_id], read_blob(sr.sha256))
+            figs = {f.ord: f for f in view.figures}
+
+            def figure_md(m: re.Match[str], figs: dict = figs) -> str:
+                f = figs.get(int(m.group(1)))
+                return f"![{f.caption}](../{images[f.source_revision_id]})" if f else ""
+
             notes: list[str] = []
             note_no: dict[uuid.UUID, int] = {}
             claim_lines = []
@@ -80,7 +97,7 @@ def export_zip(db: Session, user: User, project_id: uuid.UUID) -> tuple[str, byt
                 "",
                 view.summary,
                 "",
-                view.body_md.strip(),
+                FIGURE_LINE.sub(figure_md, view.body_md).strip(),
                 "",
                 "## İddialar",
                 "",

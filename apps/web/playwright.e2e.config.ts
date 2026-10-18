@@ -26,6 +26,7 @@ export default defineConfig({
     { name: 'mentor', testMatch: ['e2e/mentor-flow.spec.ts'], dependencies: ['inceleme'], use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     // Görevler ve bilgi sağlığı: mentor projesinin uygun modelini kullanır.
     { name: 'gorev-saglik', testMatch: ['e2e/tasks-health.spec.ts'], dependencies: ['mentor'], use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
+    { name: 'gorsel', testMatch: ['e2e/figures.spec.ts'], dependencies: ['gorev-saglik'], use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
   ],
   webServer: {
     command: `bash ${path.join(root, 'scripts/e2e-server.sh')}`,

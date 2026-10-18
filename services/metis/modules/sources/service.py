@@ -24,6 +24,7 @@ from metis.core.models import (
     FindingPage,
     Page,
     PageRevision,
+    PageRevisionFigure,
     ProjectMember,
     Source,
     SourceAcl,
@@ -292,8 +293,26 @@ def mark_dependents(db: Session, actor: User, source: Source, new_rev: SourceRev
         )
         .distinct()
     ).all()
+    # Açıklayıcı görsel olarak bu kaynağın eski bir revizyonunu kullanan sayfalar da işaretlenir.
+    figure_rows = db.execute(
+        select(Page.id, PageRevision.id, PageRevision.scope)
+        .join(PageRevision, PageRevision.id == Page.published_revision_id)
+        .join(PageRevisionFigure, PageRevisionFigure.page_revision_id == PageRevision.id)
+        .join(SourceRevision, SourceRevision.id == PageRevisionFigure.source_revision_id)
+        .where(
+            SourceRevision.source_id == source.id,
+            SourceRevision.id != new_rev.id,
+            Page.deleted_at.is_(None),
+            Page.lifecycle == "active",
+        )
+        .distinct()
+    ).all()
+    seen_pages: set[uuid.UUID] = set()
     affected = []
-    for page_id, rev_id, page_scope in rows:
+    for page_id, rev_id, page_scope in [*rows, *figure_rows]:
+        if page_id in seen_pages:
+            continue
+        seen_pages.add(page_id)
         page = db.get(Page, page_id)
         assert page is not None
         same = overlaps(page_scope, new_rev.scope)

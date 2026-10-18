@@ -444,3 +444,64 @@
   color: var(--celiski);
   font-size: var(--fs-14);
 }
+
+/* ------------------------------------------------------------- görsel */
+.figure {
+  margin: var(--s4) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  max-width: 100%;
+}
+
+.figureBtn {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0;
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-panel);
+  background: var(--yuzey-gomuk);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.figureBtn img {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+}
+
+.figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  color: var(--soluk);
+  font-size: var(--fs-14);
+  line-height: var(--lh-ui);
+}
+
+.figNo {
+  color: var(--murekkep);
+  font-weight: 600;
+}
+
+.figureLarge {
+  display: block;
+  max-width: 100%;
+  max-height: 75vh;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.figSource {
+  margin-top: var(--s3);
+  color: var(--soluk);
+  font-size: var(--fs-13);
+}
+
+.figMissing {
+  color: var(--celiski);
+  font-size: var(--fs-14);
+}

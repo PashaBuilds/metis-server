@@ -15,6 +15,7 @@ from metis.core.models import Claim, JobOutput, PageRevision, User
 from metis.llm import contracts, prompts
 from metis.modules.changes import schemas as cs
 from metis.modules.changes import service as changes
+from metis.modules.knowledge.figures import strip_figures
 from metis.modules.knowledge.views import revision_views
 from metis.worker.prepare import call, load_model
 from metis.worker.runtime import JobContext, JobFailed, worker_identity
@@ -48,7 +49,7 @@ def run_refine(ctx: JobContext) -> None:
     for d in drafts:
         v = d["view"]
         ctx.step("refine", page=v.title)
-        payload = {"draft": {"title": v.title, "summary": v.summary, "body": v.body_md, "claims": [{"statement": c.statement} for c in v.claims]}, "evidence": {str(e.evidence_id): e.quote for c in v.claims for e in c.evidence}, "instructions": instructions}
+        payload = {"draft": {"title": v.title, "summary": v.summary, "body": strip_figures(v.body_md), "claims": [{"statement": c.statement} for c in v.claims]}, "evidence": {str(e.evidence_id): e.quote for c in v.claims for e in c.evidence}, "instructions": instructions}
         n = len(v.claims)
 
         def covers(out: dict, n: int = n) -> bool:
@@ -76,12 +77,14 @@ def run_refine(ctx: JobContext) -> None:
                 base_revision_id=item.base_revision_id,
                 title=v.title,
                 summary="Metis tarafından düzenlendi; insan incelemesi bekliyor.",
-                body_md="\n\n".join(p["text"] for p in out["paragraphs"]),
+                # Görseller modelden geçmez; aynen taşınır ve gövdenin sonuna yerleşir (inceleyen yerini değiştirebilir).
+                body_md="\n\n".join([*(p["text"] for p in out["paragraphs"]), *(f"{{{{görsel {f.ord}}}}}" for f in v.figures)]),
                 kind=v.kind,  # type: ignore[arg-type]
                 scope=v.scope,  # type: ignore[arg-type]
                 unknowns=v.unknowns,
                 aliases=v.aliases,
                 claims=[cs.ClaimIn(statement=c.statement, kind=c.kind, support=c.support, evidence=[cs.EvidenceRef(evidence_id=e.evidence_id, quote=e.quote) for e in c.evidence]) for c in v.claims],  # type: ignore[arg-type]
+                figures=[cs.FigureIn(source_revision_id=f.source_revision_id, caption=f.caption) for f in v.figures],
             )
         )
     ctx.step("draft")

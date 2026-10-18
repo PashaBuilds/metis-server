@@ -17,7 +17,8 @@ from sqlalchemy import delete, func, literal_column, select
 from sqlalchemy.orm import Session
 
 from metis.core.config import ROOT
-from metis.core.models import Claim, Page, PageRevision, SearchDocument
+from metis.core.models import Claim, Page, PageRevision, PageRevisionFigure, SearchDocument
+from metis.modules.knowledge.figures import strip_figures
 
 SYMBOL_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]{2,}(?:\(\))?")
 HEX_RE = re.compile(r"\b0[xX][0-9A-Fa-f]+\b")
@@ -86,7 +87,10 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
     for page, rev in rows:
         claims = db.scalars(select(Claim.statement).where(Claim.page_revision_id == rev.id).order_by(Claim.ord)).all()
         claim_text = "\n".join(claims)
-        content = f"{rev.summary}\n{rev.body_md}\n{claim_text}"
+        captions = db.scalars(
+            select(PageRevisionFigure.caption).where(PageRevisionFigure.page_revision_id == rev.id).order_by(PageRevisionFigure.ord)
+        ).all()
+        content = f"{rev.summary}\n{strip_figures(rev.body_md, list(captions))}\n{claim_text}"
         aliases = aliases_for(rev.title, rev.aliases or [], content)
         symbols = extract_symbols(rev.title, content)
         alias_text = " ".join(aliases)

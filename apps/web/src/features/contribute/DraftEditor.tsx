@@ -1,5 +1,5 @@
-import { AlertTriangle, Plus, Send, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, ImagePlus, Plus, Send, Trash2, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { Button, Field, IconButton, Input, Select, TabPanel, Tabs, Textarea, useToast } from '@/design/primitives';
 import { ScopeField } from '@/app/ScopeBar';
 import { useSession, type ScopeSel } from '@/app/session';
@@ -7,7 +7,8 @@ import { errorMessage, tr } from '@/i18n/tr';
 import { api, ApiError, newIdempotencyKey, type Schemas } from '@/lib/api/client';
 import { Banner } from '@/features/shared/Banner';
 import { CLAIM_KINDS, PAGE_KINDS } from '@/features/shared/kinds';
-import { Markdown } from '@/features/shared/Markdown';
+import { BodyWithFigures, figureToken, figureUrl, removeFigureFromBody, type FigureData } from '@/features/shared/Figure';
+import { FigurePicker } from './FigurePicker';
 import { ExtractionNote } from './SourceStep';
 import { SourceViewer, toCodePoints } from './SourceViewer';
 import { isVerbatim, type DraftClaim, type SourceDetail } from './types';
@@ -22,6 +23,8 @@ export interface DraftValues {
   unknowns: string[];
   aliases: string[];
   claims: DraftClaim[];
+  /** Açıklayıcı görseller; gövdedeki `{{görsel N}}` satırı N. görselin yeridir. */
+  figures: FigureData[];
 }
 
 export interface DraftTarget {
@@ -56,6 +59,15 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
   const [linking, setLinking] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [picker, setPicker] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const caret = useRef<number | null>(null);
+  const bodyTouched = useRef(false);
+  /** Görsel penceresi açılırken imlecin yeri alınır; kullanıcı metne hiç dokunmadıysa görsel sona eklenir. */
+  const openPicker = () => {
+    caret.current = bodyTouched.current && bodyRef.current ? bodyRef.current.selectionStart : null;
+    setPicker(true);
+  };
 
   const update = (patch: Partial<DraftValues>) => {
     setV((old) => ({ ...old, ...patch }));
@@ -87,6 +99,23 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
     }
   }
 
+  /** Görsel listeye eklenir ve yer tutucusu imlecin olduğu yere (yoksa sona) kendi paragrafı olarak girer. */
+  function addFigure(f: FigureData) {
+    const n = v.figures.length + 1;
+    const body = v.body_md;
+    const at = caret.current ?? body.length;
+    const before = body.slice(0, at).replace(/\s*$/, '');
+    const after = body.slice(at).replace(/^\s*/, '');
+    const next = [before, figureToken(n), after].filter(Boolean).join('\n\n');
+    update({ figures: [...v.figures, f], body_md: next });
+    caret.current = null;
+    toast.show(tr.figures.added);
+  }
+
+  function removeFigure(n: number) {
+    update({ figures: v.figures.filter((_, i) => i !== n - 1), body_md: removeFigureFromBody(v.body_md, n) });
+  }
+
   async function save(submit: boolean) {
     if (busy) return;
     const errs: Record<string, string> = {};
@@ -109,6 +138,7 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
       unknowns: v.unknowns.map((u) => u.trim()).filter(Boolean),
       aliases: v.aliases,
       claims: v.claims.map((c) => ({ statement: c.statement.trim(), kind: c.kind, evidence: c.evidence.map((e) => ({ evidence_id: e.evidence_id, quote: e.quote })) })),
+      figures: v.figures.map((f) => ({ source_revision_id: f.source_revision_id, caption: f.caption.trim() })),
     };
     try {
       let id: string;
@@ -172,16 +202,62 @@ export function DraftEditor({ initial, target, source, onPickSource, onDirty, on
             ]}
           >
             <TabPanel value="write">
-              <Textarea aria-labelledby="body-label" aria-describedby="body-hint" rows={10} value={v.body_md} onChange={(e) => update({ body_md: e.target.value })} className="mono" />
+              <Textarea
+                ref={bodyRef}
+                aria-labelledby="body-label"
+                aria-describedby="body-hint"
+                rows={10}
+                value={v.body_md}
+                onChange={(e) => update({ body_md: e.target.value })}
+                onFocus={() => (bodyTouched.current = true)}
+                className="mono"
+              />
               <p id="body-hint" className={s.hint}>
                 {tr.contribute.pBodyHint}
               </p>
             </TabPanel>
             <TabPanel value="preview">
-              <div className={s.preview}>{v.body_md.trim() ? <Markdown>{v.body_md}</Markdown> : <p className={s.muted}>{tr.contribute.previewEmpty}</p>}</div>
+              <div className={s.preview}>{v.body_md.trim() ? <BodyWithFigures body={v.body_md} figures={v.figures} /> : <p className={s.muted}>{tr.contribute.previewEmpty}</p>}</div>
             </TabPanel>
           </Tabs>
         </div>
+        <section className={s.figBlock} aria-labelledby="figs-h">
+          <div className={s.figHead}>
+            <h3 id="figs-h" className={s.subTitle}>
+              {tr.figures.title}
+            </h3>
+            <Button size="sm" icon={<ImagePlus size={15} aria-hidden />} onClick={openPicker}>
+              {tr.figures.add}
+            </Button>
+          </div>
+          <p className={s.hint}>{tr.figures.hint}</p>
+          {v.figures.length > 0 && (
+            <ol className={s.figList}>
+              {v.figures.map((f, i) => (
+                <li key={`${f.source_revision_id}-${i}`} className={s.figRow}>
+                  <img className={s.figThumb} src={figureUrl(f.source_revision_id)} alt="" />
+                  <div className={s.grow}>
+                    <Field label={`${tr.figures.figureN(i + 1)} · ${tr.figures.caption}`}>
+                      {({ id }) => (
+                        <Input
+                          id={id}
+                          maxLength={500}
+                          value={f.caption}
+                          onChange={(e) => update({ figures: v.figures.map((x, k) => (k === i ? { ...x, caption: e.target.value } : x)) })}
+                        />
+                      )}
+                    </Field>
+                    {f.source_title && <span className={s.hint}>{tr.figures.source(f.source_title)}</span>}
+                  </div>
+                  <IconButton label={tr.figures.remove(i + 1)} onClick={() => removeFigure(i + 1)}>
+                    <Trash2 size={16} aria-hidden />
+                  </IconButton>
+                </li>
+              ))}
+            </ol>
+          )}
+          <FigurePicker open={picker} onOpenChange={setPicker} onAdd={addFigure} />
+        </section>
       </div>
 
       <section className={s.edSource} aria-labelledby="src-text-h">

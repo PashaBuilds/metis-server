@@ -296,6 +296,18 @@ class ClaimEvidence(Base):
     quote: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class PageRevisionFigure(Base):
+    """Açıklayıcı görsel: revizyona bağlı, değişmez. Kanıt değildir; gövdede `{{görsel N}}` satırıyla yerleşir."""
+
+    __tablename__ = "page_revision_figures"
+    id: Mapped[uuid.UUID] = pk()
+    page_revision_id: Mapped[uuid.UUID] = fk("page_revisions.id")
+    ord: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_revision_id: Mapped[uuid.UUID] = fk("source_revisions.id")
+    caption: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    __table_args__ = (UniqueConstraint("page_revision_id", "ord", name="uq_figure_ord"),)
+
+
 class Relation(Base):
     __tablename__ = "relations"
     id: Mapped[uuid.UUID] = pk()

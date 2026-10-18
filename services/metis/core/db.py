@@ -81,6 +81,7 @@ IMMUTABLE_TABLES: tuple[str, ...] = (
     "page_revisions",
     "claims",
     "claim_evidence",
+    "page_revision_figures",
     "relation_revisions",
     "relation_revision_evidence",
     "reviews",

@@ -35,6 +35,7 @@ from metis.core.models import (
 )
 from metis.modules.changes.service import claim_diff
 from metis.modules.knowledge import schemas
+from metis.modules.knowledge.figures import FIGURE_LINE, isolate_figures
 from metis.modules.knowledge.views import revision_view
 from metis.modules.scopes.semantics import WILDCARD, matches_scope, normalize_scope
 
@@ -182,10 +183,14 @@ def _tokens(text: str) -> set[str]:
 
 def paragraphs_for(body: str, claims: list) -> list[schemas.Paragraph]:
     """Gövde paragraflarını iddialarla eşler (kanıt şeridi + ●n işaretleri için)."""
-    blocks = [b for b in re.split(r"\n\s*\n", body.strip()) if b.strip()] if body.strip() else []
+    body = isolate_figures(body)
+    blocks = [b.strip() for b in re.split(r"\n\s*\n", body.strip()) if b.strip()] if body.strip() else []
     used: set[int] = set()
     out = []
     for block in blocks:
+        if FIGURE_LINE.fullmatch(block):
+            out.append(schemas.Paragraph(text=block, claim_ords=[]))
+            continue
         norm = re.sub(r"\s+", " ", block.casefold())
         btoks = _tokens(block)
         ords = []

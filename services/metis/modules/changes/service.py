@@ -13,7 +13,7 @@ import uuid
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from metis.core.access import can_read_page_revision, evidence_access, require_human, require_member
+from metis.core.access import can_read_page_revision, can_read_source, evidence_access, require_human, require_member
 from metis.core.audit import audit
 from metis.core.db import utcnow
 from metis.core.errors import AppError
@@ -26,16 +26,20 @@ from metis.core.models import (
     IdempotencyKey,
     Page,
     PageRevision,
+    PageRevisionFigure,
     Project,
     Relation,
     RelationRevision,
     RelationRevisionEvidence,
     Review,
+    Source,
+    SourceRevision,
     User,
 )
 from metis.core.util import hash_json
 from metis.modules.changes import schemas
 from metis.modules.knowledge import publish as publisher
+from metis.modules.knowledge.figures import figure_refs
 from metis.modules.knowledge.views import RevisionView, revision_views
 from metis.modules.scopes.semantics import DIMENSIONS, WILDCARD, canonical, normalize_scope, same_scope
 from metis.modules.scopes.service import lock_project, validate_selection
@@ -182,7 +186,22 @@ def _validate_item(db: Session, actor: User, project_id: uuid.UUID, item: schema
                 "CLAIM_EVIDENCE", "every claim needs at least one evidence quote", claim=claim.statement[:80]
             )
         _validate_evidence(db, actor, project_id, claim.evidence, scope)
+    _validate_figures(db, actor, project_id, item)
     return page, scope
+
+
+def _validate_figures(db: Session, actor: User, project_id: uuid.UUID, item: schemas.ItemIn) -> None:
+    """Görsel: projedeki, okunabilir bir görsel kaynak revizyonu; gövdedeki `{{görsel N}}` satırları var olan sıraya işaret eder."""
+    for fig in item.figures:
+        rev = db.get(SourceRevision, fig.source_revision_id)
+        src = db.get(Source, rev.source_id) if rev else None
+        if not rev or not src or src.project_id != project_id or not can_read_source(db, actor, src):
+            raise AppError("NOT_FOUND", "figure source not found")
+        if not rev.media_type.startswith("image/"):
+            raise AppError("FIGURE_NOT_IMAGE", "figure source is not an image", source=src.title)
+    for n in figure_refs(item.body_md):
+        if not 1 <= n <= len(item.figures):
+            raise AppError("FIGURE_MISSING", "body refers to a figure that does not exist", figure=n)
 
 
 def _write_revision(
@@ -215,6 +234,8 @@ def _write_revision(
         "aliases": [a.strip() for a in item.aliases if a.strip()],
         "claims": claims_payload,
     }
+    if item.figures:  # görselsiz revizyonların hash'i değişmesin (eski onaylar geçerli kalır)
+        content["figures"] = [{"source_revision_id": str(f.source_revision_id), "caption": f.caption.strip()} for f in item.figures]
     rev = PageRevision(
         page_id=page.id,
         number=page.current_revision_no,
@@ -242,6 +263,12 @@ def _write_revision(
                 continue
             seen.add(e.evidence_id)
             db.add(ClaimEvidence(claim_id=row.id, evidence_id=e.evidence_id, quote=e.quote))
+    for ord_, fig in enumerate(item.figures, start=1):
+        db.add(
+            PageRevisionFigure(
+                page_revision_id=rev.id, ord=ord_, source_revision_id=fig.source_revision_id, caption=fig.caption.strip()
+            )
+        )
     db.flush()
     return page, rev
 

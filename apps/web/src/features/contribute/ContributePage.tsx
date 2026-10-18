@@ -36,6 +36,7 @@ function valuesFromRevision(r: RevisionView): DraftValues {
       kind: c.kind,
       evidence: c.evidence.map((e) => ({ evidence_id: e.evidence_id, quote: e.quote, label: e.source_title })),
     })),
+    figures: (r.figures ?? []).map((f) => ({ source_revision_id: f.source_revision_id, caption: f.caption, source_title: f.source_title })),
   };
 }
 
@@ -64,7 +65,7 @@ function valuesFromPrefill(p: Schemas['DraftPrefill']): DraftValues {
   };
 }
 
-const EMPTY_VALUES: DraftValues = { title: '', kind: 'concept', summary: '', body_md: '', scope: EMPTY_SCOPE, unknowns: [], aliases: [], claims: [] };
+const EMPTY_VALUES: DraftValues = { title: '', kind: 'concept', summary: '', body_md: '', scope: EMPTY_SCOPE, unknowns: [], aliases: [], claims: [], figures: [] };
 
 export function ContributePage() {
   const search = route.useSearch();

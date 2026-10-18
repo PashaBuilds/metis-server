@@ -20,6 +20,7 @@ from metis.core.models import (
     Evidence,
     Page,
     PageRevision,
+    PageRevisionFigure,
     Project,
     ProjectMember,
     Source,
@@ -104,7 +105,12 @@ def revision_source_ids(db: Session, revision_id: uuid.UUID) -> set[uuid.UUID]:
         .join(Claim, Claim.id == ClaimEvidence.claim_id)
         .where(Claim.page_revision_id == revision_id)
     ).scalars()
-    return set(rows)
+    figures = db.execute(
+        select(SourceRevision.source_id)
+        .join(PageRevisionFigure, PageRevisionFigure.source_revision_id == SourceRevision.id)
+        .where(PageRevisionFigure.page_revision_id == revision_id)
+    ).scalars()
+    return set(rows) | set(figures)
 
 
 def can_read_page_revision(db: Session, user: User, revision: PageRevision | None) -> bool:
@@ -152,4 +158,9 @@ def unreadable_revisions(
         .join(SourceRevision, SourceRevision.id == Evidence.source_revision_id)
         .where(Claim.page_revision_id.in_(ids))
     ).all()
-    return {rid for rid, sid in rows if sid not in readable}
+    figure_rows = db.execute(
+        select(PageRevisionFigure.page_revision_id, SourceRevision.source_id)
+        .join(SourceRevision, SourceRevision.id == PageRevisionFigure.source_revision_id)
+        .where(PageRevisionFigure.page_revision_id.in_(ids))
+    ).all()
+    return {rid for rid, sid in [*rows, *figure_rows] if sid not in readable}

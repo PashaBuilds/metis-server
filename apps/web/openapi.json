@@ -1738,6 +1738,78 @@
         "title": "FeedbackIn",
         "type": "object"
       },
+      "FigureIn": {
+        "description": "Açıklayıcı görsel: bir görsel kaynak revizyonu + açıklama. Gövdede `{{görsel N}}` satırıyla yerleşir.",
+        "properties": {
+          "caption": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Caption",
+            "type": "string"
+          },
+          "source_revision_id": {
+            "format": "uuid",
+            "title": "Source Revision Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_revision_id"
+        ],
+        "title": "FigureIn",
+        "type": "object"
+      },
+      "FigureView": {
+        "description": "Açıklayıcı görsel (kanıt değil). Dosya: /source-revisions/{source_revision_id}/download.",
+        "properties": {
+          "caption": {
+            "title": "Caption",
+            "type": "string"
+          },
+          "media_type": {
+            "title": "Media Type",
+            "type": "string"
+          },
+          "ord": {
+            "title": "Ord",
+            "type": "integer"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_is_current": {
+            "title": "Source Is Current",
+            "type": "boolean"
+          },
+          "source_revision_id": {
+            "format": "uuid",
+            "title": "Source Revision Id",
+            "type": "string"
+          },
+          "source_revision_number": {
+            "title": "Source Revision Number",
+            "type": "integer"
+          },
+          "source_title": {
+            "title": "Source Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ord",
+          "caption",
+          "source_revision_id",
+          "source_id",
+          "source_title",
+          "source_revision_number",
+          "source_is_current",
+          "media_type"
+        ],
+        "title": "FigureView",
+        "type": "object"
+      },
       "FindingBrief": {
         "properties": {
           "created_at": {
@@ -2035,6 +2107,14 @@
             },
             "maxItems": 200,
             "title": "Claims",
+            "type": "array"
+          },
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/FigureIn"
+            },
+            "maxItems": 20,
+            "title": "Figures",
             "type": "array"
           },
           "kind": {
@@ -4113,6 +4193,14 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "figures": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FigureView"
+            },
+            "title": "Figures",
+            "type": "array"
           },
           "hash": {
             "title": "Hash",

@@ -29,6 +29,13 @@ class ClaimIn(BaseModel):
     evidence: list[EvidenceRef] = Field(default_factory=list, max_length=20)
 
 
+class FigureIn(BaseModel):
+    """Açıklayıcı görsel: bir görsel kaynak revizyonu + açıklama. Gövdede `{{görsel N}}` satırıyla yerleşir."""
+
+    source_revision_id: uuid.UUID
+    caption: str = Field(default="", max_length=500)
+
+
 class ItemIn(BaseModel):
     page_id: uuid.UUID | None = None
     base_revision_id: uuid.UUID | None = None
@@ -41,6 +48,7 @@ class ItemIn(BaseModel):
     unknowns: list[str] = Field(default_factory=list, max_length=50)
     aliases: list[str] = Field(default_factory=list, max_length=50)
     claims: list[ClaimIn] = Field(default_factory=list, max_length=200)
+    figures: list[FigureIn] = Field(default_factory=list, max_length=20)
 
 
 class RelationIn(BaseModel):

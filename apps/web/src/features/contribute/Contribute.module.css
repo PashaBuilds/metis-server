@@ -726,3 +726,105 @@ button.stepBtn:hover {
 .extra[open] > summary {
   margin-bottom: var(--s3);
 }
+
+/* ------------------------------------------------------------- görseller */
+.figBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.figHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.figList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.figRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+}
+
+.figThumb {
+  flex: none;
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-chip);
+  background: var(--yuzey-gomuk);
+}
+
+.figPicker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.figGrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--s3);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.figChoice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  width: 100%;
+  padding: var(--s2);
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-panel);
+  background: var(--yuzey);
+  font-size: var(--fs-13);
+  text-align: left;
+  cursor: pointer;
+}
+
+.figChoice img {
+  width: 100%;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--r-chip);
+  background: var(--yuzey-gomuk);
+}
+
+.figChoice span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.figChoiceOn {
+  border-color: var(--vurgu);
+  box-shadow: 0 0 0 1px var(--vurgu);
+}
+
+.figUpload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.figFileRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-width: 0;
+}

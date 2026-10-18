@@ -9,6 +9,7 @@ import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { api, ApiError, type Schemas } from '@/lib/api/client';
 import { formatDateTime } from '@/lib/format';
+import { Figure, figureRef } from '@/features/shared/Figure';
 import { Banner } from '@/features/shared/Banner';
 import { FreshnessBadge, PageKindIcon, PageKindLabel } from '@/features/shared/kinds';
 import { Markdown } from '@/features/shared/Markdown';
@@ -176,11 +177,18 @@ function PageView({ page }: { page: PageDetail }) {
             {tr.page.body}
           </h2>
           <div className={s.reading}>
-            {page.paragraphs.map((p, i) => (
-              <EvidenceStripe key={i} count={p.claim_ords.length}>
-                <Paragraph text={p.text} marks={p.claim_ords.map((ord) => claimsByOrd.get(ord)).filter((c): c is ClaimView => !!c)} />
-              </EvidenceStripe>
-            ))}
+            {page.paragraphs.map((p, i) => {
+              const n = figureRef(p.text);
+              if (n !== null) {
+                const fig = r.figures[n - 1];
+                return fig ? <Figure key={i} figure={fig} n={n} /> : null;
+              }
+              return (
+                <EvidenceStripe key={i} count={p.claim_ords.length}>
+                  <Paragraph text={p.text} marks={p.claim_ords.map((ord) => claimsByOrd.get(ord)).filter((c): c is ClaimView => !!c)} />
+                </EvidenceStripe>
+              );
+            })}
           </div>
         </section>
 

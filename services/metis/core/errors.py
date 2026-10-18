@@ -43,6 +43,8 @@ CATALOG: dict[str, tuple[int, bool]] = {
     "CLAIM_EVIDENCE": (422, False),
     "QUOTE_NOT_IN_EVIDENCE": (422, False),
     "EVIDENCE_REQUIRED": (422, False),
+    "FIGURE_NOT_IMAGE": (422, False),
+    "FIGURE_MISSING": (422, False),
     "INVALID_ENDPOINT": (422, False),
     "ENDPOINT_NOT_ALLOWED": (422, False),
     "ADDRESS_NOT_ALLOWED": (422, False),

@@ -9,7 +9,16 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from metis.core.models import Claim, ClaimEvidence, Evidence, PageRevision, Source, SourceRevision, User
+from metis.core.models import (
+    Claim,
+    ClaimEvidence,
+    Evidence,
+    PageRevision,
+    PageRevisionFigure,
+    Source,
+    SourceRevision,
+    User,
+)
 from metis.modules.sources.locator import locator_label
 
 
@@ -36,6 +45,19 @@ class ClaimView(BaseModel):
     verbatim: bool
 
 
+class FigureView(BaseModel):
+    """Açıklayıcı görsel (kanıt değil). Dosya: /source-revisions/{source_revision_id}/download."""
+
+    ord: int
+    caption: str
+    source_revision_id: uuid.UUID
+    source_id: uuid.UUID
+    source_title: str
+    source_revision_number: int
+    source_is_current: bool
+    media_type: str
+
+
 class RevisionView(BaseModel):
     id: uuid.UUID
     page_id: uuid.UUID
@@ -48,6 +70,7 @@ class RevisionView(BaseModel):
     unknowns: list
     aliases: list
     claims: list[ClaimView]
+    figures: list[FigureView] = []
     author_id: uuid.UUID
     author_name: str
     created_at: datetime
@@ -99,8 +122,36 @@ def claim_views(db: Session, revision_ids: list[uuid.UUID]) -> dict[uuid.UUID, l
     return out
 
 
+def figure_views(db: Session, revision_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[FigureView]]:
+    if not revision_ids:
+        return {}
+    rows = db.execute(
+        select(PageRevisionFigure, SourceRevision, Source)
+        .join(SourceRevision, SourceRevision.id == PageRevisionFigure.source_revision_id)
+        .join(Source, Source.id == SourceRevision.source_id)
+        .where(PageRevisionFigure.page_revision_id.in_(revision_ids))
+        .order_by(PageRevisionFigure.ord)
+    ).all()
+    out: dict[uuid.UUID, list[FigureView]] = {}
+    for fig, sr, src in rows:
+        out.setdefault(fig.page_revision_id, []).append(
+            FigureView(
+                ord=fig.ord,
+                caption=fig.caption,
+                source_revision_id=sr.id,
+                source_id=src.id,
+                source_title=src.title,
+                source_revision_number=sr.number,
+                source_is_current=sr.number == src.current_revision_no,
+                media_type=sr.media_type,
+            )
+        )
+    return out
+
+
 def revision_views(db: Session, revisions: list[PageRevision]) -> dict[uuid.UUID, RevisionView]:
     claims = claim_views(db, [r.id for r in revisions])
+    figures = figure_views(db, [r.id for r in revisions])
     names = {
         u.id: u.display_name
         for u in db.scalars(select(User).where(User.id.in_({r.author_id for r in revisions} or {uuid.uuid4()})))
@@ -118,6 +169,7 @@ def revision_views(db: Session, revisions: list[PageRevision]) -> dict[uuid.UUID
             unknowns=r.unknowns or [],
             aliases=r.aliases or [],
             claims=claims.get(r.id, []),
+            figures=figures.get(r.id, []),
             author_id=r.author_id,
             author_name="Metis" if names.get(r.author_id) == "Metis" else names.get(r.author_id, ""),
             created_at=r.created_at,

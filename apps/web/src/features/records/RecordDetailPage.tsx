@@ -10,6 +10,7 @@ import { lineDiff } from '@/lib/diff';
 import { useReducedMotion } from '@/lib/hooks';
 import { Banner } from '@/features/shared/Banner';
 import { BodyDiff, ClaimDiffTable } from '@/features/shared/Diff';
+import { Figure } from '@/features/shared/Figure';
 import { ChangeStateBadge, OriginBadge } from '@/features/shared/kinds';
 import { messageOf } from '@/features/shared/hooks';
 import { DecisionPanel } from './DecisionPanel';
@@ -199,6 +200,9 @@ function ItemDiff({ item }: { item: Item }) {
   const lines = lineDiff(item.base?.body_md ?? '', item.proposed?.body_md ?? '');
   const bodyChanged = lines.some((l) => l.op !== 'same');
   const target = item.action === 'withdraw' ? tr.record.withdrawPage : !item.base ? tr.record.newPage : null;
+  const figs = item.proposed?.figures ?? [];
+  const figKey = (fs: typeof figs) => fs.map((f) => `${f.source_revision_id}|${f.caption}`).join(';');
+  const figsChanged = figKey(item.base?.figures ?? []) !== figKey(figs);
   return (
     <section className={s.item} aria-label={item.proposed?.title ?? item.base?.title ?? ''}>
       <ul className={s.summary}>
@@ -216,6 +220,19 @@ function ItemDiff({ item }: { item: Item }) {
         <Banner key={ch}>{tr.record.checks[ch] ?? ch}</Banner>
       ))}
       <ClaimDiffTable diff={item.claim_diff} proposedClaims={item.proposed?.claims} beforeLabel={tr.record.before} afterLabel={tr.record.proposed} />
+      {figs.length > 0 && (
+        <section className={s.figures} aria-label={tr.figures.title}>
+          <h3 className={s.figuresTitle}>
+            {tr.figures.title}
+            {figsChanged && item.base && <span className={s.countBadge}>{tr.diff.changed}</span>}
+          </h3>
+          <div className={s.figuresGrid}>
+            {figs.map((f) => (
+              <Figure key={f.ord} figure={f} n={f.ord} />
+            ))}
+          </div>
+        </section>
+      )}
       {bodyChanged && (
         <details className={s.bodyDetails}>
           <summary>
