@@ -9,6 +9,8 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
   pencerelerin **arkasında** ve görev çubuğunda düğmesi olmadan açıyordu; ekranda bir şey görünmüyordu. İleti kutuları
   artık her zaman en üstte ve görev çubuğunda görünür.
 - Başlatıcı zaten açıkken yeniden çift tıklanırsa ikinci bir kurulum/yükseltme başlamaz; "zaten çalışıyor" denir.
+- Yönetici izni (UAC) verilmezse ya da süresi dolarsa tek, açık bir uyarı gösterilir. Yükseltmede kurulu sürüm açılmaya
+  devam eder. Önceden ardından yanıltıcı bir "tamamlanamadı" hatası da geliyordu.
 - Türkçe Windows'ta yedek/geri yükleme hata iletileri (pg_dump/pg_restore) okunamayan karakter yüzünden
   kaybolabiliyordu; artık her durumda gösterilir.
 - Ürün adı her yerde yalnız "METIS".

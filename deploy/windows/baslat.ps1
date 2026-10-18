@@ -146,6 +146,8 @@ function Write-Result($State, [string]$Note) {
   [IO.File]::WriteAllText($SonucDosyasi, ($State | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 }
 
+$NoAdmin = 1223  # ERROR_CANCELLED: yönetici izni verilmedi
+
 function Invoke-Elevated([string]$Action, [string]$CodeFile = "", [switch]$WithDemo) {
   $named = [ordered]@{ "-Islem" = $Action; "-InstallRoot" = $InstallRoot; "-PgBin" = $PgBin; "-ApiPort" = "$ApiPort"; "-Gunluk" = $ChildLog }
   if ($CodeFile) { $named["-KodDosyasi"] = $CodeFile }
@@ -170,8 +172,9 @@ function Invoke-Elevated([string]$Action, [string]$CodeFile = "", [switch]$WithD
     else { $p = Start-Process -FilePath "powershell.exe" -ArgumentList $line -Verb RunAs -Wait -PassThru }
     return $p.ExitCode
   } catch {
-    Show-Message "Yönetici izni verilmedi; METIS kurulamadı ya da başlatılamadı." "Warning" | Out-Null
-    return 1223
+    # UAC'de "Hayır" ya da süresi doldu. Uyarıyı çağıran, işleme özgü tek iletiyle gösterir (eskiden ardından ikinci,
+    # yanıltıcı bir "tamamlanamadı, ayrıntı açılan pencerede" hatası da geliyordu; açılan pencere yoktu).
+    return $NoAdmin
   }
 }
 
@@ -260,6 +263,10 @@ if (-not $state.kurulu) {
   $rc = Invoke-Elevated "kur" $codeFile -WithDemo:($Onayla -and -not $DemoYok)
   $code = Read-CodeFile $codeFile
   $state = Get-State
+  if ($rc -eq $NoAdmin) {
+    Show-Message "Yönetici izni verilmedi; METIS kurulmadı. Kurmak için METIS-Baslat'ı yeniden aç ve izin ver." "Warning" | Out-Null
+    Write-Result $state "izin_yok"; exit 1
+  }
   if ($rc -ne 0 -or -not $state.calisiyor) {
     Show-Message "METIS kurulamadı. Ayrıntı: $ChildLog`n`nBu dosyayı sorun bildirirken gönder." "Error" | Out-Null
     Write-Result $state "kurulum_basarisiz"; exit 1
@@ -279,7 +286,9 @@ if ($installedVersion -and $installedVersion -ne $bundleVersion) {
     if ($ok -eq "Yes") {
       $rc = Invoke-Elevated "yukselt"
       $state = Get-State
-      if ($rc -ne 0) { Show-Message "Yükseltme tamamlanamadı. Ayrıntı açılan pencerede ve $InstallRoot\data\logs altında." "Error" | Out-Null; Write-Result $state "yukseltme_basarisiz"; exit 1 }
+      if ($rc -eq $NoAdmin) {
+        Show-Message "Yönetici izni verilmedi; yükseltme yapılmadı. Kurulu METIS ($installedVersion) açılıyor." "Warning" | Out-Null
+      } elseif ($rc -ne 0) { Show-Message "Yükseltme tamamlanamadı. Ayrıntı açılan pencerede ve $InstallRoot\data\logs altında." "Error" | Out-Null; Write-Result $state "yukseltme_basarisiz"; exit 1 }
     }
   }
 }
@@ -287,6 +296,10 @@ if ($installedVersion -and $installedVersion -ne $bundleVersion) {
 if (-not $state.calisiyor) {
   $rc = Invoke-Elevated "servis"
   $state = Get-State
+  if ($rc -eq $NoAdmin) {
+    Show-Message "Yönetici izni verilmedi; kapalı METIS servisleri başlatılamadı." "Warning" | Out-Null
+    Write-Result $state "izin_yok"; exit 1
+  }
   if ($rc -ne 0 -or -not $state.calisiyor) {
     Show-Message "METIS başlatılamadı. Günlükler: $InstallRoot\data\logs\service" "Error" | Out-Null
     Write-Result $state "baslatilamadi"; exit 1
@@ -297,7 +310,9 @@ $url = Get-PublicUrl
 if ($state.kurulum_gerekli) {
   # Kurulum yarım kalmış (ilk yönetici yok): yeni tek kullanımlık kod üret ve kurulum sayfasını aç.
   $codeFile = New-CodeFile
-  Invoke-Elevated "kod" $codeFile | Out-Null
+  if ((Invoke-Elevated "kod" $codeFile) -eq $NoAdmin) {
+    Show-Message "Yönetici izni verilmedi; yeni kurulum kodu üretilmedi. Kurulum sayfası kodsuz açılıyor." "Warning" | Out-Null
+  }
   $code = Read-CodeFile $codeFile
   Open-Browser $(if ($code) { "$url/kurulum#kod=$code" } else { "$url/kurulum" })
 } else {

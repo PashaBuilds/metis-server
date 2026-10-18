@@ -39,6 +39,16 @@ def test_launcher_message_boxes_are_topmost_and_unowned():
     assert "System.Windows.Forms" not in cs
 
 
+def test_denied_admin_shows_one_specific_notice():
+    """UAC reddedilince (ya da süresi dolunca) tek, işleme özgü uyarı; ardından yanıltıcı ikinci hata yok (2.0.8 denemesi)."""
+    src = BASLAT.read_text(encoding="utf-8")
+    catch = re.search(r"(?s)function Invoke-Elevated.*?\} catch \{(.*?)\n  \}", src)
+    assert catch and "Show-Message" not in catch.group(1) and "return $NoAdmin" in catch.group(1)
+    for action in ('Invoke-Elevated "kur"', 'Invoke-Elevated "yukselt"', 'Invoke-Elevated "servis"', 'Invoke-Elevated "kod"'):
+        i = src.index(action)
+        assert "$NoAdmin" in src[i : i + 400], f"{action}: izin verilmedi durumu ayrı ele alınmalı"
+
+
 def _probe_dialog(pid: int) -> tuple[bool, int] | None:
     import ctypes
     from ctypes import wintypes

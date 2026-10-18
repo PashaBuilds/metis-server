@@ -132,7 +132,8 @@ def test_provider_key_reencrypted_and_no_plaintext_anywhere(backup: Path, db, tm
     # DB'nin tamamı (pg_dump), raporlar, loglar, blob dizini
     dsn = _database.replace("postgresql+psycopg://", "postgresql://")
     # encoding açık: Türkçe Windows'ta (cp1254) varsayılan kod sayfası UTF-8 dökümü çözemiyor, stdout None kalıyordu.
-    dump = subprocess.run(["pg_dump", "--data-only", dsn], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+    # errors="replace": stderr'deki uyarılar yerel kod sayfasında gelir (yalnız dökümün kendisi denetlenir).
+    dump = subprocess.run(["pg_dump", "--data-only", dsn], capture_output=True, text=True, encoding="utf-8", errors="replace", check=True).stdout
     assert needle not in dump
     assert syn.PASSWORD not in dump
     for f in (tmp_path / "rapor").iterdir():
