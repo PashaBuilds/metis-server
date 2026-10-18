@@ -156,7 +156,7 @@ def updated_pages(db: Session, user: User, project_id: uuid.UUID, limit: int = 1
     from datetime import datetime
 
     from metis.core.access import unreadable_revisions
-    from metis.core.models import Page, PageRevision, Publication, PublicationPage, UserPreference
+    from metis.core.models import ChangeSetItem, Page, PageRevision, Publication, PublicationPage, UserPreference
 
     pref = db.scalar(select(UserPreference.value).where(UserPreference.user_id == user.id, UserPreference.key == "updates_seen_at"))
     try:
@@ -168,6 +168,8 @@ def updated_pages(db: Session, user: User, project_id: uuid.UUID, limit: int = 1
         .join(PublicationPage, PublicationPage.page_id == Page.id)
         .join(Publication, Publication.id == PublicationPage.publication_id)
         .join(PageRevision, PageRevision.id == PublicationPage.revision_id)
+        # Yayın manifestosu tüm sayfaları içerir; yalnız o kayıtta gerçekten değişen sayfa sayılır.
+        .join(ChangeSetItem, (ChangeSetItem.change_set_id == Publication.change_set_id) & (ChangeSetItem.page_id == Page.id))
         .where(
             Page.project_id == project_id,
             Page.owner_id == user.id,

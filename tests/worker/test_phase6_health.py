@@ -158,3 +158,30 @@ def test_demo_seed_conflict_is_not_duplicated_by_rule_scan(client):  # noqa: ANN
     with transaction() as db:
         conflicts = db.scalars(select(Finding).where(Finding.project_id == pid, Finding.kind == "conflict", Finding.state == "open")).all()
     assert len(conflicts) == 1  # tohum ve kural taraması aynı parmak izini kullanır
+
+
+def test_demo_seed_matches_self_publish_flow(make_client):  # noqa: ANN001
+    """Kurgusal çalışma alanı güncel ürünü yansıtır: yazar yayımlar, bilerek geçilen çelişki, metin içi görsel,
+    sahibine "Bilgilerin güncellendi", yarım taslak; incelemede bekleyen kayıt yok."""
+    from metis.core.models import ChangeSet, Project
+    from metis.seed.demo import create_demo_workspace
+
+    out = create_demo_workspace()
+    pid = out["project_id"]
+    deniz = make_client()
+    deniz.login("deniz", "Kurgusal-Parola-2026")
+    with transaction() as db:
+        assert db.get(Project, uuid.UUID(pid)).review_policy == "self_publish"
+        states = {c.state for c in db.scalars(select(ChangeSet).where(ChangeSet.project_id == uuid.UUID(pid)))}
+    assert "in_review" not in states and "draft" in states
+    pages = deniz.get(f"/api/v1/projects/{pid}/pages", params={"limit": 50}).json()["items"]
+    by_title = {p["title"]: p["page_id"] for p in pages}
+    uart = deniz.get(f"/api/v1/pages/{by_title['Hata ayıklama UART hızı']}").json()
+    assert uart["review_policy_badge"] == "self_publish" and uart["approved_by"] == "Deniz Kaya"
+    assert len(uart["revision"]["figures"]) == 1 and "{{görsel 1}}" in uart["revision"]["body_md"]
+    saha = deniz.get(f"/api/v1/pages/{by_title['Konsol baud hızı (saha)']}").json()
+    assert saha["approved_by"] == "Barış Demir"
+    conflicts = deniz.get(f"/api/v1/projects/{pid}/findings", params={"kind": "conflict"}).json()["items"]
+    assert len(conflicts) == 1 and conflicts[0]["detail"]["acknowledged_at_publish"] is True
+    updates = deniz.get(f"/api/v1/projects/{pid}/inbox").json()["updated_pages"]
+    assert [(u["title"], u["by_name"]) for u in updates] == [("SPI saat bölücü ayarı", "Barış Demir")]

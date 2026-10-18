@@ -167,6 +167,9 @@ def test_editing_someone_elses_page_notifies_owner(sp):
     first = _self_publish(c, pid, "UART hızı", FAST)
     page_id = first["published_page_ids"][0]
     assert c.get(f"/api/v1/projects/{pid}/inbox").json()["updated_pages"] == []
+    # Başkasının ilgisiz bir yayını bildirim üretmez (yayın manifestosu tüm sayfaları içerse de).
+    _self_publish(a, pid, "SPI saati", "SPI saati 25 MHz olarak ayarlanır.")
+    assert c.get(f"/api/v1/projects/{pid}/inbox").json()["updated_pages"] == []
     base = c.get(f"/api/v1/pages/{page_id}").json()["revision"]["id"]
     src = add_note(a, pid, "Ek not", OTHER, scope=SCOPE)
     ev = evidence(a, src["revision"]["id"], OTHER)["id"]

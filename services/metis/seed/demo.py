@@ -267,6 +267,44 @@ RELATIONS = [
 ]
 
 
+def _board_png() -> bytes:
+    """Kurgusal kartın üstten şematik görünümü (PNG, harici dosya ya da kütüphane olmadan üretilir)."""
+    import struct
+    import zlib
+
+    w, h = 640, 360
+    shapes = [  # (x0, y0, x1, y1, renk) — sonra çizilen üstte
+        (0, 0, w, h, (238, 242, 241)),
+        (60, 40, 580, 320, (31, 95, 74)),  # kart
+        (250, 120, 390, 260, (43, 43, 43)),  # FPGA/SoC
+        (440, 80, 540, 140, (60, 60, 60)),  # bellek
+        (440, 200, 540, 260, (60, 60, 60)),
+        (30, 150, 95, 210, (194, 65, 12)),  # hata ayıklama konnektörü (sol kenar)
+        (110, 172, 250, 188, (214, 226, 222)),  # UART hattı
+    ]
+    rows = bytearray()
+    for y in range(h):
+        rows.append(0)
+        for x in range(w):
+            color = next(c for x0, y0, x1, y1, c in reversed(shapes) if x0 <= x < x1 and y0 <= y < y1)
+            rows.extend(color)
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(bytes(rows), 9)) + chunk(b"IEND", b"")
+
+
+def _publish(db, user: User, change) -> None:  # noqa: ANN001
+    """"Yazar yayımlar": yayın öncesi kural kontrolü + yazarın kendi yayını. Kontrolün bulduğu çelişki bilerek geçilir ve
+    Bilgi sağlığına düşer (gerçek akıştaki "Yine de yayımla"). Model tohumlamadan sonra eklenir; kontrol "model yok" der."""
+    from metis.modules.changes.prepublish import rule_check
+
+    rule_check(db, user, change)
+    changes.publish_direct(db, user, change.id, cs.PublishDirectIn(hash=change.hash, acknowledge_issues=True))
+    db.flush()
+
+
 def _user(db, username: str, display: str, admin: bool = False) -> User:  # noqa: ANN001
     user = db.scalar(select(User).where(func.lower(User.username) == username))
     if not user:
@@ -317,50 +355,68 @@ def create_demo_workspace(admin_username: str = "") -> dict:
             revs[note["key"]] = rev
         db.flush()
 
+        # Açıklayıcı görsel: kurgusal kartın üstten görünümü (görsel kaynak; kanıt değildir).
+        board = sources.prepare_content("image", "Kurgusal kartın üstten şematik görünümü.", ("kurgusal-kart.png", _board_png()))
+        _, board_rev = sources.create_source(db, author, project.id, ss.SourceMetaIn(title="Kurgusal kart — üstten görünüm", kind="image", text="Kurgusal kartın üstten şematik görünümü.", scope=S_VPK), board)
+        figures = {"Hata ayıklama UART hızı": cs.FigureIn(source_revision_id=board_rev.id, caption="Kurgusal kart: hata ayıklama konnektörü sol kenarda (turuncu); açık renkli UART hattı işlemciye gider.")}
+
+        # Yazar yayımlar: bilgiler yazarınca yayımlanır; saha notunu Barış yayımlar ve kontrolün bulduğu çelişkiyi
+        # bilerek geçer (Bilgi sağlığına düşer).
         page_ids: list[uuid.UUID] = []
+        items: list[cs.ItemIn] = []
         for spec in PAGES + EXTRA_PAGES:
             rev = revs[spec["note"]]
+            publisher = reviewer if spec["note"] == "uart_new" else author
             claims = []
             for statement in spec["claims"]:
                 ev = sources.create_evidence(db, author, rev.id, ss.EvidenceCreateIn(excerpt=statement))
                 claims.append(cs.ClaimIn(statement=statement, kind="expert_statement", evidence=[cs.EvidenceRef(evidence_id=ev.id, quote=statement)]))
+            body = spec["body"] or "\n\n".join(spec["claims"])
+            fig = figures.get(spec["title"])
             item = cs.ItemIn(
                 title=spec["title"],
                 summary=spec["summary"],
-                body_md=spec["body"] or "\n\n".join(spec["claims"]),
+                body_md=f"{body}\n\n{{{{görsel 1}}}}" if fig else body,
                 kind=spec["kind"],
                 scope=spec["scope"],
                 unknowns=spec["unknowns"],
                 aliases=spec["aliases"],
                 claims=claims,
+                figures=[fig] if fig else [],
             )
-            change = changes.create_change(db, author, project.id, cs.ChangeCreateIn(summary=spec["title"], items=[item], submit=True))
+            change = changes.create_change(db, publisher, project.id, cs.ChangeCreateIn(summary=spec["title"], items=[item]))
             db.flush()
-            changes.review(db, reviewer, change.id, cs.ReviewIn(decision="approve", reason="Kaynaklarla karşılaştırıldı.", evidence_checked=True, hash=change.hash))
-            changes.publish_change(db, reviewer, change.id)
-            db.flush()
+            _publish(db, publisher, change)
             page_ids.append(changes._items(db, change)[0].page_id)
+            items.append(item)
 
         rels = [cs.RelationIn(subject_page_id=page_ids[a], predicate=p, object_page_id=page_ids[b], rationale=why) for a, p, b, why in RELATIONS]
-        rel_change = changes.create_change(db, author, project.id, cs.ChangeCreateIn(summary="Kavram ilişkileri", relations=rels, submit=True))
+        rel_change = changes.create_change(db, author, project.id, cs.ChangeCreateIn(summary="Kavram ilişkileri", relations=rels))
         db.flush()
-        changes.review(db, reviewer, rel_change.id, cs.ReviewIn(decision="approve", reason="İlişkiler kaynaklı.", evidence_checked=True, hash=rel_change.hash))
-        changes.publish_change(db, reviewer, rel_change.id)
+        _publish(db, author, rel_change)
 
-        # İncelemede bekleyen bir taslak (yönetici için "incelemeni bekleyen")
+        from metis.core.models import Page
+
+        # Başkasının bilgisini güncelleme: Barış, Deniz'in SPI sayfasına bir ad ekler → Deniz'in ana sayfasında
+        # "Bilgilerin güncellendi".
+        spi = db.get(Page, page_ids[2])
+        update = items[2].model_copy(update={"page_id": spi.id, "base_revision_id": spi.published_revision_id, "aliases": ["SCLK bölücü"]})
+        upd = changes.create_change(db, reviewer, project.id, cs.ChangeCreateIn(summary="SPI sayfasına arama adı eklendi", items=[update]))
+        db.flush()
+        _publish(db, reviewer, upd)
+
+        # Yarım kalmış bir taslak (Deniz'in "Kaldığın yerden" listesinde; "Yayımla" ile yayımlanır)
         uart = revs["uart"]
         statement = "Tamponun 1024 bayta çıkarılması önerisi değerlendiriliyor; henüz karar verilmedi."
         ev = sources.create_evidence(db, author, uart.id, ss.EvidenceCreateIn(excerpt="Tampon boyutu 512 bayttır ve 2'nin kuvveti olarak tutulur."))
         ev2 = sources.create_evidence(db, author, uart.id, ss.EvidenceCreateIn(excerpt=statement))
-        from metis.core.models import Page
-
         page = db.get(Page, page_ids[3])
         pending = cs.ItemIn(
             page_id=page.id,
             base_revision_id=page.published_revision_id,
             title="UART halka tamponu",
             summary="UART alım yolundaki kilitsiz halka tamponun çalışma ilkesi, taşma davranışı ve açık karar.",
-            body_md="",
+            body_md="Tampon boyutu 512 bayttır ve 2'nin kuvveti olarak tutulur.\n\n" + statement,
             kind="concept",
             scope=S_GEN,
             unknowns=[],
@@ -370,21 +426,20 @@ def create_demo_workspace(admin_username: str = "") -> dict:
                 cs.ClaimIn(statement=statement, kind="hypothesis", support="partial", evidence=[cs.EvidenceRef(evidence_id=ev2.id, quote=statement)]),
             ],
         )
-        item_body = "Tampon boyutu 512 bayttır ve 2'nin kuvveti olarak tutulur.\n\n" + statement
-        pending = pending.model_copy(update={"body_md": item_body})
-        changes.create_change(db, author, project.id, cs.ChangeCreateIn(summary="Tampon boyutu açık kararı eklendi", items=[pending], submit=True))
-        from metis.modules.health.maintenance import conflict_fingerprint, conflict_pairs, deterministic_scan
+        changes.create_change(db, author, project.id, cs.ChangeCreateIn(summary="Tampon boyutu açık kararı eklendi", items=[pending]))
+        from metis.modules.health.maintenance import (
+            _open_finding,
+            conflict_fingerprint,
+            conflict_pairs,
+            deterministic_scan,
+        )
 
         deterministic_scan(db, project.id, admin.id)
-        from metis.core.models import Finding, FindingPage
-
+        # Yayında bilerek geçilen çelişki zaten bulgu; aynı parmak iziyle ikinci kez açılmaz.
         for pair in conflict_pairs(db, project.id):
             a, b = pair["a"], pair["b"]
-            f = Finding(project_id=project.id, kind="conflict", severity="high", fingerprint=conflict_fingerprint(a, b), created_by=admin.id,
-                        detail={"sides": [{"page_id": str(x["page_id"]), "page_title": x["title"], "quote": x["statement"], "evidence_id": str(x["evidence_id"])} for x in (a, b)], "detected_by": "rule"})
-            db.add(f)
-            db.flush()
-            db.add_all([FindingPage(finding_id=f.id, page_id=a["page_id"]), FindingPage(finding_id=f.id, page_id=b["page_id"])])
+            sides = [{"page_id": str(x["page_id"]), "page_title": x["title"], "quote": x["statement"], "evidence_id": str(x["evidence_id"])} for x in (a, b)]
+            _open_finding(db, project.id, "conflict", conflict_fingerprint(a, b), [a["page_id"], b["page_id"]], "high", {"sides": sides, "detected_by": "rule"}, admin.id)
         project_id, admin_id = project.id, admin.id
         admin_username = admin.username
     model_note = _setup_fixture_model(admin_id)

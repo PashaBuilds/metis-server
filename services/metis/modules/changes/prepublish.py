@@ -76,6 +76,18 @@ def _candidates(db, user: User, change: ChangeSet) -> dict:  # noqa: ANN001
     return {"drafts": drafts, "rule": rule, "similar": similar}
 
 
+def rule_check(db, user: User, change: ChangeSet) -> schemas.PrepublishCheckOut:  # noqa: ANN001
+    """Yalnız kural kontrolü, aynı oturumda (model çağrısı yok). Kurgusal çalışma alanı tohumu kullanır; model durumu
+    dürüstçe "not_configured" yazılır."""
+    issues = [
+        schemas.PrepublishIssue(kind="conflict", page_id=c["page_id"], page_title=c["page_title"], ours=c["ours"], theirs=c["theirs"], reason="", detected_by="rule")
+        for c in _candidates(db, user, change)["rule"]
+    ]
+    out = schemas.PrepublishCheckOut(hash=change.hash, model_status="not_configured", model_name=None, issues=issues, checked_at=utcnow())
+    change.detail = {**change.detail, "prepublish": out.model_dump(mode="json")}
+    return out
+
+
 def run_check(user_id: uuid.UUID, change_id: uuid.UUID) -> schemas.PrepublishCheckOut:
     from metis.modules.changes.service import accessible_change
     from metis.modules.lab.service import route

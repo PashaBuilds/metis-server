@@ -4,6 +4,14 @@ METIS v2 sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-s
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**rc.5 — düzeltme ve güncel örnek içerik:**
+- Düzeltme: "Bilgilerin güncellendi" bildirimi, başkası yalnız ilgisiz bir bilgiyi yayımladığında da sahibinin tüm
+  bilgilerini listeliyordu (rc.4). Artık yalnız gerçekten değişen bilgi gösterilir.
+- `metis demo` örnek içeriği güncel akışı yansıtır: bilgiler yazarlarınca yayımlanmış ("Yayımlayan"), biri metin içi
+  görselli; yarım bir taslak (Yayımla ile yayımlanır); yayımlanırken bilerek geçilmiş bir çelişki (Bilgi sağlığında);
+  `deniz` için "Bilgilerin güncellendi" örneği. İncelemede bekleyen kayıt yok.
+- Şema değişmedi.
+
 **rc.4 — yazar yayımlar, yayın öncesi kontrol:**
 - İkinci kişinin onayı kalktı (varsayılan politika "Yazar yayımlar"): taslağını yazan kişi "Yayımla" ile kendisi yayımlar.
 - "Yayımla"ya basınca Metis taslağı yayındaki bilgilerle karşılaştırır: kural kontrolü (aynı ifade, farklı değer, örtüşen

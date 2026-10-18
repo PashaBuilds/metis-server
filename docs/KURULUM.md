@@ -203,8 +203,11 @@ Windows 10 veya 11 (64 bit) bir bilgisayarda, IIS ve sertifika olmadan, yalnız 
    `postgres` parolası bir kez sorulur. Sonunda ekrana bir **kurulum kodu** yazılır.
 4. Tarayıcıda `http://localhost:8000` adresini aç, kurulum kodunu gir ve yönetici hesabını oluştur.
 5. İstersen ekranları dolu görmek için kurgusal örnek içerik ekle (yönetici PowerShell):
-   `C:\METIS\bin\metis demo`. Gömülü yazılım konulu sayfalar, kaynaklar, bekleyen incelemeler ve örnek kullanıcılar
-   (`baris`, `deniz`, `ece`; parola `Kurgusal-Parola-2026`) oluşur. Hepsi kurgusaldır ve ekranda öyle işaretlenir.
+   `C:\METIS\bin\metis demo`. Gömülü yazılım konulu sayfalar (yazarlarınca yayımlanmış, biri metin içi görselli),
+   kaynaklar, yarım bir taslak, yayımlanırken bilerek geçilmiş bir çelişki (Bilgi sağlığında) ve örnek kullanıcılar
+   (`baris`, `deniz`, `ece`; parola `Kurgusal-Parola-2026`) oluşur. `deniz` ile girince ana sayfada "Bilgilerin
+   güncellendi" örneği görünür (Barış onun bir bilgisini güncelledi). Hepsi kurgusaldır ve ekranda öyle işaretlenir.
+   Not: demo kendi kurgusal model sunucusunu bulamazsa ("atlandı") Mentor ve yapay zekâ kontrolü modelsiz kalır.
 6. Denemen bitince: `powershell -ExecutionPolicy Bypass -File .\uninstall.ps1 -RemoveAll`.
 
 Bilmen gerekenler:
