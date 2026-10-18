@@ -162,6 +162,36 @@ def test_open_conflict_flags_only_conflicting_pages(mentor_env):
     assert flags[env["page"]["page_id"]] is True
     assert flags.get(other["page_id"]) is False  # çelişkiye dahil olmayan ilgili sayfa işaretlenmez
 
+def test_unrelated_conflict_page_does_not_block_answer(mentor_env, monkeypatch):
+    """Brief 5.6: çelişkili sayfa *seçilirse* CONFLICTING. Aramada yalnız yan sonuç olarak çıkan, kaynak seçiminde
+    ilgisiz bulunan çelişkili sayfa cevabı engellemez (canlı modelle bulundu, 2026-10-18)."""
+    from metis.llm import prompts
+    from metis.llm.client import CallResult, ModelClient
+
+    env = mentor_env
+    other = publish_note(env["contributor"], env["reviewer"], env["pid"], "SPI bölücü notu", "SPI saat bölücü notları ayrı sayfadadır.")
+    with transaction() as db:
+        f = Finding(project_id=uuid.UUID(env["pid"]), kind="conflict", severity="high", detail={"sides": []})
+        db.add(f)
+        db.flush()
+        db.add(FindingPage(finding_id=f.id, page_id=uuid.UUID(other["page_id"])))
+    original = ModelClient.call
+    selected: list[list[str]] = []
+
+    def fake(self, model, provider, *, prompt_id, payload, **kw):  # noqa: ANN001, ANN202
+        if prompt_id == prompts.SOURCE_SELECTION:
+            selected.append([p["page_id"] for p in payload["pages"]])
+            return CallResult(ok=True, output={"reviews": [{"page_id": p["page_id"], "relevance": "irrelevant" if p["page_id"] == other["page_id"] else "relevant", "reason": "kurgusal"} for p in payload["pages"]]})
+        return original(self, model, provider, prompt_id=prompt_id, payload=payload, **kw)
+
+    monkeypatch.setattr(ModelClient, "call", fake)
+    a = ask(env["reader"], env["pid"], "SPI saat bölücü kaç?")
+    assert selected, "çelişkili sayfa yanında başka sayfa varken kaynak seçimi yapılmalı"
+    assert a["decision"] == "SUPPORTED" and a["citations"]
+    assert all(c["page_id"] != other["page_id"] for c in a["citations"])
+    assert {r["page_id"]: r["open_conflict"] for r in a["related"]}[other["page_id"]] is True
+
+
 def test_permission_revoked_during_model_call_returns_403_and_saves_nothing(mentor_env, monkeypatch):
     env = mentor_env
     from metis.core.models import SourceAcl
@@ -286,7 +316,7 @@ def test_evals_mock_mode_is_100_percent(mock_llm):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "evals"))
     import run as evals_run  # type: ignore[import-not-found]
 
-    args = argparse.Namespace(base_url=mock_llm, model="fixture-reference", ca_bundle=None)
+    args = argparse.Namespace(base_url=mock_llm, model="fixture-reference", ca_bundle=None, mode="mock")
     profile = {"json_mode": "json_schema", "thinking": "disabled"}
     ev = evals_run.run_evidence(args, profile, "")
     wk = evals_run.run_worker(args, profile, "")
@@ -294,7 +324,7 @@ def test_evals_mock_mode_is_100_percent(mock_llm):
     assert (ev["passed"], ev["critical"]) == (ev["n"], 0), [r for r in ev["rows"] if not r["passed"]]
     assert wk["passed"] == wk["n"], [r for r in wk["rows"] if not r["passed"]]
     assert ex["passed"] == ex["n"]
-    assert ev["n"] == 26 and wk["n"] == 27 and ex["n"] == 15
+    assert ev["n"] == 26 and wk["n"] == 35 and ex["n"] == 15  # +9 canlı model vakası (1i yalnız canlı modda)
 
 
 def test_models_table_reports_insufficient_p95(mentor_env):
@@ -304,3 +334,37 @@ def test_models_table_reports_insufficient_p95(mentor_env):
     assert ref["task_label"] == "Kaynaklı kısa cevap için uygun"
     with transaction() as db:
         assert db.get(Model, uuid.UUID(mentor_env["model_id"])).transport_profile["json_mode"] == "json_schema"
+
+
+def test_long_model_endpoints_do_not_hold_db_connection(mentor_env, monkeypatch):
+    """Uzun model çağrısı sırasında istek, kimlik doğrulamadan kalan bir DB bağlantısı tutmaz
+    (yük testinde 42 eşzamanlı Mentor isteğinde havuz tükeniyordu, 2026-10-18)."""
+    from metis.core.db import engine
+    from metis.core.errors import AppError
+    from metis.modules.mentor import service as mentor
+
+    seen: list[int] = []
+
+    def fake_ask(*_a, **_k):  # noqa: ANN002, ANN003, ANN202
+        seen.append(engine().pool.checkedout())
+        raise AppError("NOT_FOUND", "kurgusal")
+
+    monkeypatch.setattr(mentor, "ask", fake_ask)
+    r = mentor_env["reader"].post(f"/api/v1/projects/{mentor_env['pid']}/mentor/answers", json={"question": "SPI saat bölücü kaç?"})
+    assert r.status_code == 404 and seen == [0]
+
+
+def test_unrelated_conflict_without_model_reports_model_unavailable(mentor_env):
+    """Model yokken, yanında başka sayfalar da bulunan çelişkili sayfa kararı 'Çelişkili' yapmaz: soru cevaplanamaz,
+    neden dürüstçe 'model kullanılamıyor'dur."""
+    env = mentor_env
+    other = publish_note(env["contributor"], env["reviewer"], env["pid"], "SPI bölücü notu", "SPI saat bölücü notları ayrı sayfadadır.")
+    with transaction() as db:
+        f = Finding(project_id=uuid.UUID(env["pid"]), kind="conflict", severity="high", detail={"sides": []})
+        db.add(f)
+        db.flush()
+        db.add(FindingPage(finding_id=f.id, page_id=uuid.UUID(other["page_id"])))
+    assert env["admin"].patch(f"/api/v1/models/{env['model_id']}", json={"enabled": False}).status_code == 200
+    a = ask(env["reader"], env["pid"], "SPI saat bölücü kaç?")
+    assert a["decision"] == "MODEL_UNAVAILABLE"
+    assert {r["page_id"]: r["open_conflict"] for r in a["related"]}[other["page_id"]] is True

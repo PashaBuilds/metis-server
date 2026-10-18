@@ -26,7 +26,7 @@ from metis.modules.jobs.service import add_event
 MAX_STEPS = 20
 MAX_SOURCES = 10
 MAX_SOURCE_CHARS = 30_000
-MAX_TOKENS = 256_000
+MAX_TOKENS = 640_000  # 30 bin karakterlik kaynak bölümlenerek çıkarılır (bkz. prepare.EXTRACT_CHUNK_CHARS)
 MAX_ATTEMPTS = 3
 
 

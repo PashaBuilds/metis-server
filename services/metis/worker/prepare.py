@@ -62,6 +62,27 @@ def load_model(db, job) -> tuple[Model, Provider]:  # noqa: ANN001
     return model, provider  # type: ignore[return-value]
 
 
+EXTRACT_CHUNK_CHARS = 3000  # yoğun teknik metinde ≈40 olgu; 4000 çıktı token'ına sığar
+MAX_DRAFT_CLAIMS = 200  # ItemIn.claims sınırı
+
+
+def text_chunks(text: str, size: int = EXTRACT_CHUNK_CHARS) -> list[str]:
+    """Uzun kaynağı satır sınırlarından bölümlere ayırır (alıntılar satır içinde kalır; satır bölünmez).
+    Canlı modelle bulundu (2026-10-18): tek çağrıda ≈50'den çok olgu çıktı sınırında kesiliyor, JSON yarım kalıyordu."""
+    out: list[str] = []
+    cur: list[str] = []
+    n = 0
+    for line in text.splitlines(keepends=True):
+        if cur and n + len(line) > size:
+            out.append("".join(cur))
+            cur, n = [], 0
+        cur.append(line)
+        n += len(line)
+    if cur:
+        out.append("".join(cur))
+    return [c for c in out if c.strip()] or [text]
+
+
 def call(ctx: JobContext, model, provider, prompt_id, payload, schema, validator=None, output_tokens=2000):  # noqa: ANN001, ANN201
     ctx.reserve(payload, output_tokens)
     res = ModelClient().call(model, provider, prompt_id=prompt_id, payload=payload, schema=schema, validator=validator, purpose="worker", job_id=ctx.job_id, max_tokens=output_tokens)
@@ -124,10 +145,18 @@ def run_prepare(ctx: JobContext) -> None:
         if r["id"] in processed:
             continue
         ctx.step("extract", source=r["title"])
-        out = call(ctx, model, provider, prompts.EXTRACT, {"text": r["text"], "scope": normalize_scope(r["scope"]), "instructions": instructions, "human_responses": answered}, contracts.Extraction, output_tokens=3000)
-        claims = [c for c in out["claims"] if c["quote"] in r["text"]]
-        decisions = [d for d in out["open_decisions"] if d["quote"] in r["text"]]
-        report["dropped_quotes"] += (len(out["claims"]) - len(claims)) + (len(out["open_decisions"]) - len(decisions))
+        raw_claims: list[dict] = []
+        raw_decisions: list[dict] = []
+        for part in text_chunks(r["text"]):
+            out = call(ctx, model, provider, prompts.EXTRACT, {"text": part, "scope": normalize_scope(r["scope"]), "instructions": instructions, "human_responses": answered}, contracts.Extraction, output_tokens=4000)
+            raw_claims.extend(out["claims"])
+            raw_decisions.extend(out["open_decisions"])
+        claims = list({c["quote"]: c for c in raw_claims if c["quote"] in r["text"]}.values())  # iddia = alıntı; bölüm sınırında tekrar olmaz
+        decisions = list({d["quote"]: d for d in raw_decisions if d["quote"] in r["text"]}.values())
+        report["dropped_quotes"] += sum(1 for c in raw_claims if c["quote"] not in r["text"]) + sum(1 for d in raw_decisions if d["quote"] not in r["text"])
+        if len(claims) > MAX_DRAFT_CLAIMS:
+            report["claims_over_limit"] = report.get("claims_over_limit", 0) + len(claims) - MAX_DRAFT_CLAIMS
+            claims = claims[:MAX_DRAFT_CLAIMS]
         with transaction() as db:
             ctx.guard(db)
             for c in claims:
@@ -268,6 +297,6 @@ def run_prepare(ctx: JobContext) -> None:
             db.add(JobOutput(job_id=job.id, change_set_id=change.id))
         change_id = change.id
     conflicts = sum(1 for c in report["conflicts"] if c["verdict"] == "conflict")
-    summary = f"{total_claims} yeni iddia" + (f", {conflicts} çelişki adayı" if conflicts else "") + (f", {len(report['relations'])} ilişki önerisi" if report["relations"] else "") + " bulundu. Taslak incelemeye gönderildi."
+    summary = f"{total_claims} yeni iddia" + (f", {conflicts} çelişki adayı" if conflicts else "") + (f", {len(report['relations'])} ilişki önerisi" if report["relations"] else "") + " bulundu. Taslak hazır." + (f" {report['claims_over_limit']} iddia, taslak başına {MAX_DRAFT_CLAIMS} sınırı nedeniyle alınmadı; kaynağı bölerek ayrıca hazırlat." if report.get("claims_over_limit") else "")
     report["change_id"] = str(change_id)
     ctx.finish("completed", summary, report=report, produced_draft=True)

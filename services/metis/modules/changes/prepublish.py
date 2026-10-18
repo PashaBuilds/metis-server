@@ -70,7 +70,8 @@ def _candidates(db, user: User, change: ChangeSet) -> dict:  # noqa: ANN001
     similar = []
     for d in drafts:
         hits = search(db, user, project_id, f"{d['title']} {d['summary']}"[:400], None, None, MAX_SIMILAR + len(own_pages)).hits
-        for h in [h for h in hits if h.page_id not in own_pages][:MAX_SIMILAR]:
+        # Kapsamı ayrık bilgi (ör. başka kart) ne çelişki ne tekrardır; modele hiç gönderilmez (kapsam metadata'dan).
+        for h in [h for h in hits if h.page_id not in own_pages and overlaps(d["scope"], h.scope)][:MAX_SIMILAR]:
             statements = list(db.scalars(select(Claim.statement).where(Claim.page_revision_id == h.revision_id).order_by(Claim.ord)))
             similar.append({"draft": d, "page_id": h.page_id, "page_title": h.title, "statements": statements})
     return {"drafts": drafts, "rule": rule, "similar": similar}

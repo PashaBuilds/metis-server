@@ -1,7 +1,7 @@
 """refine_draft — 'Taslağı düzenle ve karşılaştır': ≤5 sayfalık taslağı paragraf→iddia indeksiyle yeniden yazar.
 
-Tüm iddialar kapsanmalı; kanıt ID'leri ve kapsam korunur. İlk taslak değişmez; sonuç ayrı bir kayıt olarak
-insan incelemesine gider.
+Tüm iddialar kapsanmalı; kanıt ID'leri ve kapsam korunur. Başlık/özet önerisi iddialarla deterministik denetlenir.
+İlk taslak değişmez; sonuç ayrı bir kayıt olarak hazırlanır (yayımlamak yine bir insanın işidir).
 """
 
 from __future__ import annotations
@@ -13,12 +13,26 @@ from sqlalchemy import select
 from metis.core.db import transaction
 from metis.core.models import Claim, JobOutput, PageRevision, User
 from metis.llm import contracts, prompts
+from metis.llm.validators import check_sentence, has_negation
 from metis.modules.changes import schemas as cs
 from metis.modules.changes import service as changes
 from metis.modules.knowledge.figures import strip_figures
 from metis.modules.knowledge.views import revision_views
 from metis.worker.prepare import call, load_model
 from metis.worker.runtime import JobContext, JobFailed, worker_identity
+
+
+def grounded(text: str, statements: list[str]) -> bool:
+    """Önerilen başlık/özet yalnız iddialarda geçen sayı, sembol, sürüm ve olumsuzlukları kullanır mı?
+    (Mentor açıklama cümleleriyle aynı deterministik denetim; olumsuzluk yalnız *eklenirse* sorun.)"""
+    text = text.strip()
+    if not text:
+        return False
+    ids = [str(i) for i in range(len(statements))]
+    reasons = set(check_sentence(text, ids, dict(zip(ids, statements, strict=True))).reasons)
+    if not has_negation(text):
+        reasons.discard("negation")  # iddialardaki olumsuzluğu özetlememek uydurma değildir
+    return not reasons
 
 
 def run_refine(ctx: JobContext) -> None:
@@ -69,14 +83,20 @@ def run_refine(ctx: JobContext) -> None:
         for cand in cands:
             res = call(ctx, model, provider, prompts.PAGE_DIFF, {"kayit_a": v.body_md[:8000], "kayit_b": "\n".join([cand["title"], *cand["statements"]])}, contracts.PageDiff, output_tokens=1000)
             comparisons.append({"page_id": cand["page_id"], "page_title": cand["title"], "verdict": res["verdict"], "reason": res["reason"]})
-        report["pages"].append({"title": v.title, "claims": n, "paragraphs": len(out["paragraphs"]), "comparisons": comparisons})
+        statements = [c.statement for c in v.claims]
+        # Model başlık/özet önerir; iddialarla desteklenmeyen öneri kullanılmaz, eskisi korunur.
+        title = out.get("title", "").strip()
+        title = title if title and grounded(title, [*statements, v.title]) else v.title
+        summary = out.get("summary", "").strip()
+        summary = summary if summary and grounded(summary, statements) else v.summary
+        report["pages"].append({"title": title, "claims": n, "paragraphs": len(out["paragraphs"]), "comparisons": comparisons, "title_changed": title != v.title, "summary_changed": summary != v.summary})
         item = d["item"]
         proposals.append(
             cs.ItemIn(
                 page_id=item.page_id if item.base_revision_id else None,
                 base_revision_id=item.base_revision_id,
-                title=v.title,
-                summary="Metis tarafından düzenlendi; insan incelemesi bekliyor.",
+                title=title,
+                summary=summary,
                 # Görseller modelden geçmez; aynen taşınır ve gövdenin sonuna yerleşir (inceleyen yerini değiştirebilir).
                 body_md="\n\n".join([*(p["text"] for p in out["paragraphs"]), *(f"{{{{görsel {f.ord}}}}}" for f in v.figures)]),
                 kind=v.kind,  # type: ignore[arg-type]
@@ -96,4 +116,4 @@ def run_refine(ctx: JobContext) -> None:
         new.detail = {**new.detail, "job_report": report, "source_change_id": job.inputs["draft_change_id"]}
         if not db.get(JobOutput, (job_id, new.id)):
             db.add(JobOutput(job_id=job_id, change_set_id=new.id))
-    ctx.finish("completed", "Düzenlenen ayrı kayıt insan incelemesine gönderildi. İlk taslak korundu.", report=report, produced_draft=True)
+    ctx.finish("completed", "Düzenlenen taslak ayrı bir kayıt olarak hazır. İlk taslak korundu.", report=report, produced_draft=True)

@@ -86,6 +86,8 @@ class RefinedParagraph(Strict):
 
 
 class Refinement(Strict):
+    title: str = Field(default="", max_length=240)
+    summary: str = Field(default="", max_length=600)
     paragraphs: list[RefinedParagraph] = Field(min_length=1, max_length=100)
 
 

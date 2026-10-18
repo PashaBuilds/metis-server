@@ -1,0 +1,919 @@
+{
+ "mode": "live",
+ "at": "2026-10-18T14:06:57+00:00",
+ "model": "deepseek-flash",
+ "profile": {
+  "json_mode": "json_object",
+  "thinking": "disabled",
+  "probed": false
+ },
+ "evidence": {
+  "n": 26,
+  "passed": 26,
+  "critical": 0,
+  "scope_guarded": 1,
+  "rows": [
+   {
+    "id": "qa-1",
+    "origin": "v0.5.5 gateway.cases (ortak benchmark)",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1720.2
+   },
+   {
+    "id": "abs-1",
+    "origin": "v0.5.5 gateway.cases (ortak benchmark)",
+    "expected": "NO_EVIDENCE",
+    "decision": "NO_EVIDENCE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 871.5
+   },
+   {
+    "id": "scope-1",
+    "origin": "v0.5.5 gateway.cases (ortak benchmark)",
+    "expected": "NEEDS_SCOPE",
+    "decision": "NEEDS_SCOPE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1086.0
+   },
+   {
+    "id": "conflict-1",
+    "origin": "v0.5.5 gateway.cases (ortak benchmark)",
+    "expected": "CONFLICTING",
+    "decision": "CONFLICTING",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 984.7
+   },
+   {
+    "id": "injection-1",
+    "origin": "v0.5.5 gateway.cases (ortak benchmark)",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1322.5
+   },
+   {
+    "id": "code-1",
+    "origin": "v0.5.5 gateway.cases (ortak benchmark)",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1203.9
+   },
+   {
+    "id": "holdout-empty",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "NO_EVIDENCE",
+    "decision": "NO_EVIDENCE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1177.1
+   },
+   {
+    "id": "holdout-null",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1320.2
+   },
+   {
+    "id": "holdout-empty-selector",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1160.6
+   },
+   {
+    "id": "holdout-platform-only",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1348.5
+   },
+   {
+    "id": "holdout-other-card",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "NEEDS_SCOPE",
+    "decision": "NEEDS_SCOPE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1038.0
+   },
+   {
+    "id": "holdout-other-platform",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "NEEDS_SCOPE",
+    "decision": "NEEDS_SCOPE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 909.8
+   },
+   {
+    "id": "holdout-unspecified-source",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "NEEDS_SCOPE",
+    "decision": "NEEDS_SCOPE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": "scope",
+    "model_decision": "SUPPORTED",
+    "latency_ms": 1161.0
+   },
+   {
+    "id": "holdout-conflict-flag",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "CONFLICTING",
+    "decision": "CONFLICTING",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1086.4
+   },
+   {
+    "id": "holdout-conflict-evidence",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "CONFLICTING",
+    "decision": "CONFLICTING",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1412.4
+   },
+   {
+    "id": "holdout-distinct-cards",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 2,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1254.8
+   },
+   {
+    "id": "holdout-partial",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "PARTIAL",
+    "decision": "PARTIAL",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1274.9
+   },
+   {
+    "id": "holdout-unrelated",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "NO_EVIDENCE",
+    "decision": "NO_EVIDENCE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1151.8
+   },
+   {
+    "id": "holdout-deferred",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1007.9
+   },
+   {
+    "id": "holdout-injection",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1857.6
+   },
+   {
+    "id": "holdout-selector-question-conflict",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "NEEDS_SCOPE",
+    "decision": "NEEDS_SCOPE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1156.0
+   },
+   {
+    "id": "holdout-trim",
+    "origin": "v0.5.5 evidence_prompt_holdout.json",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1223.1
+   },
+   {
+    "id": "fresh-conditions",
+    "origin": "v0.5.5 evidence_prompt_fresh.json",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 2,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1250.9
+   },
+   {
+    "id": "fresh-only-relevant",
+    "origin": "v0.5.5 evidence_prompt_fresh.json",
+    "expected": "SUPPORTED",
+    "decision": "SUPPORTED",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 1,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1148.0
+   },
+   {
+    "id": "fresh-empty-and-conflict",
+    "origin": "v0.5.5 evidence_prompt_fresh.json",
+    "expected": "NO_EVIDENCE",
+    "decision": "NO_EVIDENCE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 912.1
+   },
+   {
+    "id": "fresh-scope-before-conflict",
+    "origin": "v0.5.5 evidence_prompt_fresh.json",
+    "expected": "NEEDS_SCOPE",
+    "decision": "NEEDS_SCOPE",
+    "passed": true,
+    "critical": false,
+    "sentences_kept": 0,
+    "sentences_dropped": 0,
+    "drop_reasons": [],
+    "error": null,
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 1181.6
+   }
+  ]
+ },
+ "worker": {
+  "n": 36,
+  "passed": 36,
+  "rows": [
+   {
+    "id": "same-scope-conflict",
+    "task": "judge",
+    "expected": "conflict",
+    "verdict": "conflict",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1205.4
+   },
+   {
+    "id": "different-board",
+    "task": "judge",
+    "expected": "scope_disjoint",
+    "verdict": "scope_disjoint",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1320.3
+   },
+   {
+    "id": "different-platform",
+    "task": "judge",
+    "expected": "scope_disjoint",
+    "verdict": "scope_disjoint",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1206.3
+   },
+   {
+    "id": "exclusive-modes",
+    "task": "judge",
+    "expected": "scope_disjoint",
+    "verdict": "scope_disjoint",
+    "passed": true,
+    "error": null,
+    "latency_ms": 809.7
+   },
+   {
+    "id": "overlapping-temperature",
+    "task": "judge",
+    "expected": "conflict",
+    "verdict": "conflict",
+    "passed": true,
+    "error": null,
+    "latency_ms": 950.9
+   },
+   {
+    "id": "unknown-condition",
+    "task": "judge",
+    "expected": "underspecified",
+    "verdict": "underspecified",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1175.5
+   },
+   {
+    "id": "date-is-not-supersession",
+    "task": "judge",
+    "expected": "conflict",
+    "verdict": "conflict",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1030.8
+   },
+   {
+    "id": "explicit-supersession",
+    "task": "judge",
+    "expected": "supersede",
+    "verdict": "supersede",
+    "passed": true,
+    "error": null,
+    "latency_ms": 996.8
+   },
+   {
+    "id": "wildcard-board",
+    "task": "judge",
+    "expected": "conflict",
+    "verdict": "conflict",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1299.4
+   },
+   {
+    "id": "identical",
+    "task": "compare",
+    "expected": "no_change",
+    "verdict": "no_change",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1262.3
+   },
+   {
+    "id": "paraphrase",
+    "task": "compare",
+    "expected": "no_change",
+    "verdict": "no_change",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1124.3
+   },
+   {
+    "id": "addition",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1034.0
+   },
+   {
+    "id": "contradictory-note",
+    "task": "compare",
+    "expected": "conflict_candidate",
+    "verdict": "conflict_candidate",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1097.4
+   },
+   {
+    "id": "deferred",
+    "task": "extract",
+    "passed": true,
+    "error": null,
+    "detail": {
+     "claims": 1,
+     "decisions": 1,
+     "forbidden_found": [],
+     "quotes_verbatim": true
+    },
+    "latency_ms": 1412.5
+   },
+   {
+    "id": "no-facts",
+    "task": "extract",
+    "passed": true,
+    "error": null,
+    "detail": {
+     "claims": 0,
+     "decisions": 2,
+     "forbidden_found": [],
+     "quotes_verbatim": true
+    },
+    "latency_ms": 1421.4
+   },
+   {
+    "id": "negation",
+    "task": "extract",
+    "passed": true,
+    "error": null,
+    "detail": {
+     "claims": 2,
+     "decisions": 0,
+     "forbidden_found": [],
+     "quotes_verbatim": true
+    },
+    "latency_ms": 1114.1
+   },
+   {
+    "id": "conditional",
+    "task": "extract",
+    "passed": true,
+    "error": null,
+    "detail": {
+     "claims": 1,
+     "decisions": 0,
+     "forbidden_found": [],
+     "quotes_verbatim": true
+    },
+    "latency_ms": 1099.1
+   },
+   {
+    "id": "hostile-source",
+    "task": "extract",
+    "passed": true,
+    "error": null,
+    "detail": {
+     "claims": 1,
+     "decisions": 0,
+     "forbidden_found": [],
+     "quotes_verbatim": true
+    },
+    "latency_ms": 936.0
+   },
+   {
+    "id": "two-open",
+    "task": "extract",
+    "passed": true,
+    "error": null,
+    "detail": {
+     "claims": 1,
+     "decisions": 2,
+     "forbidden_found": [],
+     "quotes_verbatim": true
+    },
+    "latency_ms": 1354.0
+   },
+   {
+    "id": "related",
+    "task": "relation",
+    "expected": "relation",
+    "verdict": "relation",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1009.0
+   },
+   {
+    "id": "unrelated",
+    "task": "relation",
+    "expected": "no_relation",
+    "verdict": "no_relation",
+    "passed": true,
+    "error": null,
+    "latency_ms": 984.8
+   },
+   {
+    "id": "units-equivalent",
+    "task": "compare",
+    "expected": "no_change",
+    "verdict": "no_change",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1331.5
+   },
+   {
+    "id": "negated-change",
+    "task": "compare",
+    "expected": "conflict_candidate",
+    "verdict": "conflict_candidate",
+    "passed": true,
+    "error": null,
+    "latency_ms": 919.0
+   },
+   {
+    "id": "compatible-extra-limit",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1382.7
+   },
+   {
+    "id": "hypothesis-not-fact",
+    "task": "extract",
+    "passed": true,
+    "error": null,
+    "detail": {
+     "claims": 1,
+     "decisions": 1,
+     "forbidden_found": [],
+     "quotes_verbatim": true
+    },
+    "latency_ms": 1446.2
+   },
+   {
+    "id": "instruction-forgery",
+    "task": "extract",
+    "passed": true,
+    "error": null,
+    "detail": {
+     "claims": 1,
+     "decisions": 0,
+     "forbidden_found": [],
+     "quotes_verbatim": true
+    },
+    "latency_ms": 925.6
+   },
+   {
+    "id": "unrelated-symbol",
+    "task": "relation",
+    "expected": "no_relation",
+    "verdict": "no_relation",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1535.3
+   },
+   {
+    "id": "compare-live-01",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1617.7
+   },
+   {
+    "id": "compare-live-02",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1586.9
+   },
+   {
+    "id": "compare-live-03",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1660.3
+   },
+   {
+    "id": "compare-live-04",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1065.3
+   },
+   {
+    "id": "compare-live-05",
+    "task": "compare",
+    "expected": "no_change",
+    "verdict": "no_change",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1259.4
+   },
+   {
+    "id": "compare-live-06",
+    "task": "compare",
+    "expected": "no_change",
+    "verdict": "no_change",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1369.9
+   },
+   {
+    "id": "compare-live-07",
+    "task": "compare",
+    "expected": "conflict_candidate",
+    "verdict": "conflict_candidate",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1580.8
+   },
+   {
+    "id": "compare-live-08",
+    "task": "compare",
+    "expected": "conflict_candidate",
+    "verdict": "conflict_candidate",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1321.6
+   },
+   {
+    "id": "compare-live-09",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 1333.0
+   }
+  ]
+ },
+ "explanation": {
+  "n": 15,
+  "passed": 15,
+  "rows": [
+   {
+    "id": "correct-paraphrase",
+    "expected": "kept",
+    "got": "kept",
+    "reasons": [],
+    "passed": true
+   },
+   {
+    "id": "correct-units-equivalent",
+    "expected": "kept",
+    "got": "kept",
+    "reasons": [],
+    "passed": true
+   },
+   {
+    "id": "invented-number",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "number"
+    ],
+    "passed": true
+   },
+   {
+    "id": "invented-unit-value",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "number"
+    ],
+    "passed": true
+   },
+   {
+    "id": "wrong-symbol",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "symbol"
+    ],
+    "passed": true
+   },
+   {
+    "id": "wrong-hex",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "hex"
+    ],
+    "passed": true
+   },
+   {
+    "id": "correct-symbol",
+    "expected": "kept",
+    "got": "kept",
+    "reasons": [],
+    "passed": true
+   },
+   {
+    "id": "inverted-negation",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "negation"
+    ],
+    "passed": true
+   },
+   {
+    "id": "kept-negation",
+    "expected": "kept",
+    "got": "kept",
+    "reasons": [],
+    "passed": true
+   },
+   {
+    "id": "added-negation",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "negation"
+    ],
+    "passed": true
+   },
+   {
+    "id": "scope-generalization",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "generalization"
+    ],
+    "passed": true
+   },
+   {
+    "id": "other-card-named",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "symbol"
+    ],
+    "passed": true
+   },
+   {
+    "id": "no-citation",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "no_claim"
+    ],
+    "passed": true
+   },
+   {
+    "id": "unknown-citation",
+    "expected": "dropped",
+    "got": "dropped",
+    "reasons": [
+     "unknown_claim"
+    ],
+    "passed": true
+   },
+   {
+    "id": "multi-claim",
+    "expected": "kept",
+    "got": "kept",
+    "reasons": [],
+    "passed": true
+   }
+  ],
+  "known_limits": [
+   "Olumsuzlama kuralı özne eşleşmesine bakmaz; cümlede ve iddiada olumsuzluk işareti varlığını karşılaştırır.",
+   "Sayısal olmayan anlam değişiklikleri (ör. 'önce' yerine 'sonra') yakalanmaz; alıntılar her zaman ayrıca gösterilir."
+  ]
+ },
+ "by_origin": {
+  "v0.5.5 gateway.cases (ortak benchmark)": {
+   "n": 6,
+   "passed": 6
+  },
+  "v0.5.5 evidence_prompt_holdout.json": {
+   "n": 16,
+   "passed": 16
+  },
+  "v0.5.5 evidence_prompt_fresh.json": {
+   "n": 4,
+   "passed": 4
+  }
+ }
+}

@@ -2901,7 +2901,7 @@ export interface components {
             base_url: string;
             /**
              * Max Concurrency
-             * @default 2
+             * @default 4
              */
             max_concurrency: number;
             /** Model Ids */

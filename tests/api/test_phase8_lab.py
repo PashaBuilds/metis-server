@@ -21,8 +21,11 @@ def test_critical_error_eliminates_despite_high_average(team, mock_llm):
     prov = add_provider(team["admin"], ["fixture-one-slip", "fixture-reference"])
     slip = model_id("fixture-one-slip", prov["id"])
     m = qualify(team["admin"], slip)
-    assert m["n"] == 26 and m["passed"] == 24 and m["accuracy"] >= 0.9  # ortalama eşiğin üstünde
-    assert m["critical_errors"] == 2 and m["critical_kinds"] == ["scope_violation"]
+    assert m["n"] == 26 and m["passed"] == 25 and m["accuracy"] >= 0.9  # ortalama eşiğin üstünde
+    # İki kapsam ihlalinden biri metadata ile yakalanır (deterministik koruma, ayrıca sayılır); soru metnindeki kart
+    # adına dayanan diğeri modelin hatası olarak kritik kalır ve modeli eler.
+    assert m["scope_guarded"] == 1
+    assert m["critical_errors"] == 1 and m["critical_kinds"] == ["scope_violation"]
     row = _row(team["admin"], slip)
     assert row["eligible"] is False and row["eligibility_reason"] == "critical_error"
 

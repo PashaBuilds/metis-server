@@ -1,6 +1,6 @@
 # Değerlendirme raporu — mock
 
-Tarih: 2026-10-10T19:23:34+00:00  
+Tarih: 2026-10-18T13:40:44+00:00  
 Model: `fixture-reference`  
 Profil: `{"json_mode": "json_object", "thinking": "default", "probed": false}`
 
@@ -12,7 +12,7 @@ Profil: `{"json_mode": "json_object", "thinking": "default", "probed": false}`
 
 ## Worker prompt'ları
 
-**27/27** geçti.
+**35/35** geçti.
 
 ## Açıklama cümle denetimi (deterministik)
 

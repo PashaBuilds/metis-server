@@ -22,7 +22,7 @@ class ProviderIn(BaseModel):
     base_url: str = Field(min_length=8, max_length=500)
     api_key: str = Field(default="", max_length=2000)
     model_ids: list[str] = Field(min_length=1, max_length=50)
-    max_concurrency: int = Field(default=2, ge=1, le=32)
+    max_concurrency: int = Field(default=4, ge=1, le=32)  # 14 kişilik yük testinde 2 → en kötü 15 sn, 4 → 10 sn (2026-10-18)
     timeout_s: int = Field(default=60, ge=5, le=600)
 
 

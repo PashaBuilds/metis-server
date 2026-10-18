@@ -1103,6 +1103,8 @@ export const tr = {
     benchStale: 'Yapılandırma değişti; yeniden çalıştır',
     benchN: (n: number) => `n=${n}`,
     benchCritical: (n: number) => `${n} kritik hata`,
+    benchScopeGuarded: (n: number) => `${n} kapsam düzeltmesi`,
+    benchScopeGuardedHint: 'Model kapsamı uymayan bir kaynakla cevap verdi; Metis kapsamı kayıtlardan denetleyip cevabı “kapsamı netleştirelim”e çevirdi. Gerçek kullanımda bu durum modele gitmeden yakalanır.',
     benchAccuracy: (p: string) => `doğruluk ${p}`,
     benchRunning: 'Çalışıyor',
     benchQueued: 'Sırada',

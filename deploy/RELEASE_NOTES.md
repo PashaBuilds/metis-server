@@ -4,6 +4,24 @@ METIS v2 sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-s
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**rc.6 — gerçek modelle (DeepSeek) doğrulama ve düzeltmeler:**
+- Herkese açık DeepSeek API'siyle (V4.1 Flash ve V4 Pro), yalnız kurgusal veriyle uçtan uca denendi: bağlantı testi,
+  benchmark, Mentor, Metis görevleri, bakım taraması, yayın öncesi kontrol, 60 eşzamanlı istek ve hata durumları.
+  Şirket içi DeepSeek V4 Flash ile henüz denenmedi.
+- Mentor: kapsam artık her durumda kayıtlardan denetlenir; model kapsamı uymayan bir kaynakla cevap verirse cevap
+  kullanılmaz ("Kapsamı netleştirelim"). Önceden iki DeepSeek modeli de bu yüzden benchmark'ta "uygun değil" çıkıyordu.
+- Mentor: aramada yalnız yan sonuç olarak çıkan, çelişkili bir bilgi soruyu artık "Çelişkili" yapmıyor; çelişkili bilgi
+  soruyla ilgiliyse yine "Çelişkili" denir. Model yokken bu durumda dürüstçe "Model kullanılamıyor" denir.
+- Yayın öncesi kontrol: başka karta/projeye ait bilgi artık "çelişebilir" ya da "tekrar" sayılmıyor; ilgisiz bilgilerin
+  "tekrar" sanılması düzeltildi (sayfa karşılaştırma talimatı netleştirildi).
+- Metis görevleri: uzun kaynaklar bölümlere ayrılarak işlenir (önceden ≈50'den çok olgulu belgede görev başarısız
+  oluyordu); taslak başına 200 iddia sınırı aşılırsa bu açıkça yazılır. "Taslağı düzenle" artık başlık ve özet önerir
+  (iddialarla denetlenir) ve yazarın talimatını dikkate alır; özet bir sistem metniyle ezilmez.
+- Yük: çok sayıda eşzamanlı Mentor sorusunda veritabanı bağlantı havuzu tükeniyordu (42 eşzamanlı soruda hata);
+  düzeltildi. Yeni sağlayıcılarda aynı anda en çok 4 model isteği (önceden 2).
+- Model laboratuvarında benchmark satırında "kapsam düzeltmesi" sayısı gösterilir.
+- Şema değişmedi.
+
 **rc.5 — düzeltme ve güncel örnek içerik:**
 - Düzeltme: "Bilgilerin güncellendi" bildirimi, başkası yalnız ilgisiz bir bilgiyi yayımladığında da sahibinin tüm
   bilgilerini listeliyordu (rc.4). Artık yalnız gerçekten değişen bilgi gösterilir.

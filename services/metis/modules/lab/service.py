@@ -285,7 +285,7 @@ def probe(model_id: uuid.UUID, actor_id: uuid.UUID) -> dict:
         payload = {k: case["payload"][k] for k in ("question", "scope", "level", "conflict", "evidence")}
         model.transport_profile = profile
         r = client.call(model, provider, prompt_id=prompts.EVIDENCE, payload=payload, schema=contracts.EvidenceAnswer, purpose="probe", repairs=0, profile_override=profile)
-        v = validate_answer(r.output, case["payload"]["evidence"]) if r.ok else None
+        v = validate_answer(r.output, case["payload"]["evidence"], scope=case["payload"].get("scope")) if r.ok else None
         contract_ok = bool(v and v.structure_ok and v.decision == case["expected"]["decision"])
         results["evidence_contract"] = {"status": "tested_pass" if contract_ok else "tested_fail", "error": r.error or (None if contract_ok else "CONTRACT")}
         _record_probe(model.id, "evidence_contract", results["evidence_contract"]["status"], {"error": results["evidence_contract"]["error"]})
@@ -331,7 +331,7 @@ def classify(case: BenchmarkCase, ok: bool, output: dict | None, error: str | No
     expected = case.expected["decision"]
     if not ok:
         return {"decision": None, "passed": False, "critical": False, "critical_kind": None, "error": error}
-    v = validate_answer(output, case.payload["evidence"], case.payload.get("level", "short"))
+    v = validate_answer(output, case.payload["evidence"], case.payload.get("level", "short"), scope=case.payload.get("scope"))
     if not v.structure_ok:
         kind = "fake_source" if v.error == "quote_mismatch" else "invalid_structure"
         return {"decision": "VALIDATION_FAILED", "passed": False, "critical": kind == "fake_source", "critical_kind": kind if kind == "fake_source" else None, "error": v.error}
@@ -341,7 +341,7 @@ def classify(case: BenchmarkCase, ok: bool, output: dict | None, error: str | No
         critical_kind = "scope_violation" if expected == "NEEDS_SCOPE" else "false_answer"
     elif any(r in CRITICAL_REASONS for s in v.dropped for r in s.reasons):
         critical_kind = "fabricated_value"
-    return {"decision": decision, "passed": decision == expected and critical_kind is None, "critical": critical_kind is not None, "critical_kind": critical_kind, "error": None}
+    return {"decision": decision, "passed": decision == expected and critical_kind is None, "critical": critical_kind is not None, "critical_kind": critical_kind, "error": None, "guard": v.guard}
 
 
 def start_benchmark(db: Session, user: User, model_id: uuid.UUID) -> BenchmarkRun:
@@ -395,6 +395,8 @@ def execute_benchmark(run_id: uuid.UUID, should_stop=lambda: False) -> dict:  # 
         "passed": passed,
         "critical_errors": critical,
         "critical_kinds": sorted({v["critical_kind"] for _, _, v in rows if v["critical_kind"]}),
+        # Modelin kapsam dışı cevabını deterministik kapsam koruması durdurdu (geçti sayılır, ayrıca gösterilir).
+        "scope_guarded": sum(1 for _, _, v in rows if v.get("guard") == "scope"),
         "errors": errors,
         "accuracy": (passed / n) if n else None,
         "p50_ms": statistics.median(latencies) if latencies else None,

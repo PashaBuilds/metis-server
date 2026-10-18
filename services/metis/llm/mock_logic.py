@@ -205,7 +205,7 @@ def extract(payload: dict) -> dict:
     return {"claims": claims, "open_decisions": decisions, "scope_questions": []}
 
 
-# ---------------------------------------------------------------- page-diff-v4
+# ---------------------------------------------------------------- page-diff-v4 / v5
 
 ANTONYMS = [("etkin", "devre dışı"), ("açık", "kapalı"), ("aktif", "pasif"), ("kullanılır", "kullanılmaz"), ("vardır", "yoktur")]
 
@@ -213,7 +213,7 @@ ANTONYMS = [("etkin", "devre dışı"), ("açık", "kapalı"), ("aktif", "pasif"
 def _bytes_normalized(s: str) -> list[float]:
     from metis.llm.validators import quantities
 
-    return sorted(round(q.value, 6) for q in quantities(s))
+    return sorted(round(q.key()[0], 6) for q in quantities(s))  # birim normalize (0,5 KiB = 512 bayt)
 
 
 def _polarity(s: str) -> set[str]:
@@ -250,7 +250,7 @@ def page_diff(payload: dict) -> dict:
         qs, qb = _bytes_normalized(s), _bytes_normalized(best)
         if _polarity(s) and _polarity(best) and _polarity(s) != _polarity(best):
             conflict = True
-        elif qs and qb and qs != qb:
+        elif qs and qb and not set(qs) <= set(qb):  # yeni kayıttaki her değer mevcutta geçmeli
             conflict = True
         elif bool(qs) != bool(qb) and best_score < 0.6:
             extra.append(s)
@@ -309,7 +309,7 @@ def relation(payload: dict) -> dict:
     return {"verdict": "no_relation", "predicate": "", "reason": "Ortak bir kavram yok; yalnız sayı veya genel sözcük paylaşılıyor."}
 
 
-# ---------------------------------------------------------------- draft-refinement-v1 / conflict-resolution-v1
+# ---------------------------------------------------------------- draft-refinement-v2 / conflict-resolution-v1
 
 
 def refine(payload: dict) -> dict:
@@ -356,13 +356,13 @@ def respond(prompt_id: str, payload: Any, remote_id: str) -> dict:
         return source_selection(payload)
     if prompt_id == "extract-claims-v2":
         return extract(payload)
-    if prompt_id == "page-diff-v4":
+    if prompt_id in ("page-diff-v4", "page-diff-v5"):
         return page_diff(payload)
     if prompt_id == "claim-conflict-v3":
         return judge(payload)
     if prompt_id == "relation-v3":
         return relation(payload)
-    if prompt_id == "draft-refinement-v1":
+    if prompt_id in ("draft-refinement-v1", "draft-refinement-v2"):
         return refine(payload)
     if prompt_id == "conflict-resolution-v1":
         return resolution(payload)

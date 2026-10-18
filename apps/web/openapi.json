@@ -3807,7 +3807,7 @@
             "type": "string"
           },
           "max_concurrency": {
-            "default": 2,
+            "default": 4,
             "maximum": 32.0,
             "minimum": 1.0,
             "title": "Max Concurrency",

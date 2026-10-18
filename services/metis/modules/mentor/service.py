@@ -99,6 +99,12 @@ def _bundle_for(db: Session, user: User, page: Page, rev: PageRevision) -> list[
     return out
 
 
+def _force_conflict(state: dict, pending: dict) -> None:
+    state["decision"] = "CONFLICTING"
+    state["conflict_finding_id"] = pending["finding_id"]
+    state["conflict_sides"] = pending["sides"]
+
+
 def _open_conflict(db: Session, project_id: uuid.UUID, page_ids: list[uuid.UUID]) -> Finding | None:
     if not page_ids:
         return None
@@ -152,6 +158,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
     }
     bundle: list[dict] = []
     candidate_revisions: list[uuid.UUID] = []
+    pending_conflict: dict | None = None
 
     with reader() as db:
         user = db.get(User, user_id)
@@ -206,13 +213,21 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 emit("sources", {"related": [r.model_dump(mode="json") for r in state["related"]]})
                 conflict = _open_conflict(db, project_id, [r.page_id for r in state["related"] if not r.excluded])
                 if conflict is not None and bundle:
-                    state["decision"] = "CONFLICTING"
-                    state["conflict_finding_id"] = conflict.id
-                    state["conflict_sides"] = _conflict_sides(db, user, conflict)
                     conflict_pages = set(db.scalars(select(FindingPage.page_id).where(FindingPage.finding_id == conflict.id)))
                     for r in state["related"]:
                         r.open_conflict = r.page_id in conflict_pages
-                    bundle = []
+                    pending_conflict = {
+                        "finding_id": conflict.id,
+                        "sides": _conflict_sides(db, user, conflict),
+                        "pages": {str(p) for p in conflict_pages},
+                    }
+                    if all(b["page_id"] in pending_conflict["pages"] for b in bundle):
+                        _force_conflict(state, pending_conflict)  # yalnız çelişkili sayfalar bulundu
+                        bundle, pending_conflict = [], None
+                    else:
+                        # Brief 5.6: çelişkili sayfa *seçilirse* karar CONFLICTING. Yanında başka sayfalar da varsa
+                        # hangilerinin soruyla ilgili olduğuna kaynak seçimi karar verir (aşağıda, model ile).
+                        state["decision"] = "MODEL_UNAVAILABLE"
                 elif bundle:
                     state["decision"] = "MODEL_UNAVAILABLE"
 
@@ -233,15 +248,22 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
             if model is not None:
                 provider = db.get(Provider, model.provider_id)
                 state["model"] = {"id": str(model.id), "display_name": model.display_name, "remote_id": model.remote_id, "provider": provider.name if provider else "", "is_fixture": model.is_fixture}
+                # Alternatif = kullanılan modelden başkası (çağrı başarısız olursa aynı model önerilmez).
+                state["alternatives"] = [a for a in state["alternatives"] if a["id"] != str(model.id)]
                 db.expunge(model)
                 if provider:
                     db.expunge(provider)
+
+    if pending_conflict is not None and model is None:
+        # Model yok: çelişkili sayfanın soruyla ilgisi ayırt edilemez; karar dürüstçe MODEL_UNAVAILABLE kalır
+        # (ilgili sayfalarda açık çelişki işareti görünür). Yalnız çelişkili sayfalar bulunduysa yukarıda CONFLICTING.
+        bundle, pending_conflict = [], None
 
     # ---------------------------------------------------------------- model çağrıları (oturum dışı)
     if model is not None and provider is not None:
         client = ModelClient()
         pages = list(dict.fromkeys(b["page_id"] for b in bundle))
-        if len(pages) > SELECTION_THRESHOLD:
+        if len(pages) > SELECTION_THRESHOLD or pending_conflict is not None:
             t0 = time.perf_counter()
             payload = {
                 "question": req.question,
@@ -260,7 +282,10 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 for r in state["related"]:
                     r.relevance = verdicts.get(str(r.page_id))
                 state["selection"] = {"call_id": str(sel.call_id), "candidates": len(pages)}
-                if not bundle:
+                if pending_conflict is not None and any(b["page_id"] in pending_conflict["pages"] for b in bundle):
+                    _force_conflict(state, pending_conflict)  # çelişkili sayfa seçildi
+                    bundle = []
+                elif not bundle:
                     state["decision"] = "NO_EVIDENCE"
         if bundle:
             emit("progress", {"step": "verifying"})
@@ -281,7 +306,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                     state["model_unavailable_reason"] = "call_failed"
             else:
                 t2 = time.perf_counter()
-                v = validate_answer(res.output, bundle, req.level)
+                v = validate_answer(res.output, bundle, req.level, scope=selector)
                 timings["validation_ms"] = round((time.perf_counter() - t2) * 1000, 3)
                 if not v.structure_ok:
                     state["decision"] = "VALIDATION_FAILED"

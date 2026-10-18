@@ -72,6 +72,7 @@ def build_body(model: Model, messages: list[dict], shape: dict | None, schema_na
 
 def _acquire_slot(provider_id: uuid.UUID, limit: int, budget_s: float) -> uuid.UUID | None:
     deadline = time.monotonic() + budget_s
+    pause = 0.05
     while True:
         with transaction() as db:
             db.scalar(select(Provider.id).where(Provider.id == provider_id).with_for_update())
@@ -84,7 +85,9 @@ def _acquire_slot(provider_id: uuid.UUID, limit: int, budget_s: float) -> uuid.U
                 return slot.id
         if time.monotonic() >= deadline:
             return None
-        time.sleep(0.05)
+        # Sıra beklerken veritabanını sık yoklamamak için geri çekilme (50 ms → en çok 0,5 sn, rastgele kaydırmalı).
+        time.sleep(pause * (0.5 + random.random()))
+        pause = min(0.5, pause * 1.5)
 
 
 def _release_slot(slot_id: uuid.UUID) -> None:

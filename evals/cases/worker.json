@@ -494,6 +494,79 @@
    "right": "Proje toplantısı saat 2 için planlandı.",
    "expected": "no_relation",
    "origin": "v0.5.5 deepseek_holdout_cases.json"
+  },
+  {
+   "id": "compare-live-01",
+   "task": "compare",
+   "note": "I2C hızı B\nI2C hattı 100 kHz hızında çalışır.",
+   "page": "Konsol baud hızı (saha)\nVPK120 kartında hata ayıklama UART'ı 921600 baud ile çalışır.",
+   "expected": "addition",
+   "origin": "canlı model denemesi 2026-10-18 (kurgusal)"
+  },
+  {
+   "id": "compare-live-02",
+   "task": "compare",
+   "note": "CAN hızı\nCAN denetleyicisi 500 kbit/s hızında çalışır.",
+   "page": "Konsol baud hızı (saha)\nVPK120 kartında hata ayıklama UART'ı 921600 baud ile çalışır.",
+   "expected": "addition",
+   "origin": "canlı model denemesi 2026-10-18 (kurgusal)"
+  },
+  {
+   "id": "compare-live-03",
+   "task": "compare",
+   "note": "SPI notu\nSPI denetleyicisi 100 MHz referans saatini 8 bölücü ile 12.5 MHz SCLK'ye indirir.",
+   "page": "Watchdog besleme aralığı\nWatchdog zaman aşımı 2 saniye olarak seçildi.\nWatchdog ana döngüde 500 ms aralıkla beslenir.",
+   "expected": "addition",
+   "origin": "canlı model denemesi 2026-10-18 (kurgusal)"
+  },
+  {
+   "id": "compare-live-04",
+   "task": "compare",
+   "note": "UART tampon\nTampon boyutu 512 bayttır.",
+   "page": "PCIe link\nSaat düzeltildikten sonra link Gen3 x4 olarak eğitildi.",
+   "expected": "addition",
+   "origin": "canlı model denemesi 2026-10-18 (kurgusal)"
+  },
+  {
+   "id": "compare-live-05",
+   "task": "compare",
+   "note": "CAN hızı tekrar\nCAN denetleyicisi 500 kbit/s hızında çalışır.",
+   "page": "CAN sürücüsü\nCAN denetleyicisi 500 kbit/s hızında çalışır.\nAlım FIFO'su 64 mesaj derinliğindedir.",
+   "expected": "no_change",
+   "origin": "canlı model denemesi 2026-10-18 (kurgusal)"
+  },
+  {
+   "id": "compare-live-06",
+   "task": "compare",
+   "note": "Tampon\nTampon boyutu 0,5 KiB'dir.",
+   "page": "UART halka tamponu\nTampon boyutu 512 bayttır ve 2'nin kuvveti olarak tutulur.",
+   "expected": "no_change",
+   "origin": "canlı model denemesi 2026-10-18 (kurgusal)"
+  },
+  {
+   "id": "compare-live-07",
+   "task": "compare",
+   "note": "FIFO\nAlım FIFO'su 32 mesaj derinliğindedir.",
+   "page": "CAN sürücüsü\nCAN denetleyicisi 500 kbit/s hızında çalışır.\nAlım FIFO'su 64 mesaj derinliğindedir.",
+   "expected": "conflict_candidate",
+   "origin": "canlı model denemesi 2026-10-18 (kurgusal)"
+  },
+  {
+   "id": "compare-live-08",
+   "task": "compare",
+   "note": "Loopback\nLoopback normal modda da etkinleştirilir.",
+   "page": "CAN sürücüsü\nYalnız test modunda döngü geri besleme (loopback) etkinleştirilir.",
+   "expected": "conflict_candidate",
+   "origin": "canlı model denemesi 2026-10-18 (kurgusal)",
+   "live_only": true
+  },
+  {
+   "id": "compare-live-09",
+   "task": "compare",
+   "note": "CAN ek\nHata sayacı 96'yı geçerse uyarı kesmesi üretilir.",
+   "page": "CAN sürücüsü\nCAN denetleyicisi 500 kbit/s hızında çalışır.\nAlım FIFO'su 64 mesaj derinliğindedir.",
+   "expected": "addition",
+   "origin": "canlı model denemesi 2026-10-18 (kurgusal)"
   }
  ]
 }

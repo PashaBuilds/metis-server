@@ -65,7 +65,7 @@ def run_evidence(args, profile, key) -> dict:  # noqa: ANN001
         if error:
             rows.append({"id": case["id"], "origin": case["origin"], "expected": case["expected"], "decision": None, "passed": False, "critical": False, "error": error, "latency_ms": round(ms, 1)})
             continue
-        v = validate_answer(output, case["evidence"], case["level"])
+        v = validate_answer(output, case["evidence"], case["level"], scope=case.get("scope"))
         decision = v.decision if v.structure_ok else "VALIDATION_FAILED"
         critical = (not v.structure_ok) or (case["expected"] in ("NO_EVIDENCE", "NEEDS_SCOPE", "CONFLICTING") and decision in ("SUPPORTED", "PARTIAL"))
         rows.append(
@@ -80,10 +80,13 @@ def run_evidence(args, profile, key) -> dict:  # noqa: ANN001
                 "sentences_dropped": len(v.dropped),
                 "drop_reasons": sorted({r for s in v.dropped for r in s.reasons}),
                 "error": None if v.structure_ok else v.error,
+                "guard": v.guard or None,
+                "model_decision": v.model_decision,
                 "latency_ms": round(ms, 1),
             }
         )
-    return {"n": len(rows), "passed": sum(r["passed"] for r in rows), "critical": sum(r["critical"] for r in rows), "rows": rows}
+    guarded = sum(1 for r in rows if r.get("guard") == "scope")
+    return {"n": len(rows), "passed": sum(r["passed"] for r in rows), "critical": sum(r["critical"] for r in rows), "scope_guarded": guarded, "rows": rows}
 
 
 def run_worker(args, profile, key) -> dict:  # noqa: ANN001
@@ -91,6 +94,8 @@ def run_worker(args, profile, key) -> dict:  # noqa: ANN001
     rows = []
     for case in data["cases"]:
         task = case["task"]
+        if case.get("live_only") and args.mode == "mock":
+            continue  # kural tabanlı kurgusal modelin kapsamı dışında (anlam); yalnız canlı modda ölçülür
         if task == "extract":
             out, err, ms = call(args.base_url, args.model, prompts.EXTRACT, {"text": case["text"], "scope": {}}, contracts.Extraction, profile, key, args.ca_bundle)
             ok = False
@@ -136,9 +141,13 @@ def render_md(report: dict) -> str:
     lines = [f"# Değerlendirme raporu — {report['mode']}", "", f"Tarih: {report['at']}  ", f"Model: `{report['model']}`  ", f"Profil: `{json.dumps(report['profile'])}`", ""]
     if report["mode"] == "mock":
         lines += ["> Mock mod: deterministik referans model. Sonuç hattın doğruluğunu gösterir; gerçek model kalitesi değildir.", ""]
+    else:
+        lines += ["> Canlı mod: gerçek model. Sonuç hattın ve modelin birlikte davranışıdır; vaka sayısı küçüktür.", ""]
     for name, key in (("Kanıtlı cevap (evidence-explain-v1)", "evidence"), ("Worker prompt'ları", "worker"), ("Açıklama cümle denetimi (deterministik)", "explanation")):
         sec = report[key]
         extra = f", kritik hata {sec['critical']}" if "critical" in sec else ""
+        if sec.get("scope_guarded"):
+            extra += f"; {sec['scope_guarded']} vakada model kapsam dışı cevap verdi, deterministik kapsam koruması durdurdu"
         lines += [f"## {name}", "", f"**{sec['passed']}/{sec['n']}** geçti{extra}.", ""]
         failed = [r for r in sec["rows"] if not r["passed"]]
         if failed:

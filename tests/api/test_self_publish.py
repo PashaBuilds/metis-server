@@ -223,3 +223,16 @@ def test_model_failure_is_reported_and_rule_result_kept(sp_model, monkeypatch):
     assert check["model_status"] == "failed"
     assert [(i["kind"], i["detected_by"]) for i in check["issues"]] == [("conflict", "rule")]
     assert _publish(a, ch, ack=True).json()["state"] == "published"
+
+
+def test_model_check_ignores_pages_with_disjoint_scope(sp_model):
+    """Başka karta ait bilgi ne çelişki ne tekrardır: benzer bilgi karşılaştırması da kapsamı dikkate alır
+    (canlı modelle bulundu, 2026-10-18: farklı karttaki değer "çelişebilir" diye işaretleniyordu)."""
+    c, a, pid = sp_model["contributor"], sp_model["admin"], sp_model["pid"]
+    _self_publish(c, pid, "UART hızı A", FAST)
+    k2 = {**SCOPE, "kart": ["K2"]}
+    src = add_note(a, pid, "K2 notu", SLOW, scope=k2)
+    ev = evidence(a, src["revision"]["id"], SLOW)["id"]
+    ch = draft(a, pid, "UART hızı K2", [(SLOW, ev)], scope=k2)
+    check = _check(a, ch["id"])
+    assert check["model_status"] == "ok" and check["issues"] == []

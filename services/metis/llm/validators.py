@@ -22,6 +22,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from metis.llm.contracts import EvidenceAnswer
+from metis.modules.scopes.semantics import matches_scope
 
 ANSWER_DECISIONS = ("SUPPORTED", "PARTIAL")
 ABSTAIN_DECISIONS = ("NO_EVIDENCE", "NEEDS_SCOPE", "CONFLICTING")
@@ -219,6 +220,9 @@ class AnswerValidation:
     claims: list[dict[str, str]]
     sentences: list[SentenceResult]
     error: str = ""
+    # Deterministik koruma devreye girdiyse modelin kararı ve nedeni (ör. kapsam): raporlarda ayrıca sayılır.
+    guard: str = ""
+    model_decision: str | None = None
 
     @property
     def kept(self) -> list[SentenceResult]:
@@ -229,8 +233,11 @@ class AnswerValidation:
         return [s for s in self.sentences if not s.kept]
 
 
-def validate_answer(output: Any, bundle: list[dict[str, Any]], level: str = "short") -> AnswerValidation:
-    """bundle: [{claim_id, evidence_id, statement, ...}]"""
+def validate_answer(output: Any, bundle: list[dict[str, Any]], level: str = "short", scope: Any = None) -> AnswerValidation:
+    """bundle: [{claim_id, evidence_id, statement, scope?, ...}]; scope: sorunun kapsam seçicisi.
+
+    Kapsam metadata'dan karar verilir (brief ilke 7): model, kapsamı istenen kapsama uymayan bir kanıtla cevap verirse
+    cevap kullanılmaz, karar deterministik olarak NEEDS_SCOPE olur (model kararı `model_decision`'da saklanır)."""
     try:
         parsed = EvidenceAnswer.model_validate(output)
     except (ValidationError, TypeError):
@@ -253,6 +260,8 @@ def validate_answer(output: Any, bundle: list[dict[str, Any]], level: str = "sho
             continue
         seen.add(c.claim_id)
         claims.append({"claim_id": c.claim_id, "evidence_id": c.evidence_id, "quote": c.quote})
+    if scope and any("scope" in lookup[c["claim_id"]] and not matches_scope(lookup[c["claim_id"]]["scope"], scope) for c in claims):
+        return AnswerValidation(True, "NEEDS_SCOPE", [], [], guard="scope", model_decision=parsed.decision)
     sentences = []
     limit = LEVEL_MAX.get(level, 4)
     for i, s in enumerate(parsed.explanation):

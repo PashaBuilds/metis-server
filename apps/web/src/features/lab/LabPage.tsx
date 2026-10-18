@@ -37,6 +37,8 @@ interface Bench {
   passed: number;
   critical_errors: number;
   critical_kinds: string[];
+  /** Model kapsam dışı cevap verdi; deterministik kapsam koruması durdurdu (geçti sayılır, ayrıca gösterilir). */
+  scope_guarded?: number;
   errors: number;
   accuracy: number | null;
   p50_ms: number | null;
@@ -345,6 +347,7 @@ function Lab() {
                           <span>{tr.lab.benchAccuracy(formatPercent(b.accuracy ?? null))}</span>
                           <span>{tr.lab.benchN(b.n)}</span>
                           <span className={b.critical_errors ? s.criticalText : undefined}>{tr.lab.benchCritical(b.critical_errors ?? 0)}</span>
+                          {!!b.scope_guarded && <span title={tr.lab.benchScopeGuardedHint}>{tr.lab.benchScopeGuarded(b.scope_guarded)}</span>}
                           <span>p50 {formatMs(b.p50_ms ?? null)}</span>
                         </>
                       ) : null}

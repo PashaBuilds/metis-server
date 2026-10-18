@@ -56,6 +56,10 @@ def current_session(request: Request, db: Session = Depends(get_db, scope="funct
         if not sent or not hmac.compare_digest(sent, sess.csrf):
             raise AppError("CSRF_REJECTED", "csrf token missing or invalid")
     request.state.actor_id = str(user.id)
+    # Kimlik okuması bitti: bağlantı havuza geri döner. Uzun model çağrısı yapan uçlar (Mentor, yayın öncesi kontrol,
+    # bağlantı testi) beklerken boşta bağlantı tutmaz; aynı oturumu kullanan uç gerekirse yeni işlem açar
+    # (expire_on_commit=False: yüklenen nesneler geçerli kalır). Yük testinde havuz tükeniyordu (2026-10-18).
+    db.commit()
     return sess, user
 
 

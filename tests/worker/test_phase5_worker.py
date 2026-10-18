@@ -212,3 +212,29 @@ def test_events_stream_replays_after_last_event_id(wenv):
         replay = "".join(r.iter_text())
     replay_ids = [int(line[4:]) for line in replay.splitlines() if line.startswith("id: ")]
     assert replay_ids == [ids[-1]]
+
+
+def test_refine_title_summary_are_grounded_or_kept():
+    """Taslağı düzenle: model başlık/özet önerebilir; iddialarda olmayan sayı/sembol eklerse eskisi korunur
+    (canlı modelle bulundu, 2026-10-18: özet sabit sistem metniyle eziliyordu)."""
+    from metis.worker.refine import grounded
+
+    claims = ["CAN denetleyicisi 500 kbit/s hızında çalışır.", "Alım FIFO'su 64 mesaj derinliğindedir.", "Test modu dışında loopback kullanılmaz."]
+    assert grounded("CAN denetleyicisi 500 kbit/s hızda çalışır ve alım FIFO'su 64 mesajdır.", claims)
+    assert grounded("CAN sürücüsü ayarları", claims)
+    assert not grounded("CAN denetleyicisi 1 Mbit/s hızında çalışır.", claims)  # uydurma değer
+    assert not grounded("CAN_FD_CTRL kaydı ile ayarlanır.", claims)  # iddiada olmayan sembol
+    assert not grounded("", claims)
+
+
+def test_long_source_is_extracted_in_chunks_without_splitting_lines():
+    """Uzun kaynak satır sınırlarından bölümlenir (canlı model, 2026-10-18: 16 KB belgede çıktı kesiliyordu)."""
+    from metis.worker.prepare import EXTRACT_CHUNK_CHARS, text_chunks
+
+    lines = [f"Kurgusal kanal {k} en fazla {k * 64} bayt aktarır.\n" for k in range(1, 400)]
+    text = "".join(lines)
+    parts = text_chunks(text)
+    assert len(parts) > 1 and "".join(parts) == text
+    assert all(len(p) <= EXTRACT_CHUNK_CHARS for p in parts)
+    assert all(line in p for p in parts for line in p.splitlines(keepends=True))  # hiçbir satır bölünmez
+    assert text_chunks("kısa metin") == ["kısa metin"]

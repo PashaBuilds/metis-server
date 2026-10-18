@@ -1,6 +1,6 @@
 {
  "mode": "mock",
- "at": "2026-10-10T19:23:34+00:00",
+ "at": "2026-10-18T13:40:44+00:00",
  "model": "fixture-reference",
  "profile": {
   "json_mode": "json_object",
@@ -11,6 +11,7 @@
   "n": 26,
   "passed": 26,
   "critical": 0,
+  "scope_guarded": 0,
   "rows": [
    {
     "id": "qa-1",
@@ -23,7 +24,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 70.4
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 85.9
    },
    {
     "id": "abs-1",
@@ -36,7 +39,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 27.8
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 27.2
    },
    {
     "id": "scope-1",
@@ -49,7 +54,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 28.9
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 27.5
    },
    {
     "id": "conflict-1",
@@ -62,7 +69,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 33.1
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 31.5
    },
    {
     "id": "injection-1",
@@ -75,7 +84,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 30.8
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 26.0
    },
    {
     "id": "code-1",
@@ -88,7 +99,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 45.2
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 23.6
    },
    {
     "id": "holdout-empty",
@@ -101,7 +114,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 45.2
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 27.0
    },
    {
     "id": "holdout-null",
@@ -114,7 +129,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 39.1
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 26.3
    },
    {
     "id": "holdout-empty-selector",
@@ -127,7 +144,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 30.5
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 22.2
    },
    {
     "id": "holdout-platform-only",
@@ -140,7 +159,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 31.7
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 27.7
    },
    {
     "id": "holdout-other-card",
@@ -153,7 +174,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 26.9
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 27.1
    },
    {
     "id": "holdout-other-platform",
@@ -166,7 +189,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 38.6
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 34.0
    },
    {
     "id": "holdout-unspecified-source",
@@ -179,7 +204,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 29.8
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 33.3
    },
    {
     "id": "holdout-conflict-flag",
@@ -192,7 +219,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 27.5
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 25.2
    },
    {
     "id": "holdout-conflict-evidence",
@@ -205,7 +234,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 30.9
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 23.2
    },
    {
     "id": "holdout-distinct-cards",
@@ -218,7 +249,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 26.2
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 23.1
    },
    {
     "id": "holdout-partial",
@@ -231,7 +264,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 26.5
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 22.7
    },
    {
     "id": "holdout-unrelated",
@@ -244,7 +279,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 26.0
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 21.0
    },
    {
     "id": "holdout-deferred",
@@ -257,7 +294,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 28.6
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 22.9
    },
    {
     "id": "holdout-injection",
@@ -270,7 +309,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 32.8
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 25.6
    },
    {
     "id": "holdout-selector-question-conflict",
@@ -283,7 +324,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 26.8
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 22.2
    },
    {
     "id": "holdout-trim",
@@ -296,7 +339,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 26.0
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 22.3
    },
    {
     "id": "fresh-conditions",
@@ -309,7 +354,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 35.5
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 33.2
    },
    {
     "id": "fresh-only-relevant",
@@ -322,7 +369,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 43.8
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 24.8
    },
    {
     "id": "fresh-empty-and-conflict",
@@ -335,7 +384,9 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 25.9
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 24.2
    },
    {
     "id": "fresh-scope-before-conflict",
@@ -348,13 +399,15 @@
     "sentences_dropped": 0,
     "drop_reasons": [],
     "error": null,
-    "latency_ms": 29.3
+    "guard": null,
+    "model_decision": null,
+    "latency_ms": 27.1
    }
   ]
  },
  "worker": {
-  "n": 27,
-  "passed": 27,
+  "n": 35,
+  "passed": 35,
   "rows": [
    {
     "id": "same-scope-conflict",
@@ -363,7 +416,7 @@
     "verdict": "conflict",
     "passed": true,
     "error": null,
-    "latency_ms": 26.4
+    "latency_ms": 23.9
    },
    {
     "id": "different-board",
@@ -372,7 +425,7 @@
     "verdict": "scope_disjoint",
     "passed": true,
     "error": null,
-    "latency_ms": 26.7
+    "latency_ms": 27.5
    },
    {
     "id": "different-platform",
@@ -381,7 +434,7 @@
     "verdict": "scope_disjoint",
     "passed": true,
     "error": null,
-    "latency_ms": 28.8
+    "latency_ms": 34.7
    },
    {
     "id": "exclusive-modes",
@@ -390,7 +443,7 @@
     "verdict": "scope_disjoint",
     "passed": true,
     "error": null,
-    "latency_ms": 29.7
+    "latency_ms": 31.8
    },
    {
     "id": "overlapping-temperature",
@@ -399,7 +452,7 @@
     "verdict": "conflict",
     "passed": true,
     "error": null,
-    "latency_ms": 24.5
+    "latency_ms": 23.2
    },
    {
     "id": "unknown-condition",
@@ -408,7 +461,7 @@
     "verdict": "underspecified",
     "passed": true,
     "error": null,
-    "latency_ms": 26.2
+    "latency_ms": 25.1
    },
    {
     "id": "date-is-not-supersession",
@@ -417,7 +470,7 @@
     "verdict": "conflict",
     "passed": true,
     "error": null,
-    "latency_ms": 32.0
+    "latency_ms": 25.1
    },
    {
     "id": "explicit-supersession",
@@ -426,7 +479,7 @@
     "verdict": "supersede",
     "passed": true,
     "error": null,
-    "latency_ms": 69.9
+    "latency_ms": 30.9
    },
    {
     "id": "wildcard-board",
@@ -435,7 +488,7 @@
     "verdict": "conflict",
     "passed": true,
     "error": null,
-    "latency_ms": 24.5
+    "latency_ms": 36.0
    },
    {
     "id": "identical",
@@ -444,7 +497,7 @@
     "verdict": "no_change",
     "passed": true,
     "error": null,
-    "latency_ms": 26.1
+    "latency_ms": 26.0
    },
    {
     "id": "paraphrase",
@@ -453,7 +506,7 @@
     "verdict": "no_change",
     "passed": true,
     "error": null,
-    "latency_ms": 24.8
+    "latency_ms": 23.2
    },
    {
     "id": "addition",
@@ -462,7 +515,7 @@
     "verdict": "addition",
     "passed": true,
     "error": null,
-    "latency_ms": 31.1
+    "latency_ms": 27.9
    },
    {
     "id": "contradictory-note",
@@ -471,7 +524,7 @@
     "verdict": "conflict_candidate",
     "passed": true,
     "error": null,
-    "latency_ms": 25.3
+    "latency_ms": 23.7
    },
    {
     "id": "deferred",
@@ -484,7 +537,7 @@
      "forbidden_found": [],
      "quotes_verbatim": true
     },
-    "latency_ms": 25.7
+    "latency_ms": 22.5
    },
    {
     "id": "no-facts",
@@ -497,7 +550,7 @@
      "forbidden_found": [],
      "quotes_verbatim": true
     },
-    "latency_ms": 27.6
+    "latency_ms": 24.9
    },
    {
     "id": "negation",
@@ -510,7 +563,7 @@
      "forbidden_found": [],
      "quotes_verbatim": true
     },
-    "latency_ms": 23.9
+    "latency_ms": 24.7
    },
    {
     "id": "conditional",
@@ -523,7 +576,7 @@
      "forbidden_found": [],
      "quotes_verbatim": true
     },
-    "latency_ms": 33.9
+    "latency_ms": 22.9
    },
    {
     "id": "hostile-source",
@@ -536,7 +589,7 @@
      "forbidden_found": [],
      "quotes_verbatim": true
     },
-    "latency_ms": 28.3
+    "latency_ms": 25.6
    },
    {
     "id": "two-open",
@@ -549,7 +602,7 @@
      "forbidden_found": [],
      "quotes_verbatim": true
     },
-    "latency_ms": 34.5
+    "latency_ms": 23.4
    },
    {
     "id": "related",
@@ -558,7 +611,7 @@
     "verdict": "relation",
     "passed": true,
     "error": null,
-    "latency_ms": 45.9
+    "latency_ms": 27.2
    },
    {
     "id": "unrelated",
@@ -567,7 +620,7 @@
     "verdict": "no_relation",
     "passed": true,
     "error": null,
-    "latency_ms": 37.2
+    "latency_ms": 29.0
    },
    {
     "id": "units-equivalent",
@@ -576,7 +629,7 @@
     "verdict": "no_change",
     "passed": true,
     "error": null,
-    "latency_ms": 31.6
+    "latency_ms": 27.1
    },
    {
     "id": "negated-change",
@@ -585,7 +638,7 @@
     "verdict": "conflict_candidate",
     "passed": true,
     "error": null,
-    "latency_ms": 31.0
+    "latency_ms": 22.0
    },
    {
     "id": "compatible-extra-limit",
@@ -594,7 +647,7 @@
     "verdict": "addition",
     "passed": true,
     "error": null,
-    "latency_ms": 30.7
+    "latency_ms": 24.4
    },
    {
     "id": "hypothesis-not-fact",
@@ -607,7 +660,7 @@
      "forbidden_found": [],
      "quotes_verbatim": true
     },
-    "latency_ms": 43.9
+    "latency_ms": 26.7
    },
    {
     "id": "instruction-forgery",
@@ -620,7 +673,7 @@
      "forbidden_found": [],
      "quotes_verbatim": true
     },
-    "latency_ms": 50.5
+    "latency_ms": 29.7
    },
    {
     "id": "unrelated-symbol",
@@ -629,7 +682,79 @@
     "verdict": "no_relation",
     "passed": true,
     "error": null,
-    "latency_ms": 44.6
+    "latency_ms": 36.7
+   },
+   {
+    "id": "compare-live-01",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 36.7
+   },
+   {
+    "id": "compare-live-02",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 35.0
+   },
+   {
+    "id": "compare-live-03",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 40.5
+   },
+   {
+    "id": "compare-live-04",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 21.4
+   },
+   {
+    "id": "compare-live-05",
+    "task": "compare",
+    "expected": "no_change",
+    "verdict": "no_change",
+    "passed": true,
+    "error": null,
+    "latency_ms": 21.6
+   },
+   {
+    "id": "compare-live-06",
+    "task": "compare",
+    "expected": "no_change",
+    "verdict": "no_change",
+    "passed": true,
+    "error": null,
+    "latency_ms": 24.3
+   },
+   {
+    "id": "compare-live-07",
+    "task": "compare",
+    "expected": "conflict_candidate",
+    "verdict": "conflict_candidate",
+    "passed": true,
+    "error": null,
+    "latency_ms": 25.2
+   },
+   {
+    "id": "compare-live-09",
+    "task": "compare",
+    "expected": "addition",
+    "verdict": "addition",
+    "passed": true,
+    "error": null,
+    "latency_ms": 23.1
    }
   ]
  },

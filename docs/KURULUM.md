@@ -121,6 +121,13 @@ Adres değişirse `metis.env` içinde düzelt ve servisleri yeniden başlat (`Re
    arayüzde yalnız "tanımlı" görünür.
 3. Modeli seç → **Test et** (bağlantı, JSON şeması, düşünme modu, kanıt sözleşmesi) → **Benchmark çalıştır**.
    Kritik hatası olmayan ve kalite kapısını geçen model mentor ve görevlerde kullanılabilir hâle gelir.
+4. **Anahtarı değiştirirsen** (veya adres/model ayarı değişirse) model "ayar değişti" nedeniyle kullanım dışı kalır;
+   benchmark'ı yeniden çalıştır. Bu bilinçli bir güvenliktir: kalite kapısı yeni ayarla yeniden ölçülür.
+5. DeepSeek (OpenAI uyumlu) notları — herkese açık DeepSeek API'siyle kurgusal veriyle denendi (2026-10-18), şirket
+   içi DeepSeek V4 Flash ile **henüz denenmedi**: bağlantı testi `json_schema`'yı desteklenmiyor bulur ve `json_object`
+   + düşünme kapalı profilini kendisi seçer (beklenen). Sağlayıcı aynı anda en çok 4 istek gönderir (14 kişilik yük
+   testinde en kötü Mentor cevabı ≈10 sn); model yanıt vermezse 60 sn'de kesilir ve kullanıcıya "model kullanılamıyor"
+   denir. Art arda 3 bağlantı hatasında model 60 sn dinlenmeye alınır, varsa diğer uygun model kullanılır.
 
 ## 8. Yedek ve geri yükleme
 
