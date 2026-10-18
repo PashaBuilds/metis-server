@@ -4,6 +4,17 @@ METIS v2 sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-s
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.7 — yeni sürüm adı, görünen sürüm, yükseltme düzeltmesi:**
+- Sürümler artık büyük.küçük.ilerleme biçiminde: bu sürüm **2.0.7** (önceki ön sürümler rc.1–rc.7). Sonraki sürümler
+  2.0.8, 2.0.9 … diye ilerler.
+- Sürüm arayüzde görünür: sol menüde METIS yazısının altında ve hesap menüsünde ("Sürüm 2.0.7"). `METIS-Baslat.exe`'nin
+  Özellikler → Ayrıntılar sekmesinde de yazar.
+- Düzeltme: rc.1–rc.6 ile kurulu bir bilgisayarda rc.7'nin başlatıcısı "Bu paket (2.0.0-rc.7) kurulu sürümden (2.0.0)
+  eski" deyip yükseltmiyordu (eski paketler sürümü "2.0.0" olarak kaydediyordu). 2.0.7'nin başlatıcısı bu kurulumları
+  yeni sürüme yükseltmeyi önerir (`upgrade.ps1`: önce yedek, sonra geçiş).
+- Başlatıcı PowerShell 7 penceresinden açıldığında da çalışır (önceden paket bütünlük denetimi hata veriyordu).
+- Şema değişmedi.
+
 **rc.7 — çift tıklanabilir başlatıcı (METIS-Baslat.exe):**
 - Paket klasöründeki `METIS-Baslat.exe`'ye çift tıklamak yeterli; PowerShell komutu yazmak gerekmez. İlk açılışta onay
   ister, yönetici izni alır, deneme modunda kurar (yalnız bu bilgisayardan, http://localhost:8000), PostgreSQL parolasını
@@ -86,4 +97,4 @@ Kaldırma: `uninstall.ps1 -RemoveAll`.
 geri yükleme tatbikatı, örnek içerik, yükseltme ve kaldırma denendi.
 
 **Henüz denenmedi:** gerçek şirket sunucusu (IIS/ARR + TLS), Windows 10/11 masaüstünde paketin kendisi, şirket modeliyle bağlantı,
-gerçek v0.5.5 yedeğinin aktarılması. Tire içeren sürümler (ör. `-rc.1`) pilot amaçlı ön sürümdür.
+gerçek v0.5.5 yedeğinin aktarılması. 2.0.x sürümleri pilot sürümleridir.

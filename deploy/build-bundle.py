@@ -8,7 +8,7 @@
 İçerik (win64): gömülü Python 3.12 (python.org embeddable), pip zipapp, hash-kilitli wheelhouse (cp312 win_amd64),
 derlenmiş web arayüzü, WinSW servis sarmalayıcısı, kurulum/yükseltme betikleri, METIS-Baslat.exe (çift tıklanabilir
 başlatıcı; Windows'ta .NET Framework derleyicisiyle derlenir), BASLA.txt, KURULUM.md, SHA256SUMS.
-Sürüm: deploy/RELEASE'teki ad (ör. v2.0.0-rc.7 → 2.0.0-rc.7); böylece ön sürümler arası yükseltme de tanınır.
+Sürüm: metis.__version__ (büyük.küçük.ilerleme, ör. 2.0.7); deploy/RELEASE aynı adı taşır (v2.0.7).
 Dış ikililer sabit sürüm + sabit SHA-256 ile indirilir (deploy/.cache'te önbelleklenir); özet uyuşmazsa üretim durur.
 """
 
@@ -72,22 +72,24 @@ def fetch(name: str) -> Path:
 
 
 def version() -> str:
-    """Paket sürümü: deploy/RELEASE'teki ad (v2.0.0-rc.7 → 2.0.0-rc.7), yoksa uygulama sürümü.
-    Tüm ön sürümlerin iç sürümü "2.0.0" olduğundan upgrade.ps1 rc'ler arası geçişi "zaten kurulu" sanıyordu."""
-    release = ROOT / "deploy" / "RELEASE"
-    if release.is_file():
-        m = re.fullmatch(r"v(\d+\.\d+\.\d+(?:-rc\.\d+)?)", release.read_text(encoding="utf-8").strip())
-        if m:
-            return m.group(1)
+    """Paket sürümü = uygulama sürümü (metis.__version__, ör. 2.0.7). deploy/RELEASE farklıysa üretim durur:
+    yayımlanan ZIP'in adı, kurulu sürüm ve arayüzde görünen sürüm hep aynı olmalı."""
     text = (ROOT / "services" / "metis" / "__init__.py").read_text(encoding="utf-8")
     m = re.search(r'__version__ = "([^"]+)"', text)
     assert m
+    release = ROOT / "deploy" / "RELEASE"
+    if release.is_file():
+        name = release.read_text(encoding="utf-8").strip()
+        if name != f"v{m.group(1)}":
+            sys.exit(f"deploy/RELEASE ({name}) uygulama sürümüyle (v{m.group(1)}) aynı değil")
     return m.group(1)
 
 
-def build_launcher(stage: Path, required: bool) -> None:
-    """METIS-Baslat.exe: Windows'un kendi .NET Framework 4 derleyicisiyle (csc) derlenir; ek araç/indirme gerekmez."""
+def build_launcher(stage: Path, required: bool, ver: str) -> None:
+    """METIS-Baslat.exe: Windows'un kendi .NET Framework 4 derleyicisiyle (csc) derlenir; ek araç/indirme gerekmez.
+    Sürüm exe'nin Özellikler → Ayrıntılar sekmesinde görünür (ör. 2.0.7)."""
     import os
+    import tempfile
 
     csc = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Microsoft.NET" / "Framework64" / "v4.0.30319" / "csc.exe"
     if not csc.is_file():
@@ -96,8 +98,18 @@ def build_launcher(stage: Path, required: bool) -> None:
         print("uyarı: csc bulunamadı; paket METIS-Baslat.exe olmadan üretildi (yalnız Windows'ta derlenir).")
         return
     src = ROOT / "deploy" / "windows" / "launcher" / "MetisBaslat.cs"
-    sh([str(csc), "/nologo", "/optimize+", "/target:winexe", "/codepage:65001", "/reference:System.Windows.Forms.dll",
-        f"/out:{stage / 'METIS-Baslat.exe'}", str(src)])
+    numeric = ".".join((re.findall(r"\d+", ver.split("+")[0]) + ["0", "0", "0", "0"])[:4])
+    with tempfile.TemporaryDirectory() as tmp:
+        info = Path(tmp) / "SurumBilgisi.cs"
+        info.write_text(
+            "using System.Reflection;\n"
+            f'[assembly: AssemblyVersion("{numeric}")]\n'
+            f'[assembly: AssemblyFileVersion("{numeric}")]\n'
+            f'[assembly: AssemblyInformationalVersion("{ver}")]\n',
+            encoding="utf-8",
+        )
+        sh([str(csc), "/nologo", "/optimize+", "/target:winexe", "/codepage:65001", "/reference:System.Windows.Forms.dll",
+            f"/out:{stage / 'METIS-Baslat.exe'}", str(src), str(info)])
 
 
 def build_wheelhouse(target: str, wheelhouse: Path, lock: Path | None = None) -> list[str]:
@@ -245,7 +257,7 @@ def main() -> int:
                 (stage / f.name).write_bytes(b"\xef\xbb\xbf" + f.read_bytes().removeprefix(b"\xef\xbb\xbf"))
             elif f.is_file():
                 shutil.copy2(f, stage / f.name)
-        build_launcher(stage, args.require_launcher)
+        build_launcher(stage, args.require_launcher, ver)
     else:
         for f in (ROOT / "deploy" / "linux").iterdir():
             if f.is_file():

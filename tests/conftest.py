@@ -25,6 +25,18 @@ def _sqlalchemy_url(dbname: str) -> str:
 
 
 @pytest.fixture(scope="session", autouse=True)
+def _fast_password_hashing() -> Iterator[None]:
+    """Testlerde scrypt maliyeti düşürülür (her kullanıcı oluşturma/girişte ~0,1 sn; Windows CI'da çok daha fazla).
+    Üretim parametresi burada korunur; uygulama kodu değişmez. Hash biçimi ve yeniden hash mantığı aynen sınanır."""
+    from metis.core import security
+
+    assert security.SCRYPT_N == 2**15, "üretim scrypt maliyeti değişti"
+    security.SCRYPT_N = 2**10
+    yield
+    security.SCRYPT_N = 2**15
+
+
+@pytest.fixture(scope="session", autouse=True)
 def _database(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
     data_dir = tmp_path_factory.mktemp("metis-data")
     with psycopg.connect(ADMIN_DSN, autocommit=True) as conn:

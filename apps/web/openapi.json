@@ -5447,7 +5447,7 @@
   },
   "info": {
     "title": "METIS API",
-    "version": "2.0.0"
+    "version": "2.0.7"
   },
   "openapi": "3.1.0",
   "paths": {

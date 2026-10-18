@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "metis"
-version = "2.0.0"
+dynamic = ["version"]
 description = "METIS v2 — Ekibin teknik bilgisi, kaynaklarıyla."
 requires-python = ">=3.12"
 dependencies = [
@@ -32,6 +32,9 @@ dev = [
 
 [project.scripts]
 metis = "metis.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "metis.__version__" }  # tek kaynak; deploy/RELEASE de bununla aynı olmalı (test_version.py)
 
 [tool.setuptools.packages.find]
 where = ["services"]

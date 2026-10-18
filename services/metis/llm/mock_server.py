@@ -6,7 +6,7 @@ Model kimlikleri:
   fixture-fake-source        — kanıt paketinde olmayan iddia kimliği alıntılar
   fixture-scope-violator     — kapsam kısıtını yok sayar
   fixture-broken             — JSON olmayan metin döner
-  fixture-slow               — 3 sn bekler
+  fixture-slow               — 0,3 sn bekler (gecikme sıralaması için yeterli; testleri yavaşlatmaz)
   fixture-500                — HTTP 500 döner
   fixture-no-schema          — response_format=json_schema isteğine 400 döner
   fixture-no-thinking        — 'thinking' parametresine 400 döner
@@ -107,7 +107,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, {"error": {"message": "unknown parameter: thinking"}})
             return
         if model == "fixture-slow":
-            time.sleep(3)
+            time.sleep(0.3)
         messages = body.get("messages") or []
         system = next((m["content"] for m in messages if m.get("role") == "system"), "")
         user = next((m["content"] for m in reversed(messages) if m.get("role") == "user" and m["content"].startswith("{")), "{}")

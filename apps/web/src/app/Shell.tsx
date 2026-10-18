@@ -65,6 +65,7 @@ export function Shell() {
   const [drawer, setDrawer] = useState(false);
   const palette = useCommandPalette();
   const inbox = useInbox(session.projectId);
+  const version = useAppVersion();
 
   const groups: NavItem[][] = [
     [
@@ -107,7 +108,12 @@ export function Shell() {
           <div className={s.railHead}>
             <Link to="/" className={s.brand} aria-label="METIS ana sayfa">
               <Logo tone="rail" size={28} />
-              {!collapsed && <span className={s.wordmark}>METIS</span>}
+              {!collapsed && (
+                <span className={s.brandText}>
+                  <span className={s.wordmark}>METIS</span>
+                  {version && <span className={s.version}>{tr.nav.version(version)}</span>}
+                </span>
+              )}
             </Link>
           </div>
           {rail(false)}
@@ -243,8 +249,15 @@ function ProjectPicker() {
   );
 }
 
+/** Çalışan sunucunun sürümü (ör. 2.0.7); açık uçtan bir kez okunur. */
+function useAppVersion(): string | undefined {
+  const q = useQuery({ queryKey: ['version'], queryFn: () => api.get<{ version: string }>('/health/live'), staleTime: Infinity });
+  return q.data?.version;
+}
+
 function AccountMenu({ collapsed }: { collapsed: boolean }) {
   const session = useSession();
+  const version = useAppVersion();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const name = session.me?.user.display_name ?? '';
@@ -267,6 +280,7 @@ function AccountMenu({ collapsed }: { collapsed: boolean }) {
       <DM.Portal>
         <DM.Content className={s.menu} side="right" align="end" sideOffset={8}>
           <DM.Label className={s.menuLabel}>{session.me?.user.username}</DM.Label>
+          {version && <DM.Label className={s.menuLabel}>{tr.nav.version(version)}</DM.Label>}
           <DM.Item className={s.menuItem} onSelect={() => navigate({ to: '/ayarlar', search: { tab: 'gorunum' } })}>
             <span className={s.menuCheck} />
             {tr.theme.label}

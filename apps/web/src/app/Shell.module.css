@@ -59,6 +59,17 @@
   font-size: var(--fs-16);
 }
 
+.brandText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.version {
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+}
+
 .railNav {
   flex: 1;
   overflow-y: auto;

@@ -68,7 +68,8 @@ function Get-InstalledVersion {
 }
 
 function Get-VersionKey([string]$Version) {
-  # "2.0.0-rc.7+ci2" → (2,0,0, 7, "+ci2"); son sürüm (rc'siz) aynı tabandaki tüm rc'lerden yenidir.
+  # Sürüm büyük.küçük.ilerleme (ör. 2.0.7; derleme eki "+ci2" olabilir). Eski ön sürüm adları da okunur:
+  # "2.0.0-rc.7" → (2,0,0, 7); rc'siz ad aynı tabandaki rc'lerden yenidir. 2.0.7, 2.0.0 ve tüm 2.0.0-rc'lerden yenidir.
   $m = [regex]::Match($Version, '^(\d+)\.(\d+)\.(\d+)(?:-rc\.(\d+))?(.*)$')
   if (-not $m.Success) { return $null }
   $rc = if ($m.Groups[4].Success) { [int]$m.Groups[4].Value } else { [int]::MaxValue }

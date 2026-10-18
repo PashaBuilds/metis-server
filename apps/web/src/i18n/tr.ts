@@ -69,6 +69,7 @@ export const tr = {
     importOpen: 'Aktarım raporunu aç',
   },
   nav: {
+    version: (v: string) => `Sürüm ${v}`,
     home: 'Ana sayfa',
     library: 'Bilgi havuzu',
     mentor: 'Mentor',

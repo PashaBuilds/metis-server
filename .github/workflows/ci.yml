@@ -119,16 +119,39 @@ jobs:
         with: { python-version: "3.12" }
       - uses: actions/setup-node@v4
         with: { node-version: "22", cache: npm }
-      - name: PostgreSQL 16 kur (runner'da önyüklü sürüm 14; METIS 16+ ister)
+      - name: PostgreSQL 16 (runner'da önyüklü sürüm 14; METIS 16+ ister)
         shell: pwsh
+        timeout-minutes: 10
         run: |
+          # EDB'nin ikili ZIP'i: kurucu (choco) pgAdmin vb. ile ~9,5 dk sürüyordu; ZIP + initdb + servis ~1 dk.
+          # Kullanıcının kurduğu yerleşimle aynı: C:\Program Files\PostgreSQL\16\bin, servis NetworkService ile.
           Get-Service -Name "postgresql*" | Stop-Service -ErrorAction SilentlyContinue
-          choco install postgresql16 --no-progress -y --params "/Password:root /Port:5432"
-          $pgbin = "C:\Program Files\PostgreSQL\16\bin"
+          $ver = "16.15-1"
+          $zip = Join-Path $env:RUNNER_TEMP "pg.zip"
+          Invoke-WebRequest -UseBasicParsing -MaximumRetryCount 3 -RetryIntervalSec 5 -OutFile $zip `
+            "https://get.enterprisedb.com/postgresql/postgresql-$ver-windows-x64-binaries.zip"
+          $tmp = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP "pg")
+          tar -xf $zip -C $tmp pgsql/bin pgsql/lib pgsql/share
+          if ($LASTEXITCODE) { throw "PostgreSQL ZIP'i açılamadı" }
+          $root = "C:\Program Files\PostgreSQL\16"
+          Move-Item (Join-Path $tmp "pgsql") $root
+          $pgbin = "$root\bin"
+          $data = "C:\pgdata"
+          $pw = Join-Path $env:RUNNER_TEMP "pgpw.txt"
+          Set-Content -NoNewline $pw "root"
+          & "$pgbin\initdb.exe" -D $data -U postgres -A scram-sha-256 --pwfile $pw -E UTF8
+          if ($LASTEXITCODE) { throw "initdb başarısız" }
+          Remove-Item $pw
+          icacls $data /grant "NT AUTHORITY\NetworkService:(OI)(CI)F" /T /Q | Out-Null
+          & "$pgbin\pg_ctl.exe" register -N postgresql-x64-16 -U "NT AUTHORITY\NetworkService" -D $data -S auto
+          if ($LASTEXITCODE) { throw "servis kaydı başarısız" }
+          Start-Service postgresql-x64-16
           "PGBIN=$pgbin" | Out-File -Append $env:GITHUB_ENV
           "$pgbin" | Out-File -Append $env:GITHUB_PATH
           $env:PGPASSWORD = "root"
+          for ($i = 0; $i -lt 30; $i++) { & "$pgbin\pg_isready.exe" -h 127.0.0.1 -q; if (-not $LASTEXITCODE) { break }; Start-Sleep 1 }
           & "$pgbin\psql.exe" -U postgres -h 127.0.0.1 -c "SELECT version();"
+          if ($LASTEXITCODE) { throw "PostgreSQL'e bağlanılamadı" }
       - name: pytest (Windows, PG servisi)
         shell: pwsh
         timeout-minutes: 30
@@ -285,7 +308,7 @@ jobs:
         if: steps.tag.outputs.name != ''
         env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ steps.tag.outputs.name }}" }
         run: |
-          # Tire içeren adlar (ör. v2.0.0-rc.1) deneme sürümüdür: ön sürüm olarak işaretlenir.
+          # Tire içeren adlar (eski v2.0.0-rc.N biçimi) ön sürüm olarak işaretlenir; v2.0.7 gibi adlar normal sürümdür.
           pre=""; case "$TAG" in *-*) pre="--prerelease";; esac
           gh release create "$TAG" dist/* --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" $pre \
             --title "METIS $TAG" --notes-file deploy/RELEASE_NOTES.md
