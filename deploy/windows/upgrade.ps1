@@ -33,6 +33,7 @@ Test-BundleIntegrity $Bundle
 $envFile = Join-Path $InstallRoot "config\metis.env"
 if (-not (Test-Path $envFile)) { throw "Kurulu METIS bulunamadı ($envFile). İlk kurulum için install-offline.ps1 kullan." }
 $env:METIS_CONFIG = $envFile
+Write-PublicUrlFile -InstallRoot $InstallRoot -EnvFile $envFile
 $oldDir = Get-CurrentAppDir $InstallRoot
 if (-not $oldDir) { throw "app\current bulunamadı; kurulum bozuk." }
 $oldVersion = (Get-Content (Join-Path $oldDir ".installed") -TotalCount 1).Trim()

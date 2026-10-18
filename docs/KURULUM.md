@@ -50,15 +50,15 @@ GRANT USAGE ON SCHEMA public TO metis_app;
 ## 3. Paketi doğrula ve aç
 
 1. ZIP'i sunucuya kopyala. Yanındaki `.zip.sha256` ile karşılaştır:
-   `Get-FileHash .\METIS-2.0.0-server-win64.zip -Algorithm SHA256`
-2. ZIP'i aç (ör. `D:\Kurulum\METIS-2.0.0-server-win64`). Betik her dosyayı ayrıca `SHA256SUMS` ile doğrular.
+   `Get-FileHash .\METIS-<sürüm>-server-win64.zip -Algorithm SHA256`
+2. ZIP'i aç (ör. `D:\Kurulum\METIS-<sürüm>-server-win64`). Betik her dosyayı ayrıca `SHA256SUMS` ile doğrular.
 
 ## 4. Kurulum betiği
 
 Yönetici PowerShell:
 
 ```powershell
-cd D:\Kurulum\METIS-2.0.0-server-win64
+cd D:\Kurulum\METIS-<sürüm>-server-win64
 powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl https://metis.sirket.local
 ```
 
@@ -201,28 +201,38 @@ Windows 10 veya 11 (64 bit) bir bilgisayarda, IIS ve sertifika olmadan, yalnız 
 
 1. PostgreSQL 16'yı kur (EDB kurucusu; `postgres` parolasını not al, port 5432). **Locale** sayfasında
    `English, United States` seç (2. bölüm, 3. madde); son ekranda Stack Builder işaretini kaldır.
-2. Release sayfasından `METIS-<sürüm>-server-win64.zip` dosyasını indir, bir klasöre aç
-   (Windows indirilen dosyayı engellediyse: ZIP'e sağ tık → Özellikler → "Engellemeyi kaldır", sonra aç).
-3. PowerShell'i **Yönetici olarak** aç, klasöre geç ve çalıştır:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl http://localhost:8000 -AllowHttp
-   ```
-   `postgres` parolası bir kez sorulur. Sonunda ekrana bir **kurulum kodu** yazılır.
-4. Tarayıcıda `http://localhost:8000` adresini aç, kurulum kodunu gir ve yönetici hesabını oluştur.
-5. İstersen ekranları dolu görmek için kurgusal örnek içerik ekle (yönetici PowerShell):
-   `C:\METIS\bin\metis demo`. Gömülü yazılım konulu sayfalar (yazarlarınca yayımlanmış, biri metin içi görselli),
+2. Release sayfasından `METIS-<sürüm>-server-win64.zip` dosyasını indir. ZIP'e sağ tık → Özellikler → "Engellemeyi
+   kaldır" (varsa) → Tamam; sonra sağ tık → **Tümünü ayıkla**.
+3. Açılan klasörde **`METIS-Baslat.exe`**'ye çift tıkla. Komut yazmak gerekmez:
+   - Windows "Windows bilgisayarınızı korudu" derse: **Ek bilgi → Yine de çalıştır** (exe imzasız; şirket bilgisayarında
+     BT engelliyorsa aşağıdaki "Komutla kurulum"u kullan).
+   - "METIS kurulacak, devam?" → **Evet** → yönetici izni (UAC) → **Evet**.
+   - Açılan pencerede PostgreSQL `postgres` parolasını bir kez yaz (görünmez, kaydedilmez); kurulum birkaç dakika sürer.
+   - "Kurgusal örnek içerik eklensin mi?" → deneme için **Evet**, şirketin gerçek bilgileri için **Hayır**.
+   - Chrome (yoksa varsayılan tarayıcı) kurulum sayfasıyla açılır; **kurulum kodu hazır gelir**. Adını, kullanıcı adını,
+     parolanı ve proje adını yazıp yönetici hesabını oluştur.
+4. Sonraki her açışta `METIS-Baslat.exe` METIS'i (kapalıysa başlatıp) tarayıcıda açar. Yeni sürümün paketindeki
+   `METIS-Baslat.exe` kurulu sürümü görür ve **yükseltmeyi önerir** (önce yedek alınır, sorun olursa geri döner).
+5. Kurgusal örnek içerik: Gömülü yazılım konulu sayfalar (yazarlarınca yayımlanmış, biri metin içi görselli),
    kaynaklar, yarım bir taslak, yayımlanırken bilerek geçilmiş bir çelişki (Bilgi sağlığında) ve örnek kullanıcılar
    (`baris`, `deniz`, `ece`; parola `Kurgusal-Parola-2026`) oluşur. `deniz` ile girince ana sayfada "Bilgilerin
    güncellendi" örneği görünür (Barış onun bir bilgisini güncelledi). Hepsi kurgusaldır ve ekranda öyle işaretlenir.
    Not: demo kendi kurgusal model sunucusunu bulamazsa ("atlandı") Mentor ve yapay zekâ kontrolü modelsiz kalır.
 6. Denemen bitince: `powershell -ExecutionPolicy Bypass -File .\uninstall.ps1 -RemoveAll`.
 
+Komutla kurulum (exe kullanılamazsa): PowerShell'i **Yönetici olarak** aç, paket klasörüne geç ve
+`powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl http://localhost:8000 -AllowHttp` çalıştır;
+ekrana yazılan kurulum kodunu `http://localhost:8000` adresinde gir. Örnek içerik için `C:\METIS\bin\metis demo`.
+
 Bilmen gerekenler:
+- `METIS-Baslat.exe` yalnız bu bilgisayardan erişilen **deneme kurulumunu** yapar. Ekibin ağdan bağlanacağı sunucu
+  kurulumu (IIS + şirket sertifikası) için 4–5. bölümler; o kurulumda da exe sonraki açılışlarda doğru adresi açar.
 - `-AllowHttp` yalnız deneme içindir: bağlantı şifresizdir ve uygulama geliştirme profilinde çalışır.
 - Mentor ve görevler bir yapay zekâ modeli ister. Model eklemeden kaynak yükleme, katkı, inceleme, yayın, bilgi havuzu ve
   arama denenebilir; Mentor "model kullanılamıyor" der.
 - Servisler bilgisayar her açıldığında kendiliğinden başlar; kaldırma betiği bunları da siler.
-- Bu senaryo CI'da Windows Server 2022'de denendi; Windows 10/11 masaüstünde **denenmedi**.
+- Bu senaryo CI'da Windows Server 2022'de denendi (exe soru sormayan modda: kurulum, ikinci açılış, yükseltme);
+  Windows 10/11 masaüstünde ve etkileşimli adımlarla (UAC, ileti kutuları, parola sorusu) **denenmedi**.
 
 ## Ek: Linux (systemd)
 

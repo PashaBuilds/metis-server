@@ -33,7 +33,9 @@ param(
   [string]$EndpointAllowlist = "",
   [switch]$SkipServices,
   [switch]$SkipScheduledTasks,
-  [switch]$AllowHttp
+  [switch]$AllowHttp,
+  # Başlatıcı (baslat.ps1) için: kurulum kodu ekrana değil bu dosyaya yazılır, tarayıcıya o iletir.
+  [string]$SetupCodeFile = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -98,6 +100,7 @@ if (-not (Test-Path $envFile)) {
   Write-Step "Var olan yapılandırma korunuyor: $envFile"
 }
 $env:METIS_CONFIG = $envFile
+Write-PublicUrlFile -InstallRoot $InstallRoot -EnvFile $envFile
 
 # ------------------------------------------------------------ şema + denetim
 Write-Step "Veritabanı şeması yükseltiliyor"
@@ -121,7 +124,12 @@ if (-not $SkipScheduledTasks -and -not $SkipServices) {
 Write-Step "Kurulum tamamlandı: METIS $version"
 Write-Host "Sonraki adımlar:"
 Write-Host "  1. IIS/ARR ters vekilini KURULUM.md 5. adıma göre yapılandır ($PublicUrl → http://127.0.0.1:$ApiPort)."
-Write-Host "  2. İlk yönetici için kurulum kodu (24 saat, tek kullanım):"
-Invoke-Metis -AppDir $appDir -Arguments @("setup-code") -AllowFailure | Out-Host
+if ($SetupCodeFile) {
+  [IO.File]::WriteAllText($SetupCodeFile, (Get-SetupCode $appDir))
+  Write-Host "  2. İlk yönetici için kurulum kodu tarayıcıda hazır (24 saat, tek kullanım)."
+} else {
+  Write-Host "  2. İlk yönetici için kurulum kodu (24 saat, tek kullanım):"
+  Invoke-Metis -AppDir $appDir -Arguments @("setup-code") -AllowFailure | Out-Host
+}
 Write-Host "  3. Tarayıcıdan $PublicUrl adresini aç, kurulum kodunu gir."
 Write-Host "  4. Ana anahtarı ($configDir\master.key) şirket kasasına yedekle. Anahtar olmadan yedekler geri yüklenemez."

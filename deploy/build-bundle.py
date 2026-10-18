@@ -6,7 +6,9 @@
     python deploy/build-bundle.py --locked           # indirilen tekerlekler deploy/locks/<hedef>.lock ile birebir olmalı
 
 İçerik (win64): gömülü Python 3.12 (python.org embeddable), pip zipapp, hash-kilitli wheelhouse (cp312 win_amd64),
-derlenmiş web arayüzü, WinSW servis sarmalayıcısı, kurulum/yükseltme betikleri, BASLA.txt, KURULUM.md, SHA256SUMS.
+derlenmiş web arayüzü, WinSW servis sarmalayıcısı, kurulum/yükseltme betikleri, METIS-Baslat.exe (çift tıklanabilir
+başlatıcı; Windows'ta .NET Framework derleyicisiyle derlenir), BASLA.txt, KURULUM.md, SHA256SUMS.
+Sürüm: deploy/RELEASE'teki ad (ör. v2.0.0-rc.7 → 2.0.0-rc.7); böylece ön sürümler arası yükseltme de tanınır.
 Dış ikililer sabit sürüm + sabit SHA-256 ile indirilir (deploy/.cache'te önbelleklenir); özet uyuşmazsa üretim durur.
 """
 
@@ -70,10 +72,32 @@ def fetch(name: str) -> Path:
 
 
 def version() -> str:
+    """Paket sürümü: deploy/RELEASE'teki ad (v2.0.0-rc.7 → 2.0.0-rc.7), yoksa uygulama sürümü.
+    Tüm ön sürümlerin iç sürümü "2.0.0" olduğundan upgrade.ps1 rc'ler arası geçişi "zaten kurulu" sanıyordu."""
+    release = ROOT / "deploy" / "RELEASE"
+    if release.is_file():
+        m = re.fullmatch(r"v(\d+\.\d+\.\d+(?:-rc\.\d+)?)", release.read_text(encoding="utf-8").strip())
+        if m:
+            return m.group(1)
     text = (ROOT / "services" / "metis" / "__init__.py").read_text(encoding="utf-8")
     m = re.search(r'__version__ = "([^"]+)"', text)
     assert m
     return m.group(1)
+
+
+def build_launcher(stage: Path, required: bool) -> None:
+    """METIS-Baslat.exe: Windows'un kendi .NET Framework 4 derleyicisiyle (csc) derlenir; ek araç/indirme gerekmez."""
+    import os
+
+    csc = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Microsoft.NET" / "Framework64" / "v4.0.30319" / "csc.exe"
+    if not csc.is_file():
+        if required:
+            raise SystemExit(f"METIS-Baslat.exe derlenemedi: {csc} yok (yalnız Windows'ta derlenir).")
+        print("uyarı: csc bulunamadı; paket METIS-Baslat.exe olmadan üretildi (yalnız Windows'ta derlenir).")
+        return
+    src = ROOT / "deploy" / "windows" / "launcher" / "MetisBaslat.cs"
+    sh([str(csc), "/nologo", "/optimize+", "/target:winexe", "/codepage:65001", "/reference:System.Windows.Forms.dll",
+        f"/out:{stage / 'METIS-Baslat.exe'}", str(src)])
 
 
 def build_wheelhouse(target: str, wheelhouse: Path, lock: Path | None = None) -> list[str]:
@@ -184,6 +208,7 @@ def main() -> int:
     ap.add_argument("--locked", action="store_true", help="kilit dosyası yoksa veya farklıysa dur")
     ap.add_argument("--update-lock", action="store_true")
     ap.add_argument("--version-suffix", default="", help="yalnız yükseltme testi için (ör. +test1)")
+    ap.add_argument("--require-launcher", action="store_true", help="METIS-Baslat.exe derlenemezse dur (CI)")
     args = ap.parse_args()
 
     ver = version() + args.version_suffix
@@ -220,6 +245,7 @@ def main() -> int:
                 (stage / f.name).write_bytes(b"\xef\xbb\xbf" + f.read_bytes().removeprefix(b"\xef\xbb\xbf"))
             elif f.is_file():
                 shutil.copy2(f, stage / f.name)
+        build_launcher(stage, args.require_launcher)
     else:
         for f in (ROOT / "deploy" / "linux").iterdir():
             if f.is_file():

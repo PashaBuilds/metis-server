@@ -28,11 +28,13 @@ KALDIRMA
        powershell -ExecutionPolicy Bypass -File .\uninstall.ps1             (verileri korur)
        powershell -ExecutionPolicy Bypass -File .\uninstall.ps1 -RemoveAll  (her şeyi siler)
 
-KENDİ BİLGİSAYARINDA DENEME (Windows 10/11, IIS olmadan)
-  PostgreSQL 16'yı kur, sonra yönetici PowerShell ile:
-       powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl http://localhost:8000 -AllowHttp
-  Tarayıcıda http://localhost:8000 adresini aç ve kurulum kodunu gir.
-  Örnek içerik için: C:\METIS\bin\metis demo   Ayrıntı: KURULUM.md, sondaki ek.
+KENDİ BİLGİSAYARINDA DENEME (Windows 10/11, IIS olmadan) — KOMUT GEREKMEZ
+  1. PostgreSQL 16'yı kur (Locale: English, United States; 'postgres' parolasını not al).
+  2. Bu klasördeki METIS-Baslat.exe'ye çift tıkla. Soruları yanıtla; yönetici izni ver; açılan pencerede
+     'postgres' parolasını yaz. Kurulum bitince tarayıcı kurulum kodu hazır olarak açılır.
+  3. Sonraki her açışta METIS-Baslat.exe METIS'i tarayıcıda açar; yeni sürümün exe'si yükseltmeyi önerir.
+  Windows "bilgisayarınızı korudu" derse: Ek bilgi → Yine de çalıştır (exe imzasız).
+  Komutla kurulum ve ayrıntı: KURULUM.md, sondaki ek.
 
 GÜNLÜK İŞLETİM
   C:\METIS\bin\metis doctor                      durum denetimi

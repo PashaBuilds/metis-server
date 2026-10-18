@@ -10,7 +10,10 @@ test('kurulum, kaynak, alıntı-iddia, yayın ve İz paneli', async ({ page, bro
   const code = setupCode();
   await page.goto('/');
   await expect(page).toHaveURL(/\/kurulum$/);
-  await page.getByLabel('Kurulum kodu').fill(code);
+  // Başlatıcı (METIS-Baslat.exe) kodu adresin # kısmında verir: alan dolu gelir, adres temizlenir.
+  await page.goto(`/kurulum#kod=${code}`);
+  await expect(page.getByLabel('Kurulum kodu')).toHaveValue(code);
+  await expect(page).toHaveURL(/\/kurulum$/);
   await page.getByLabel('Adın').fill(ADMIN.name);
   await page.getByLabel('Kullanıcı adı').fill(ADMIN.username);
   await page.getByLabel('Parola').fill(ADMIN.password);

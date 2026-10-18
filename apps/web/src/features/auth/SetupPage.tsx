@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Button, Field, Input } from '@/design/primitives';
 import { errorMessage, tr } from '@/i18n/tr';
 import { api, ApiError, setCsrfToken } from '@/lib/api/client';
@@ -12,12 +12,22 @@ export function SetupPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const status = useQuery({ queryKey: ['setup-status'], queryFn: () => api.get<{ needs_setup: boolean }>('/setup/status') });
-  const [form, setForm] = useState({ code: '', display_name: '', username: '', password: '', project_name: '' });
+  // Başlatıcı (METIS-Baslat.exe) kurulum kodunu adresin # kısmında verir: sunucuya gitmez, günlüğe düşmez.
+  const [form, setForm] = useState(() => ({ code: codeFromHash(), display_name: '', username: '', password: '', project_name: '' }));
   const [mode, setMode] = useState<'empty' | 'import'>('empty');
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  useEffect(() => {
+    // Sayfa açıkken adres yalnız # kısmıyla değişirse (aynı sekmede yeniden açma) de kodu al.
+    const onHash = () => {
+      const code = codeFromHash();
+      if (code) setForm((f) => ({ ...f, code }));
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
 
   if (status.data && !status.data.needs_setup && !done) return <Navigate to="/giris" />;
 
@@ -101,4 +111,11 @@ export function SetupPage() {
       </form>
     </AuthLayout>
   );
+}
+
+
+function codeFromHash(): string {
+  const code = new URLSearchParams(window.location.hash.slice(1)).get('kod') ?? '';
+  if (code) window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  return code.trim();
 }

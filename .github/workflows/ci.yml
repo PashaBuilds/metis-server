@@ -140,9 +140,9 @@ jobs:
         shell: pwsh
         run: |
           npm ci
-          python deploy/build-bundle.py --target win64 --locked
-          python deploy/build-bundle.py --target win64 --locked --skip-web-build --version-suffix +ci2 --out dist-next
-      - name: Çevrimdışı kurulum (ağ kapalı adım)
+          python deploy/build-bundle.py --target win64 --locked --require-launcher
+          python deploy/build-bundle.py --target win64 --locked --require-launcher --skip-web-build --version-suffix +ci2 --out dist-next
+      - name: Çevrimdışı kurulum — METIS-Baslat.exe ile (ağ kapalı adım)
         shell: pwsh
         # Ağ kapalı: tüm HTTP(S) istekleri erişilemeyen bir vekile yönlendirilir ve pip --no-index ile çalışır.
         env:
@@ -151,9 +151,23 @@ jobs:
           PIP_NO_INDEX: "1"
           METIS_PG_SUPERUSER_PASSWORD: root
         run: |
-          Expand-Archive dist\METIS-2.0.0-server-win64.zip -DestinationPath C:\bundle
-          cd C:\bundle\METIS-2.0.0-server-win64
-          .\install-offline.ps1 -InstallRoot C:\METIS -PublicUrl http://localhost:8000 -AllowHttp -PgBin $env:PGBIN
+          # Kullanıcı yolu: ZIP'i aç, METIS-Baslat.exe'yi çalıştır. CI'da soru sormayan mod (-Onayla); exe → baslat.ps1
+          # → install-offline.ps1. Etkileşimli kısımlar (UAC, ileti kutuları, parola sorusu) burada sınanamaz.
+          $zip = Get-ChildItem dist\METIS-*-server-win64.zip | Select-Object -First 1
+          Expand-Archive $zip.FullName -DestinationPath C:\bundle
+          cd (Get-ChildItem C:\bundle -Directory | Select-Object -First 1).FullName
+          if (-not (Test-Path .\METIS-Baslat.exe)) { throw "METIS-Baslat.exe pakette yok" }
+          $p = Start-Process -FilePath .\METIS-Baslat.exe -Wait -PassThru `
+            -ArgumentList "-Onayla -DemoYok -TarayiciAcma -PgBin `"$env:PGBIN`" -SonucDosyasi C:\baslat-kur.json"
+          Get-Content C:\baslat-kur.json
+          if ($p.ExitCode -ne 0) { throw "başlatıcı ile kurulum başarısız (çıkış $($p.ExitCode))" }
+          $s = Get-Content -Raw C:\baslat-kur.json | ConvertFrom-Json
+          if ($s.sonuc -ne "kuruldu" -or -not $s.calisiyor -or $s.kurulu_surum -ne $s.paket_surumu) { throw "başlatıcı durumu beklenmedik" }
+          if ((Get-Content C:\METIS\adres.txt) -ne "http://localhost:8000") { throw "adres.txt yazılmadı" }
+          # İkinci çalıştırma: kurulu ve çalışıyor → yalnız açar (ilk yönetici yok: yeni kurulum kodu üretir).
+          $p = Start-Process -FilePath .\METIS-Baslat.exe -Wait -PassThru -ArgumentList "-Onayla -TarayiciAcma -SonucDosyasi C:\baslat-ac.json"
+          $s = Get-Content -Raw C:\baslat-ac.json | ConvertFrom-Json
+          if ($p.ExitCode -ne 0 -or $s.sonuc -ne "acildi" -or -not $s.kurulum_gerekli) { throw "başlatıcı ikinci çalıştırma beklenmedik: $($s | ConvertTo-Json -Compress)" }
       - name: Duman testi — giriş, yeniden başlatma, kalıcılık, yedek, tatbikat
         shell: pwsh
         run: |
@@ -196,9 +210,14 @@ jobs:
           HTTPS_PROXY: http://127.0.0.1:9
           PIP_NO_INDEX: "1"
         run: |
-          Expand-Archive "dist-next\METIS-2.0.0+ci2-server-win64.zip" -DestinationPath C:\bundle-next
-          cd "C:\bundle-next\METIS-2.0.0+ci2-server-win64"
-          .\upgrade.ps1 -InstallRoot C:\METIS
+          $zip = Get-ChildItem dist-next\METIS-*-server-win64.zip | Select-Object -First 1
+          Expand-Archive $zip.FullName -DestinationPath C:\bundle-next
+          cd (Get-ChildItem C:\bundle-next -Directory | Select-Object -First 1).FullName
+          # Yeni paketin başlatıcısı kurulu sürümün farklı olduğunu görür ve yükseltir (upgrade.ps1: yedek → geçiş).
+          $p = Start-Process -FilePath .\METIS-Baslat.exe -Wait -PassThru -ArgumentList "-Onayla -TarayiciAcma -SonucDosyasi C:\baslat-yukselt.json"
+          Get-Content C:\baslat-yukselt.json
+          $s = Get-Content -Raw C:\baslat-yukselt.json | ConvertFrom-Json
+          if ($p.ExitCode -ne 0 -or $s.kurulu_surum -ne $s.paket_surumu) { throw "başlatıcı ile yükseltme başarısız" }
           $r = Invoke-WebRequest -UseBasicParsing -NoProxy http://127.0.0.1:8000/api/v1/health/ready
           if ($r.StatusCode -ne 200) { throw "yükseltme sonrası hazır değil" }
           (Get-Item C:\METIS\app\current).Target
@@ -210,7 +229,7 @@ jobs:
         run: |
           # Günlükleri sonraki adım için sakla (kaldırma C:\METIS'i siler).
           Copy-Item -Recurse C:\METIS\data\logs C:\metis-logs
-          cd "C:\bundle-next\METIS-2.0.0+ci2-server-win64"
+          cd (Get-ChildItem C:\bundle-next -Directory | Select-Object -First 1).FullName
           .\uninstall.ps1 -InstallRoot C:\METIS
           if (Get-Service metis-api, metis-worker -ErrorAction SilentlyContinue) { throw "servisler kaldırılmadı" }
           if (Get-ScheduledTask -TaskName "METIS*" -ErrorAction SilentlyContinue) { throw "zamanlanmış görevler kaldırılmadı" }

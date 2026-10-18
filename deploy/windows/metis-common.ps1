@@ -139,6 +139,23 @@ GRANT USAGE ON SCHEMA public TO metis_app;
   Write-Host "  roller metis_owner (migration/yedek) ve metis_app (çalışma zamanı) hazır; veritabanı 'metis'."
 }
 
+function Get-SetupCode([string]$AppDir) {
+  # Tek kullanımlık ilk yönetici kodu (XXXX-XXXX-XXXX-XXXX). Yönetici zaten varsa boş döner.
+  $out = Invoke-Metis -AppDir $AppDir -Arguments @("setup-code") -AllowFailure
+  $m = $out | ForEach-Object { "$_".Trim() } | Where-Object { $_ -match '^[A-Z2-9]{4}(-[A-Z2-9]{4}){3}$' } | Select-Object -Last 1
+  if ($m) { return [string]$m }
+  return ""
+}
+
+function Write-PublicUrlFile([string]$InstallRoot, [string]$EnvFile) {
+  # Başlatıcı, yönetici izni olmadan hangi adresi açacağını buradan okur (metis.env yalnız yöneticilere açık).
+  # Gizli değildir: yalnız METIS_PUBLIC_URL.
+  $line = Get-Content $EnvFile | Where-Object { $_ -like "METIS_PUBLIC_URL=*" } | Select-Object -First 1
+  if ($line) {
+    [IO.File]::WriteAllText((Join-Path $InstallRoot "adres.txt"), $line.Substring("METIS_PUBLIC_URL=".Length).Trim())
+  }
+}
+
 function Protect-ConfigDir([string]$Dir) {
   # SID'ler dil bağımsızdır (Türkçe Windows'ta 'Yöneticiler'). Kalıtım kaldırılır: yalnız SYSTEM + Administrators.
   & icacls $Dir /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" | Out-Null

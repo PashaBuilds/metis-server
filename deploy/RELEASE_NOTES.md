@@ -4,6 +4,18 @@ METIS v2 sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-s
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**rc.7 — çift tıklanabilir başlatıcı (METIS-Baslat.exe):**
+- Paket klasöründeki `METIS-Baslat.exe`'ye çift tıklamak yeterli; PowerShell komutu yazmak gerekmez. İlk açılışta onay
+  ister, yönetici izni alır, deneme modunda kurar (yalnız bu bilgisayardan, http://localhost:8000), PostgreSQL parolasını
+  bir kez sorar, isterse kurgusal örnek içerik ekler ve Chrome'u (yoksa varsayılan tarayıcıyı) kurulum kodu **hazır**
+  olarak açar. Sonraki açılışlarda METIS'i (kapalıysa başlatıp) açar; yeni sürümün exe'si yükseltmeyi önerir.
+- PostgreSQL 16 kurulu değilse ne yapılacağını söyler (PostgreSQL'i bu paket kurmaz).
+- Exe imzasızdır: Windows "bilgisayarınızı korudu" derse "Ek bilgi → Yine de çalıştır". Şirket bilgisayarında BT
+  engelliyorsa KURULUM.md'deki komutla kurulum aynen geçerli.
+- Düzeltme: paket sürümü artık ön sürüm adını taşır (`METIS-2.0.0-rc.7-server-win64.zip`); önceden tüm rc'ler "2.0.0"
+  olduğundan `upgrade.ps1` rc'ler arası yükseltmeyi "zaten kurulu" sanıp atlıyordu.
+- Ağ üzerinden erişilecek sunucu kurulumu (IIS + sertifika) değişmedi; exe o kurulumda da sonraki açılışlarda doğru adresi açar.
+
 **rc.6 — gerçek modelle (DeepSeek) doğrulama ve düzeltmeler:**
 - Herkese açık DeepSeek API'siyle (V4.1 Flash ve V4 Pro), yalnız kurgusal veriyle uçtan uca denendi: bağlantı testi,
   benchmark, Mentor, Metis görevleri, bakım taraması, yayın öncesi kontrol, 60 eşzamanlı istek ve hata durumları.
@@ -65,9 +77,10 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
   beklenmeyen hatalarda hata kimliği gösterilir.
 - rc.2'de veritabanı şeması değişmedi.
 
-**Kendi bilgisayarında deneme (Windows 10/11, IIS olmadan):** yönetici PowerShell ile
-`powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl http://localhost:8000 -AllowHttp`,
-sonra tarayıcıda `http://localhost:8000`. Örnek içerik: `C:\METIS\bin\metis demo`. Kaldırma: `uninstall.ps1 -RemoveAll`.
+**Kendi bilgisayarında deneme (Windows 10/11, IIS olmadan):** PostgreSQL 16'yı kur, ZIP'i aç, `METIS-Baslat.exe`'ye çift
+tıkla. Komutla kurulum: yönetici PowerShell ile
+`powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl http://localhost:8000 -AllowHttp`.
+Kaldırma: `uninstall.ps1 -RemoveAll`.
 
 **Doğrulama:** bu paket CI'da Windows Server 2022 üzerinde ağ kapalıyken kuruldu; giriş, servis yeniden başlatma, yedek,
 geri yükleme tatbikatı, örnek içerik, yükseltme ve kaldırma denendi.
