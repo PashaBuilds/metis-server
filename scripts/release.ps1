@@ -30,7 +30,10 @@ $Py = Join-Path $Root ".venv\Scripts\python.exe"
 $Candidate = Join-Path $Root "dist\aday.json"
 
 function Invoke-Native([string]$Exe, [string[]]$Arguments) {
-  & $Exe @Arguments
+  # Windows PowerShell 5.1: Stop + yönlendirilmiş stderr sonlandırıcı hata olur (pip/npm/gh stderr'e de yazar);
+  # yerel araçlarda yalnız çıkış koduna bakılır. Değişken bu işlevin kapsamındadır.
+  $ErrorActionPreference = "Continue"
+  & $Exe @Arguments 2>&1 | ForEach-Object { "$_" }
   if ($LASTEXITCODE -ne 0) { throw "başarısız ($LASTEXITCODE): $Exe $($Arguments -join ' ')" }
 }
 
@@ -42,7 +45,7 @@ function Get-Sha256([string]$Path) {
 function Assert-PushedMain {
   if (git status --porcelain) { throw "Çalışma ağacı temiz değil; önce commit + push et." }
   if ((git rev-parse --abbrev-ref HEAD) -ne "main") { throw "main dalında değilsin." }
-  Invoke-Native git @("fetch", "-q", "origin", "main")
+  Invoke-Native git @("fetch", "-q", "origin", "main") | Out-Null
   $head = (git rev-parse HEAD).Trim()
   if ($head -ne (git rev-parse origin/main).Trim()) { throw "HEAD origin/main ile aynı değil; önce push et (release o commit'e bağlanır)." }
   return $head
@@ -51,7 +54,8 @@ function Assert-PushedMain {
 function Get-ReleaseTag {
   $tag = (Get-Content (Join-Path $Root "deploy\RELEASE") -TotalCount 1).Trim()
   if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw "deploy/RELEASE geçersiz: $tag" }
-  gh release view $tag 2>$null | Out-Null
+  $ErrorActionPreference = "Continue"  # yayımlanmamışsa gh stderr'e 'release not found' yazar
+  gh release view $tag *> $null
   if ($LASTEXITCODE -eq 0) { throw "$tag zaten yayımlanmış; deploy/RELEASE ve __version__'ı yükselt." }
   return $tag
 }
