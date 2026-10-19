@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   METIS sürümünü yerel Windows bilgisayarda derler ve (gerçek Windows'ta denendikten sonra) GitHub release'e koyar.
 
@@ -6,11 +6,12 @@
   Yayımlanan ZIP, CI'da değil bu bilgisayarda derlenip çift tıklamayla denenmiş ZIP'in kendisidir.
 
     1. powershell -ExecutionPolicy Bypass -File scripts\release.ps1 -Derle
-         main temiz ve origin/main ile aynı mı, sürüm daha önce yayımlanmış mı denetlenir; ruff + pytest (yerel
-         PostgreSQL, masaüstü testi dahil) çalışır; paket dist\ altına derlenir; ZIP'in SHA-256'sı dist\aday.json'a yazılır.
+         main temiz ve origin/main ile aynı mı, sürüm daha önce yayımlanmış mı denetlenir; ruff, eslint, OpenAPI
+         sözleşmesi ve tam pytest (yerel PostgreSQL, masaüstü testi dahil) çalışır — CI yok, tek doğrulama budur;
+         paket dist\ altına derlenir (tsc + vite dahil); ZIP'in SHA-256'sı dist\aday.json'a yazılır.
     2. ZIP'i ayrı bir klasöre aç, METIS-Baslat.exe'ye çift tıkla (kurulum/yükseltme, Chrome, sol menüde sürüm).
     3. powershell -ExecutionPolicy Bypass -File scripts\release.ps1 -Yayimla
-         Aday ZIP değişmemiş mi, commit hâlâ origin/main mi, o commit'te CI yeşil mi denetlenir; gh release create ile
+         Aday ZIP değişmemiş mi, commit hâlâ origin/main mi denetlenir; gh release create ile
          etiket (sunucu tarafında) ve release oluşturulur, yüklenen dosyanın özeti karşılaştırılır.
 
   Önkoşul: gh auth login, .venv, npm install, PostgreSQL 16 (METIS_TEST_ADMIN_DSN; CLAUDE.md "Windows'ta").
@@ -68,6 +69,13 @@ if ($Derle) {
   $version = $tag.Substring(1)
   Write-Host "==> $tag ($commit) denetimler" -ForegroundColor Cyan
   Invoke-Native $Py @("-m", "ruff", "check", "services", "tests", "evals", "deploy")
+  Invoke-Native npm @("run", "lint", "--workspace", "apps/web")
+  # OpenAPI sözleşmesi: apps/web/openapi.json sunucunun ürettiğiyle aynı olmalı (arayüz tipleri ondan üretilir).
+  $oapi = Join-Path $env:TEMP "metis-openapi-check.json"
+  $env:METIS_ENV = "development"
+  Invoke-Native $Py @("scripts\export_openapi.py", $oapi) | Out-Null
+  Remove-Item Env:METIS_ENV
+  if ((Get-Content -Raw $oapi) -ne (Get-Content -Raw (Join-Path $Root "apps\web\openapi.json"))) { throw "apps/web/openapi.json güncel değil: scripts/export_openapi.py ve openapi-typescript çalıştır." }
   if (-not $env:METIS_TEST_ADMIN_DSN) { $env:METIS_TEST_ADMIN_DSN = "postgresql://metisdev:metis-dev@127.0.0.1:5432/postgres" }
   $env:METIS_PG_BIN = $PgBin
   $env:Path = "$PgBin;$env:Path"  # testler pg_dump'ı PATH'te arar
@@ -94,10 +102,6 @@ $tag = Get-ReleaseTag
 if ($tag -ne $info.tag) { throw "Aday $($info.tag), deploy/RELEASE $tag." }
 $zip = Join-Path $Root "dist\$($info.zip)"
 if ((Get-Sha256 $zip) -ne $info.sha256) { throw "ZIP denendikten sonra değişmiş; yeniden -Derle." }
-$runs = gh run list --workflow CI --commit $commit --json conclusion,status,url | ConvertFrom-Json
-if (-not $runs -or @($runs | Where-Object { $_.conclusion -eq "success" }).Count -eq 0) {
-  throw "Bu commit'te yeşil CI koşusu yok (Linux + Windows testleri). Bitmesini bekle: gh run watch"
-}
 $notes = Join-Path $Root "deploy\RELEASE_NOTES.md"
 $ghArgs = @("release", "create", $tag, $zip, "$zip.sha256", "--target", $commit, "--title", "METIS $tag", "--notes-file", $notes)
 Write-Host "==> gh $($ghArgs -join ' ')" -ForegroundColor Cyan

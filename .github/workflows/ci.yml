@@ -8,10 +8,10 @@ name: CI
 # Release CI'da derlenmez/yayımlanmaz (ürün sahibinin kararı, 2026-10-18): yayımlanan ZIP, yerel Windows'ta derlenip
 # çift tıklamayla denenmiş ZIP'in kendisidir (scripts/release.ps1). Windows işi yalnız testtir: temiz Windows
 # Server'da ağ kapalı kurulum, yükseltme, yedek ve kaldırma. scripts/release.ps1 bu commit'te CI yeşil olmadan yayımlamaz.
+# Ürün sahibinin kararı (2026-10-19): push'ta otomatik CI yok; doğrulama yerel derlemede (scripts/release.ps1 -Derle:
+# ruff, eslint, OpenAPI sözleşmesi, tam pytest, paket). Bu iş akışı yalnız elle (Actions → CI → Run workflow)
+# çalıştırılır: uçtan uca Playwright (Linux) ve temiz Windows Server'da çevrimdışı kurulum/yükseltme denemesi.
 on:
-  push:
-    branches: [main]
-    paths-ignore: ["docs/**", "**/*.md"]
   workflow_dispatch:
 
 concurrency:

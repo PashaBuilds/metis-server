@@ -20,7 +20,8 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
 - Gerçek bir Active Directory ile **henüz denenmedi** (kurgusal dizinle testler ve https geliştirme sunucusunda uçtan uca
   akış). Şema 0007. Bu ZIP yerel Windows 10 bilgisayarda derlendi; çift tıklamada yükseltme sorusu denendi; yükseltmenin
   kendisi o bilgisayarda **denenmedi** (ajan Windows yönetici iznini onaylayamaz; ürün sahibinin "beklemeden yayımla"
-  kararıyla istisna); temiz Windows Server 2022'de kurulum, yükseltme ve kaldırma CI'da.
+  kararıyla istisna). Temiz Windows Server 2022'de kurulum, yükseltme ve kaldırma bu sürümün kodu için CI'da denendi
+  (1049c10; sonraki commit yalnız API sözleşme dosyasını günceller). Bundan sonra otomatik CI yok: doğrulama yerel derlemede.
 
 **2.0.14 — Model laboratuvarı herkese salt okunur:**
 - Yönetici olmayan kullanıcılar da sol menüde **Model laboratuvarı**'nı görür: eklenen modeller, uygunluk durumu,
