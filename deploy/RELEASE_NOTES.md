@@ -12,7 +12,9 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
 - Güvenlik kuralları aynı: yalnız yöneticiler izin verir; yalnız iç ağ adreslerine izin verilir; sunucu kurulumunda
   adres `https://` olmalı; her izin denetim kaydına yazılır ve yedekle taşınır.
 - Şema 0005 (izinli adresler tablosu); yükseltme geçişi kendiliğinden uygular.
-- Bu ZIP yerel Windows 10 bilgisayarda derlendi ve çift tıklamayla 2.0.8 → 2.0.9 yükseltmesiyle denendi.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi; çift tıklamada yükseltme sorusu ve yönetici izni verilmediğindeki
+  davranış denendi. Yükseltmenin kendisi (2.0.8 → 2.0.9) o bilgisayarda **denenmedi** (ürün sahibinin kararıyla
+  istisna); temiz Windows Server 2022'de kurulum, yükseltme ve kaldırma CI'da denendi.
 
 **2.0.8 — başlatıcı düzeltmesi (çift tıklayınca "hiçbir şey olmuyordu"):**
 - Düzeltme: 2.0.7'de `METIS-Baslat.exe` çalışıyordu ama soruları ("yükseltilsin mi?", "kurulsun mu?") açık
