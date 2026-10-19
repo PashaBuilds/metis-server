@@ -226,6 +226,8 @@ class Evidence(Base):
 
 class Page(Base):
     __tablename__ = "pages"
+    # Not tabanlı bilgi (2026-10-19): sayfanın dayanağı olan uzman notu kaynağı (1:1). Eski sayfalarda boş.
+    note_source_id: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, ForeignKey("sources.id"), nullable=True, index=True)
     id: Mapped[uuid.UUID] = pk()
     project_id: Mapped[uuid.UUID] = fk("projects.id")
     kind: Mapped[str] = mapped_column(String(30), nullable=False, default="concept")

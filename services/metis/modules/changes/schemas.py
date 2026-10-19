@@ -37,6 +37,8 @@ class FigureIn(BaseModel):
 
 
 class ItemIn(BaseModel):
+    # Not tabanlı öğe: gövde (body_md) bilginin dayanağıdır; iddialar sunucuda nottan üretilir, `claims` boş olmalı.
+    note: bool = False
     page_id: uuid.UUID | None = None
     base_revision_id: uuid.UUID | None = None
     action: Literal["upsert", "withdraw"] = "upsert"

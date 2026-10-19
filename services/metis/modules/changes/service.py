@@ -41,6 +41,7 @@ from metis.modules.changes import schemas
 from metis.modules.knowledge import publish as publisher
 from metis.modules.knowledge.figures import figure_refs
 from metis.modules.knowledge.views import RevisionView, revision_views
+from metis.modules.notes.service import materialize_note
 from metis.modules.scopes.semantics import DIMENSIONS, WILDCARD, canonical, normalize_scope, same_scope
 from metis.modules.scopes.service import lock_project, validate_selection
 
@@ -180,6 +181,10 @@ def _validate_item(db: Session, actor: User, project_id: uuid.UUID, item: schema
     if not item.title.strip():
         raise AppError("VALIDATION_ERROR", "title required", fields=[{"field": "title", "type": "missing"}])
     scope = validate_selection(db, project_id, item.scope.model_dump())
+    if item.note and item.claims:
+        raise AppError(
+            "VALIDATION_ERROR", "note items derive claims from the note", fields=[{"field": "claims", "type": "not_allowed"}]
+        )
     for claim in item.claims:
         if not claim.evidence:
             raise AppError(
@@ -350,6 +355,9 @@ def _write_contents(
             )
             seen.add(page.id)
             continue
+        if item.note:
+            page, claims = materialize_note(db, author, change.project_id, page, item, scope)
+            item = item.model_copy(update={"claims": claims})
         page, rev = _write_revision(db, author, change.project_id, page, item, scope)
         seen.add(page.id)
         db.add(

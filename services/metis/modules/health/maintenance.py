@@ -85,7 +85,7 @@ def deterministic_scan(db: Session, project_id: uuid.UUID, actor: uuid.UUID | No
             if deleted is not None:
                 if _open_finding(db, project_id, "broken_ref", fingerprint("broken_source", page.id, src_id), [page.id], "high", {"page_title": rev.title, "source_title": title, "reason": "source_deleted"}, actor):
                     counts["broken_ref"] += 1
-            elif current_no > src_rev_no:
+            elif current_no > src_rev_no and src_id != page.note_source_id:  # kendi notunun yeni taslağı değişiklik sayılmaz
                 if _open_finding(db, project_id, "source_changed", fingerprint("source_changed_scan", page.id, src_id, current_no), [page.id], "medium", {"page_title": rev.title, "source_id": str(src_id), "source_title": title, "new_revision_number": current_no}, actor):
                     counts["source_changed"] += 1
     if project.active_publication_id:

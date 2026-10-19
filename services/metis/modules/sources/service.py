@@ -357,8 +357,12 @@ def list_sources(
 ) -> schemas.SourceListOut:
     require_member(db, user, project_id)
     readable = readable_source_ids(db, user, project_id)
+    note_sources = select(Page.note_source_id).where(Page.note_source_id.is_not(None))
     stmt = select(Source).where(
-        Source.project_id == project_id, Source.deleted_at.is_(None), Source.id.in_(readable or [uuid.uuid4()])
+        Source.project_id == project_id,
+        Source.deleted_at.is_(None),
+        Source.id.in_(readable or [uuid.uuid4()]),
+        Source.id.not_in(note_sources),  # not tabanlı bilgilerin notları ayrı kaynak olarak listelenmez
     )
     if q:
         stmt = stmt.where(Source.title.ilike(f"%{q.replace('%', '').replace('_', ' ')}%"))

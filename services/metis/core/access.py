@@ -79,8 +79,31 @@ def can_read_source(db: Session, user: User, source: Source | None) -> bool:
         return False
     if not effective_roles(db, user, source.project_id):
         return False
+    if not _note_draft_visible(db, user, source.id, source.owner_id, source.project_id):
+        return False
     acl = db.scalars(select(SourceAcl.user_id).where(SourceAcl.source_id == source.id)).all()
     return not acl or user.id in acl or source.owner_id == user.id
+
+
+NOTE_DRAFT_READERS = {"steward", "reviewer"}
+
+
+def _unpublished_note_sources(db: Session, project_id: uuid.UUID) -> set[uuid.UUID]:
+    """Henüz yayımlanmamış not tabanlı sayfaların not kaynakları (taslak)."""
+    return set(
+        db.scalars(
+            select(Page.note_source_id).where(
+                Page.project_id == project_id, Page.note_source_id.is_not(None), Page.published_revision_id.is_(None)
+            )
+        )
+    )
+
+
+def _note_draft_visible(db: Session, user: User, source_id: uuid.UUID, owner_id: uuid.UUID, project_id: uuid.UUID) -> bool:
+    """Yayımlanmamış notun kaynağını yalnız yazarı, steward ve reviewer okur (bağımsız incelemede taslak açılabilsin)."""
+    if source_id not in _unpublished_note_sources(db, project_id) or owner_id == user.id:
+        return True
+    return bool(effective_roles(db, user, project_id) & NOTE_DRAFT_READERS)
 
 
 def source_for_revision(db: Session, revision_id: uuid.UUID) -> tuple[SourceRevision | None, Source | None]:
@@ -141,7 +164,14 @@ def readable_source_ids(db: Session, user: User, project_id: uuid.UUID) -> set[u
     acl: dict[uuid.UUID, set[uuid.UUID]] = {}
     for sid, uid in acl_rows:
         acl.setdefault(sid, set()).add(uid)
-    return {sid for sid, owner in sources if sid not in acl or user.id in acl[sid] or owner == user.id}
+    hidden = set()
+    if not (effective_roles(db, user, project_id) & NOTE_DRAFT_READERS):
+        hidden = _unpublished_note_sources(db, project_id)
+    return {
+        sid
+        for sid, owner in sources
+        if (sid not in acl or user.id in acl[sid] or owner == user.id) and (sid not in hidden or owner == user.id)
+    }
 
 
 def unreadable_revisions(
