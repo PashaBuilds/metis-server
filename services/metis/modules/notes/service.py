@@ -45,6 +45,63 @@ def _span_evidence(db: Session, rev: SourceRevision, start: int, end: int) -> Ev
     return ev
 
 
+def convert_standalone_sources(db: Session) -> int:
+    """Eski yöntemden kalan bağımsız kaynakları (hiçbir bilgiye dayanak olmamış) yazarı adına not taslağına çevirir.
+
+    Metin → not; görsel/PDF dosyası → ek. Kaynak silinmez. İdempotent: dönüştürülen kaynak taslağın
+    `detail.converted_from_source` alanında işaretlenir. Dönüştürülemeyen kaynak (ör. yazarın artık katkı rolü yok)
+    atlanır ve olduğu gibi kalır. Dönen: oluşturulan taslak sayısı.
+    """
+    from metis.core.errors import AppError
+    from metis.core.models import Attachment, ChangeSet, Claim, ClaimEvidence, PageRevisionFigure
+    from metis.modules.changes.service import create_change
+    from metis.modules.scopes.schemas import ScopeIn
+
+    used = (
+        set(db.scalars(select(Page.note_source_id).where(Page.note_source_id.is_not(None))))
+        | set(
+            db.scalars(
+                select(SourceRevision.source_id)
+                .join(Evidence, Evidence.source_revision_id == SourceRevision.id)
+                .join(ClaimEvidence, ClaimEvidence.evidence_id == Evidence.id)
+                .join(Claim, Claim.id == ClaimEvidence.claim_id)
+            )
+        )
+        | set(db.scalars(select(SourceRevision.source_id).join(PageRevisionFigure, PageRevisionFigure.source_revision_id == SourceRevision.id)))
+    )
+    done = {c.detail.get("converted_from_source") for c in db.scalars(select(ChangeSet)) if c.detail.get("converted_from_source")}
+    created = 0
+    for source in db.scalars(select(Source).where(Source.deleted_at.is_(None)).order_by(Source.created_at)).all():
+        if source.id in used or str(source.id) in done:
+            continue
+        rev = current_revision(db, source)
+        author = db.get(User, source.owner_id)
+        if rev is None or author is None:
+            continue
+        try:
+            with db.begin_nested():  # başarısızlıkta ek satırı da geri alınır
+                attachments = []
+                if rev.media_type.startswith("image/") or rev.media_type == "application/pdf":
+                    att = Attachment(
+                        project_id=source.project_id,
+                        uploader_id=author.id,
+                        sha256=rev.sha256,
+                        filename=rev.filename,
+                        media_type=rev.media_type,
+                        size_bytes=rev.size_bytes,
+                    )
+                    db.add(att)
+                    db.flush()
+                    attachments.append(att.id)
+                item = schemas.ItemIn(note=True, title=source.title, body_md=rev.text, scope=ScopeIn(**rev.scope), attachments=attachments)
+                change = create_change(db, author, source.project_id, schemas.ChangeCreateIn(summary=source.title, items=[item]))
+        except AppError:
+            continue
+        change.detail = {**change.detail, "converted_from_source": str(source.id)}
+        created += 1
+    return created
+
+
 def materialize_note(
     db: Session, author: User, project_id: uuid.UUID, page: Page | None, item: schemas.ItemIn, scope: dict
 ) -> tuple[Page, list[schemas.ClaimIn]]:

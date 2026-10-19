@@ -25,7 +25,15 @@ def cmd_migrate(args: argparse.Namespace) -> int:
     from alembic import command
 
     command.upgrade(_alembic_config(args.url), args.revision)
-    print(json.dumps({"migrated_to": args.revision}))
+    out: dict = {"migrated_to": args.revision}
+    if args.revision == "head":
+        # 2026-10-19: eski yöntemden kalan bağımsız kaynaklar not taslağına dönüşür (veri silinmez; idempotent).
+        from metis.core.db import transaction
+        from metis.modules.notes.service import convert_standalone_sources
+
+        with transaction() as db:
+            out["converted_sources"] = convert_standalone_sources(db)
+    print(json.dumps(out))
     return 0
 
 
