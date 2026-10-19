@@ -119,15 +119,13 @@ const mapRoute = createRoute({
   component: () => <Lazy><MapPage /></Lazy>,
 });
 export interface ContributeSearch {
-  source?: string;
   page?: string;
-  answer?: string;
   change?: string;
 }
 const contributeRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/katki',
-  validateSearch: (s: Record<string, unknown>): ContributeSearch => ({ source: str(s.source), page: str(s.page), answer: str(s.answer), change: str(s.change) }),
+  validateSearch: (s: Record<string, unknown>): ContributeSearch => ({ page: str(s.page), change: str(s.change) }),
   component: ContributePage,
 });
 const recordsRoute = createRoute({

@@ -90,12 +90,8 @@ test('Lab: sağlayıcı ekle, test et, benchmark → mentor kaynaklı cevap ve �
   await expect(answer.getByText('evidence-explain-v1')).toBeVisible();
   await expect(answer.getByText('fixture-reference', { exact: true })).toBeVisible();
 
-  // 8) "Bu cevaptan bilgi taslağı öner" → katkı sayfası cevabın alıntılarıyla dolar.
-  await answer.getByRole('button', { name: 'Bu cevaptan bilgi taslağı öner' }).click();
-  await expect(page).toHaveURL(/\/katki\?answer=/);
-  await expect(page.getByText(/Mentor cevabının kaynak alıntılarından başlıyorsun/)).toBeVisible();
-  await expect(page.getByRole('textbox', { name: 'İddia 1' })).toHaveValue(SPI_QUOTE);
-  await expect(page.getByLabel('Başlık')).toHaveValue('SPI saat bölücü kaç?');
+  // 8) Cevaptan taslak önerisi 2026-10-19'da kalktı: model metni uzman notu olamaz.
+  await expect(answer.getByRole('button', { name: 'Bu cevaptan bilgi taslağı öner' })).toHaveCount(0);
 });
 
 test('Uygun olmayan model seçilince sessiz geçiş yok: neden yazılır, alternatif önerilmez', async ({ page }) => {

@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
-import { ChevronRight, FilePlus2, GitFork, RotateCcw, SlidersHorizontal, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { ChevronRight, GitFork, RotateCcw, SlidersHorizontal, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { Button } from '@/design/primitives';
 import { EvidenceStripe, ViaMark, type IzTarget } from '@/design/iz';
@@ -62,8 +62,6 @@ interface Props {
 }
 
 export function AnswerView({ answer, live, onReask }: Props) {
-  const session = useSession();
-  const navigate = useNavigate();
   const answered = ANSWERED.has(answer.decision) && answer.citations.length > 0;
   const byN = new Map(answer.citations.map((c) => [c.n, c]));
   let ignite = 0;
@@ -172,14 +170,6 @@ export function AnswerView({ answer, live, onReask }: Props) {
 
       <div className={s.answerFoot}>
         <Feedback answerId={answer.id} />
-        {answered && session.roles.has('contributor') && (
-          <div className={s.draftCta}>
-            <Button icon={<FilePlus2 size={16} aria-hidden />} onClick={() => navigate({ to: '/katki', search: { answer: answer.id } })}>
-              {tr.mentor.draftFromAnswer}
-            </Button>
-            <p className={s.hint}>{tr.mentor.draftHint}</p>
-          </div>
-        )}
       </div>
 
       <ProductionRecord answer={answer} />

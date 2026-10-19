@@ -1,15 +1,22 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { expect, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, type APIRequestContext } from '@playwright/test';
 
 export const ROOT = path.resolve(__dirname, '../..');
 export const BASE = 'http://localhost:8001';
 export const ADMIN = { username: 'yonetici', password: 'E2e-Yonetici-Parola-2026', name: 'E2E Yönetici' };
 export const PROJECT = 'E2E projesi';
-export const SOURCE_TITLE = 'E2E kesme notu';
+export const NOTE_TITLE = 'AXI kesme maskesi';
 export const QUOTE = 'Kesme maskesi IMR kaydında tutulur.';
-export const NOTE = `AXI kesme yönetimi — kurgusal uzman notu\n\nKöprü MSI kesmelerini IntrEnable çağrısıyla etkinleştirir.\n${QUOTE}\nISR içinde yalnız durum bitleri temizlenir.`;
+
+/** Kurgusal ekler: yalnız imza denetlenir; görsel gerçekten çizilebilsin diye geçerli küçük bir PNG. */
+export const PNG_FILE = { name: 'zamanlama.png', mimeType: 'image/png', buffer: fs.readFileSync(path.join(__dirname, 'fixtures', 'kurgusal-kart.png')) };
+export const PDF_FILE = {
+  name: 'olcum-raporu.pdf',
+  mimeType: 'application/pdf',
+  buffer: Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'),
+};
 
 /** e2e-server.sh'in yazdığı ortam (aynı veritabanı) ile metis setup-code çalıştırır. */
 export function setupCode(): string {
@@ -57,27 +64,4 @@ export async function createMember(adminRequest: APIRequestContext, projectId: s
   const user = await apiCall<{ id: string }>(adminRequest, 'POST', '/users', { username, display_name: displayName, temporary_password: tempPassword, is_admin: false });
   await apiCall(adminRequest, 'PUT', `/projects/${projectId}/members`, { user_id: user.id, roles });
   return user;
-}
-
-/** Kaynak görüntüleyicide verilen metni seçer (gerçek kullanıcı seçimi gibi Selection API ile). */
-export async function selectInViewer(page: Page, text: string) {
-  const viewer = page.getByTestId('source-viewer');
-  await expect(viewer).toContainText(text);
-  await viewer.evaluate((el, needle) => {
-    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      const idx = node.textContent?.indexOf(needle) ?? -1;
-      if (idx >= 0) {
-        const range = document.createRange();
-        range.setStart(node, idx);
-        range.setEnd(node, idx + needle.length);
-        const sel = window.getSelection()!;
-        sel.removeAllRanges();
-        sel.addRange(range);
-        return;
-      }
-    }
-    throw new Error('metin bulunamadı');
-  }, text);
 }

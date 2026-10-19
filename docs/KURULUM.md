@@ -163,19 +163,13 @@ Betik önce yedek alır; yeni sürümü eskisinin yanına kurar (servisler çal�
 Hata olursa önceki sürüme döner. Şema yükseltmesi uygulandıktan sonra hata olduysa eski sürümle çalışmak için
 yükseltme öncesi yedeği (ekrana yazılır) boş bir veritabanına geri yükle. En yeni iki sürüm saklanır.
 
-## 10. v0.5.5 verisini aktarma
+## 10. Bilgi ekleme (2.0.10'dan beri)
 
-Yalnız **boş** bir kurulumda (ilk yöneticiyi oluşturmadan önce) yapılır:
-
-1. v0.5.5 masaüstü uygulamasında **Yedek al** ile şifreli yedek dosyası üret, parolasını bil.
-2. Dosyayı sunucuya kopyala. Önce deneme:
-   `C:\METIS\bin\metis import-v1 D:\Aktarim\metis-yedek.metisbackup --dry-run --report-dir D:\Aktarim\rapor`
-   Parola sorulur (komut satırına yazılmaz, loglanmaz). Raporu oku (`.md`): satır sayıları, atlanan kayıtlar,
-   doğrulama sonuçları, notlar.
-3. Rapor uygunsa aynı komutu `--dry-run` olmadan çalıştır. Aktarım tek transaction'dır; hata olursa hiçbir şey
-   değişmez. Raporlar Ayarlar → v0.5.5 aktarımı ekranında da görünür.
-4. Eski kullanıcılar eski parolalarıyla girer (ilk girişte parola güvenli biçimde yeniden hash'lenir).
-5. Modeller "test edilmedi" durumunda gelir: Model laboratuvarında test ve benchmark çalıştır.
+**Yeni katkı → Taslak hazırla**: başlık, kapsam ve not; isteğe bağlı birden çok görsel (PNG/JPEG) ya da PDF eki.
+Not bilginin dayanağıdır (uzman beyanı); Metis yalnız notu okur, ekleri okumaz — ekler bilgiyle birlikte saklanır ve
+açılır. Taslak kaydedilir, Kayıtlar'dan açılıp geliştirilir; **Yayımla** ile bilgi havuzuna girer (yayın öncesi
+çelişki/tekrar kontrolüyle). v0.5.5 aktarımı ve "önce kaynak ekle, sonra alıntı seç" yöntemi 2.0.10'da kaldırıldı;
+yükseltmede hiçbir bilgiye bağlanmamış eski kaynaklar kendiliğinden taslağa dönüşür (metin → not, dosya → ek).
 
 ## 11. Sorun giderme
 
@@ -214,21 +208,15 @@ Windows 10 veya 11 (64 bit) bir bilgisayarda, IIS ve sertifika olmadan, yalnız 
      BT engelliyorsa aşağıdaki "Komutla kurulum"u kullan).
    - "METIS kurulacak, devam?" → **Evet** → yönetici izni (UAC) → **Evet**.
    - Açılan pencerede PostgreSQL `postgres` parolasını bir kez yaz (görünmez, kaydedilmez); kurulum birkaç dakika sürer.
-   - "Kurgusal örnek içerik eklensin mi?" → deneme için **Evet**, şirketin gerçek bilgileri için **Hayır**.
    - Chrome (yoksa varsayılan tarayıcı) kurulum sayfasıyla açılır; **kurulum kodu hazır gelir**. Adını, kullanıcı adını,
      parolanı ve proje adını yazıp yönetici hesabını oluştur.
 4. Sonraki her açışta `METIS-Baslat.exe` METIS'i (kapalıysa başlatıp) tarayıcıda açar. Yeni sürümün paketindeki
    `METIS-Baslat.exe` kurulu sürümü görür ve **yükseltmeyi önerir** (önce yedek alınır, sorun olursa geri döner).
-5. Kurgusal örnek içerik: Gömülü yazılım konulu sayfalar (yazarlarınca yayımlanmış, biri metin içi görselli),
-   kaynaklar, yarım bir taslak, yayımlanırken bilerek geçilmiş bir çelişki (Bilgi sağlığında) ve örnek kullanıcılar
-   (`baris`, `deniz`, `ece`; parola `Kurgusal-Parola-2026`) oluşur. `deniz` ile girince ana sayfada "Bilgilerin
-   güncellendi" örneği görünür (Barış onun bir bilgisini güncelledi). Hepsi kurgusaldır ve ekranda öyle işaretlenir.
-   Not: demo kendi kurgusal model sunucusunu bulamazsa ("atlandı") Mentor ve yapay zekâ kontrolü modelsiz kalır.
-6. Denemen bitince: `powershell -ExecutionPolicy Bypass -File .\uninstall.ps1 -RemoveAll`.
+5. Denemen bitince: `powershell -ExecutionPolicy Bypass -File .\uninstall.ps1 -RemoveAll`.
 
 Komutla kurulum (exe kullanılamazsa): PowerShell'i **Yönetici olarak** aç, paket klasörüne geç ve
 `powershell -ExecutionPolicy Bypass -File .\install-offline.ps1 -PublicUrl http://localhost:8000 -AllowHttp` çalıştır;
-ekrana yazılan kurulum kodunu `http://localhost:8000` adresinde gir. Örnek içerik için `C:\METIS\bin\metis demo`.
+ekrana yazılan kurulum kodunu `http://localhost:8000` adresinde gir.
 
 Bilmen gerekenler:
 - `METIS-Baslat.exe` yalnız bu bilgisayardan erişilen **deneme kurulumunu** yapar. Ekibin ağdan bağlanacağı sunucu

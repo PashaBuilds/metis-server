@@ -1,14 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Download, DatabaseBackup, FileArchive, Trash2 } from 'lucide-react';
+import { Download, DatabaseBackup, Trash2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button, Checkbox, ConfirmDialog, EmptyState, Field, Input, SkeletonRows, StatusBadge, useToast } from '@/design/primitives';
+import { Button, Checkbox, ConfirmDialog, Field, Input, SkeletonRows, StatusBadge, useToast } from '@/design/primitives';
 import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { api, ApiError, type Schemas } from '@/lib/api/client';
 import { formatBytes, formatDateTime, formatPercent } from '@/lib/format';
 import { Banner } from '@/features/shared/Banner';
 import { messageOf } from '@/features/shared/hooks';
-import { Markdown } from '@/features/shared/Markdown';
 import { ModelSelect, useAvailableModels } from '@/features/shared/models';
 import s from './Settings.module.css';
 
@@ -311,93 +310,5 @@ export function ExportTab() {
       )}
       <p className={s.hint}>{tr.settingsExtra.exportNote}</p>
     </section>
-  );
-}
-
-/* ---------------------------------------------------------- v0.5.5 aktarımı */
-
-type RunRow = Schemas['LegacyRunRow'];
-type RunDetail = Schemas['LegacyRunDetail'];
-
-export function ImportTab() {
-  const session = useSession();
-  const runs = useQuery({ queryKey: ['legacy-runs'], queryFn: () => api.get<RunRow[]>('/legacy-import/runs'), enabled: session.isAdmin, retry: false });
-  const [open, setOpen] = useState<string | null>(null);
-  if (!session.isAdmin) return <p className={s.hint}>{tr.settingsExtra.importAdminOnly}</p>;
-  if (runs.isLoading) return <SkeletonRows rows={3} />;
-  if (!runs.data) return <LoadError error={runs.error} />;
-  const x = tr.settingsExtra;
-  if (runs.data.length === 0)
-    return (
-      <EmptyState icon={<FileArchive size={24} />} title={x.importEmptyTitle}>
-        <p>{x.importEmpty}</p>
-        <pre className={s.cmd}>{'metis import-v1 <yedek> --dry-run\nmetis import-v1 <yedek>'}</pre>
-      </EmptyState>
-    );
-  return (
-    <section className={s.block} aria-labelledby="import-h">
-      <h2 id="import-h" className={s.blockTitle}>
-        {x.importRuns}
-      </h2>
-      <p className={s.hint}>{x.importLead}</p>
-      <ul className={s.opsRows}>
-        {runs.data.map((r) => {
-          const sum = r.summary;
-          const verified = typeof sum.verification_ok === 'boolean' ? sum.verification_ok : null;
-          const active = typeof sum.active_pages === 'number' ? sum.active_pages : null;
-          const isOpen = open === r.id;
-          return (
-            <li key={r.id} className={s.importRow}>
-              <div className={s.importHead}>
-                <span className={s.opsName}>{x.importMode[r.mode] ?? r.mode}</span>
-                <StatusBadge
-                  tone={r.state === 'completed' ? 'onay' : r.state === 'failed' ? 'celiski' : 'inceleme'}
-                  icon={r.state === 'running' ? 'spin' : undefined}
-                  size="sm"
-                  label={x.importStates[r.state] ?? r.state}
-                />
-                {verified !== null && <StatusBadge tone={verified ? 'onay' : 'celiski'} size="sm" label={verified ? x.importVerified : x.importUnverified} />}
-                {active !== null && <span className={s.hintInline}>{x.importActivePages(active)}</span>}
-                <span className={s.hintInline}>
-                  {x.importStarted}: {formatDateTime(r.started_at)}
-                </span>
-                {r.finished_at && (
-                  <span className={s.hintInline}>
-                    {x.importFinished}: {formatDateTime(r.finished_at)}
-                  </span>
-                )}
-                <button type="button" className={s.expand} aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.id)}>
-                  <ChevronDown size={15} aria-hidden className={isOpen ? s.chevOpen : undefined} />
-                  {isOpen ? x.importHide : x.importOpen}
-                </button>
-              </div>
-              {isOpen && <ImportReport id={r.id} sha={r.source_sha256} />}
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-function ImportReport({ id, sha }: { id: string; sha: string }) {
-  const q = useQuery({ queryKey: ['legacy-run', id], queryFn: () => api.get<RunDetail>(`/legacy-import/runs/${id}`) });
-  if (q.isLoading) return <SkeletonRows rows={4} />;
-  if (!q.data) return <LoadError error={q.error} />;
-  return (
-    <div className={s.report}>
-      {q.data.report_md ? <Markdown>{q.data.report_md}</Markdown> : <p className={s.hint}>{tr.common.none}</p>}
-      <details className={s.techDetails}>
-        <summary>{tr.common.technicalDetails}</summary>
-        <dl className={s.factList}>
-          <Fact label="SHA-256">
-            <span className="mono">{sha}</span>
-          </Fact>
-          <Fact label="ID">
-            <span className="mono">{id}</span>
-          </Fact>
-        </dl>
-      </details>
-    </div>
   );
 }

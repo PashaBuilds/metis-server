@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Download, FilePlus2, LocateFixed, PencilLine, X } from 'lucide-react';
+import { ChevronRight, Download, LocateFixed, PencilLine, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Button, IconButton } from '../primitives';
@@ -118,10 +118,6 @@ export function IzPanel({ mode }: { mode: 'docked' | 'overlay' }) {
                       {tr.iz.download}
                     </a>
                   )}
-                  <Link className={s.linkButton} to="/katki" search={{ source: data.source.id }}>
-                    <FilePlus2 size={15} aria-hidden />
-                    {tr.iz.newRevision}
-                  </Link>
                 </>
               )}
             </div>

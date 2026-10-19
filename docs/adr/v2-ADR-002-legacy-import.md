@@ -1,6 +1,6 @@
 # v2-ADR-002 — v0.5.5 verisinin aktarımı (`metis import-v1`)
 
-Tarih: 2026-10-10 · Durum: kabul edildi · Kod: `services/metis/legacy_import/` · Test: `tests/legacy_import/`
+Tarih: 2026-10-10 · Durum: **kaldırıldı (2026-10-19, ürün sahibinin kararı; 2.0.10)** — proje sıfırdan başlıyor, kod ve testler silindi; `legacy_import_runs` tablosu şemada duruyor · Kod: `services/metis/legacy_import/` · Test: `tests/legacy_import/`
 
 ## Bağlam
 Ürün sahibinin v0.5.5 masaüstü uygulamasındaki tüm bilgi v2 sunucusuna taşınmalı (brief 5.10). Girdi, v0.5.5'in "Yedek al"

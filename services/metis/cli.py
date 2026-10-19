@@ -1,4 +1,4 @@
-"""metis komut satırı: migrate | serve | worker | setup-code | admin | doctor | backup | restore | import-v1 | demo | mock-llm."""
+"""metis komut satırı: migrate | serve | worker | setup-code | admin | doctor | backup | restore | demo | mock-llm."""
 
 from __future__ import annotations
 
@@ -136,19 +136,6 @@ def cmd_restore(args: argparse.Namespace) -> int:
     result = rehearse_restore(archive) if args.rehearsal else restore_backup(archive)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result.get("ok") else 1
-
-
-def cmd_import_v1(args: argparse.Namespace) -> int:
-    from metis.legacy_import.runner import run_import
-
-    password = getpass.getpass("v0.5.5 yedek parolası: ")
-    result = run_import(
-        Path(args.backup), password, dry_run=args.dry_run, report_dir=Path(args.report_dir) if args.report_dir else None
-    )
-    print(result["summary"])
-    return 0 if result["ok"] else 1
-
-
 def cmd_demo(args: argparse.Namespace) -> int:
     from metis.seed.demo import create_demo_workspace
 
@@ -219,11 +206,6 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--rehearsal", action="store_true", help="Geçici DB'ye yükle, doğrula, sil")
     p.set_defaults(func=cmd_restore)
 
-    p = sub.add_parser("import-v1", help="v0.5.5 şifreli yedeğini boş v2 veritabanına aktar")
-    p.add_argument("backup")
-    p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--report-dir", default="")
-    p.set_defaults(func=cmd_import_v1)
 
     p = sub.add_parser("demo", help="Kurgusal çalışma alanını oluştur (yalnız geliştirme profili)")
     p.add_argument("--admin", default="")

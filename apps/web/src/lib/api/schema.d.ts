@@ -57,23 +57,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/answers/{answer_id}/draft-prefill": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Draft Prefill */
-        get: operations["draft_prefill_api_v1_answers__answer_id__draft_prefill_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/answers/{answer_id}/feedback": {
         parameters: {
             query?: never;
@@ -573,40 +556,6 @@ export interface paths {
         put?: never;
         /** Retry */
         post: operations["retry_api_v1_jobs__job_id__retry_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/legacy-import/runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Legacy Runs */
-        get: operations["legacy_runs_api_v1_legacy_import_runs_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/legacy-import/runs/{run_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Legacy Run */
-        get: operations["legacy_run_api_v1_legacy_import_runs__run_id__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2068,26 +2017,6 @@ export interface components {
             /** Page Count */
             page_count: number;
         };
-        /** DraftPrefill */
-        DraftPrefill: {
-            /** Body Md */
-            body_md: string;
-            /** Claims */
-            claims: {
-                [key: string]: unknown;
-            }[];
-            /** Scope */
-            scope: {
-                [key: string]: unknown;
-            };
-            /**
-             * Source Answer Id
-             * Format: uuid
-             */
-            source_answer_id: string;
-            /** Title */
-            title: string;
-        };
         /** EvidenceCreateIn */
         EvidenceCreateIn: {
             /** Char End */
@@ -2542,62 +2471,6 @@ export interface components {
              * @default
              */
             api_key: string;
-        };
-        /** LegacyRunDetail */
-        LegacyRunDetail: {
-            /** Finished At */
-            finished_at: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Mode */
-            mode: string;
-            /** Report */
-            report: {
-                [key: string]: unknown;
-            };
-            /** Report Md */
-            report_md: string;
-            /** Source Sha256 */
-            source_sha256: string;
-            /**
-             * Started At
-             * Format: date-time
-             */
-            started_at: string;
-            /** State */
-            state: string;
-            /** Summary */
-            summary: {
-                [key: string]: unknown;
-            };
-        };
-        /** LegacyRunRow */
-        LegacyRunRow: {
-            /** Finished At */
-            finished_at: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Mode */
-            mode: string;
-            /** Source Sha256 */
-            source_sha256: string;
-            /**
-             * Started At
-             * Format: date-time
-             */
-            started_at: string;
-            /** State */
-            state: string;
-            /** Summary */
-            summary: {
-                [key: string]: unknown;
-            };
         };
         /** LoginInput */
         LoginInput: {
@@ -3479,9 +3352,9 @@ export interface components {
             /**
              * Mode
              * @default empty
-             * @enum {string}
+             * @constant
              */
-            mode: "empty" | "import";
+            mode: "empty";
             /** Password */
             password: string;
             /**
@@ -3873,37 +3746,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    draft_prefill_api_v1_answers__answer_id__draft_prefill_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                answer_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DraftPrefill"];
-                };
             };
             /** @description Validation Error */
             422: {
@@ -4877,57 +4719,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobDetail"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    legacy_runs_api_v1_legacy_import_runs_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LegacyRunRow"][];
-                };
-            };
-        };
-    };
-    legacy_run_api_v1_legacy_import_runs__run_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LegacyRunDetail"];
                 };
             };
             /** @description Validation Error */

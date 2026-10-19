@@ -90,11 +90,3 @@ class AnswerListItem(BaseModel):
 class FeedbackIn(BaseModel):
     rating: Literal["helpful", "not_helpful"]
     comment: str = Field(default="", max_length=2000)
-
-
-class DraftPrefill(BaseModel):
-    title: str
-    scope: dict
-    body_md: str
-    claims: list[dict]
-    source_answer_id: uuid.UUID

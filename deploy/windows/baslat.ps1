@@ -6,13 +6,14 @@
   Çift tıklayınca durumu kendisi anlar:
    - PostgreSQL 16 yoksa: ne yapılacağını söyler (PostgreSQL'i bu paket kurmaz).
    - METIS kurulu değilse: onay ister, yönetici izni (UAC) alır, deneme modunda kurar (yalnız bu bilgisayardan,
-     http://localhost:8000), isterse kurgusal örnek içeriği ekler, kurulum kodunu hazırlayıp tarayıcıda açar.
+     http://localhost:8000), kurulum kodunu hazırlayıp tarayıcıda açar.
    - Kurulu sürüm bu paketten eskiyse: yükseltmeyi önerir (önce yedek alınır).
    - Servisler kapalıysa başlatır; ilk yönetici henüz yoksa yeni kurulum kodu üretir.
    - Sonunda METIS'i Chrome'da (yoksa varsayılan tarayıcıda) açar.
   Yönetici izni yalnız gerektiğinde istenir. Ağ üzerinden erişilecek sunucu kurulumu için KURULUM.md (IIS + TLS).
 
-  Otomasyon/CI için: -Onayla (soru sormaz), -DemoYok, -TarayiciAcma, -SonucDosyasi (durumu JSON yazar), -Durum
+  Otomasyon/CI için: -Onayla (soru sormaz), -TarayiciAcma, -SonucDosyasi (durumu JSON yazar), -Durum.
+  -DemoYok ve -Demo eski betiklerle uyumluluk için kabul edilir, etkisi yoktur (örnek içerik 2026-10-19'da kalktı).
   (yalnız durumu yazar, bir şey değiştirmez).
 #>
 [CmdletBinding()]
@@ -148,11 +149,10 @@ function Write-Result($State, [string]$Note) {
 
 $NoAdmin = 1223  # ERROR_CANCELLED: yönetici izni verilmedi
 
-function Invoke-Elevated([string]$Action, [string]$CodeFile = "", [switch]$WithDemo) {
+function Invoke-Elevated([string]$Action, [string]$CodeFile = "") {
   $named = [ordered]@{ "-Islem" = $Action; "-InstallRoot" = $InstallRoot; "-PgBin" = $PgBin; "-ApiPort" = "$ApiPort"; "-Gunluk" = $ChildLog }
   if ($CodeFile) { $named["-KodDosyasi"] = $CodeFile }
   $flags = @()
-  if ($WithDemo) { $flags += "-Demo" }
   if ($Onayla) { $flags += "-Onayla" }
   if ($Onayla -and (Test-IsAdmin)) {
     # Otomasyon (CI): soru yok, zaten yönetici; aynı süreçte çalış (PowerShell argümanları kendisi tırnaklar).
@@ -204,13 +204,8 @@ if ($Islem) {
   try {
     switch ($Islem) {
       "kur" {
+        # Kurgusal örnek içerik sorusu 2026-10-19'da kalktı (proje sıfırdan, gerçek içerikle başlar).
         & (Join-Path $Bundle "install-offline.ps1") -InstallRoot $InstallRoot -PublicUrl "http://localhost:$ApiPort" -AllowHttp -PgBin $PgBin -ApiPort $ApiPort -SetupCodeFile $KodDosyasi
-        $wantDemo = $Demo -or (-not $Onayla -and (Show-Message "METIS kuruldu.`n`nDenemek için kurgusal örnek içerik (sayfalar, kaynaklar, örnek kullanıcılar) eklensin mi?`n`nŞirketin gerçek bilgilerini gireceğin kurulumda 'Hayır' de." "Question" "YesNo") -eq "Yes")
-        if ($wantDemo) {
-          Write-Step "Kurgusal örnek içerik ekleniyor"
-          & (Join-Path $InstallRoot "bin\metis.cmd") demo | Out-Host
-          if ($LASTEXITCODE -ne 0) { throw "Kurgusal örnek içerik eklenemedi." }
-        }
       }
       "yukselt" { & (Join-Path $Bundle "upgrade.ps1") -InstallRoot $InstallRoot -ApiPort $ApiPort }
       "servis" {
@@ -259,8 +254,7 @@ if (-not $state.kurulu) {
     "Yönetici izni istenecek; açılan pencerede PostgreSQL 'postgres' parolası bir kez sorulacak. Birkaç dakika sürer.`n`nDevam edilsin mi?") "Question" "YesNo"
   if ($ok -ne "Yes") { Write-Result $state "vazgecildi"; exit 0 }
   $codeFile = New-CodeFile
-  # Soru sormadan (-Onayla) kurulumda örnek içerik eklenir; -DemoYok ile eklenmez. Etkileşimli kurulumda sorulur.
-  $rc = Invoke-Elevated "kur" $codeFile -WithDemo:($Onayla -and -not $DemoYok)
+  $rc = Invoke-Elevated "kur" $codeFile
   $code = Read-CodeFile $codeFile
   $state = Get-State
   if ($rc -eq $NoAdmin) {

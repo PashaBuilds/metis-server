@@ -290,15 +290,6 @@ def test_stream_emits_progress_and_result(mentor_env):
     events = [line.split(": ", 1)[1] for line in body.splitlines() if line.startswith("event: ")]
     assert events[0] == "progress" and "sources" in events and events[-1] == "result"
     assert "kullanılmaz" not in body.split("event: result")[0]  # doğrulanmamış içerik sonuçtan önce akmaz
-
-
-def test_draft_prefill_from_answer(mentor_env):
-    env = mentor_env
-    a = ask(env["contributor"], env["pid"], "SPI saat bölücü kaç?")
-    pre = env["contributor"].get(f"/api/v1/answers/{a['id']}/draft-prefill").json()
-    assert pre["claims"][0]["quote"] == SPI and pre["source_answer_id"] == a["id"]
-
-
 def test_answer_delete_is_private(mentor_env):
     env = mentor_env
     a = ask(env["reader"], env["pid"], "SPI saat bölücü kaç?")

@@ -83,8 +83,3 @@ def delete_answer(answer_id: uuid.UUID, user: User = Depends(current_user), db: 
 def feedback(answer_id: uuid.UUID, data: schemas.FeedbackIn, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> Response:
     service.feedback(db, user, answer_id, data)
     return Response(status_code=204)
-
-
-@router.get("/answers/{answer_id}/draft-prefill", response_model=schemas.DraftPrefill)
-def draft_prefill(answer_id: uuid.UUID, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> schemas.DraftPrefill:
-    return service.draft_prefill(db, user, answer_id)

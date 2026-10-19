@@ -43,7 +43,7 @@ jobs:
           # Yalnız son gönderimin farkına bakmak yetmez: önceki gönderimin koşusu iptal edilmiş olabilir.
           elif tag="$(tr -d '[:space:]' < deploy/RELEASE 2>/dev/null)" && [ -n "$tag" ] && ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then run=true
           elif [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then run=true
-          elif git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -qE '^(deploy/|pyproject\.toml$|services/metis/(ops|legacy_import)/|services/metis/cli\.py$|services/metis/modules/sources/pdf_extract\.py$)'; then run=true
+          elif git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -qE '^(deploy/|pyproject\.toml$|services/metis/(ops|modules/attachments)/|services/metis/cli\.py$|services/metis/modules/sources/pdf_extract\.py$)'; then run=true
           fi
           echo "windows=$run" >> "$GITHUB_OUTPUT"
           echo "Windows işi: $run"
@@ -168,7 +168,7 @@ jobs:
         run: |
           python -m pip install -e ".[dev]"
           $env:METIS_PG_BIN = $env:PGBIN
-          pytest -q -rfE --durations=15 tests/api tests/legacy_import tests/ops
+          pytest -q -rfE --durations=15 tests/api tests/ops tests/notes
       - name: Paketi üret (internet açık; yalnız bu testler için — yayımlanmaz)
         shell: pwsh
         run: |
@@ -225,17 +225,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "yedek başarısız" }
           & C:\METIS\bin\metis.cmd restore --rehearsal latest
           if ($LASTEXITCODE -ne 0) { throw "geri yükleme tatbikatı başarısız" }
-      - name: Kurgusal çalışma alanı (deneme kurulumunda metis demo)
-        shell: pwsh
-        run: |
-          & C:\METIS\bin\metis.cmd demo
-          if ($LASTEXITCODE -ne 0) { throw "metis demo başarısız" }
-          $login = Invoke-RestMethod -Method Post "http://127.0.0.1:8000/api/v1/auth/login" -Headers @{ Origin = "http://localhost:8000" } -ContentType "application/json" -SessionVariable s `
-            -Body (@{ username = "baris"; password = "Kurgusal-Parola-2026" } | ConvertTo-Json)
-          $pid_ = $login.memberships[0].project_id  # baris yalnız kurgusal çalışma alanının üyesi
-          $pages = Invoke-RestMethod "http://127.0.0.1:8000/api/v1/projects/$pid_/pages?limit=50" -WebSession $s
-          if ($pages.items.Count -lt 1) { throw "kurgusal sayfalar yok" }
-          "kurgusal çalışma alanı: $($pages.items.Count) sayfa"
       - name: Yükseltme betiği (ağ kapalı)
         shell: pwsh
         env:

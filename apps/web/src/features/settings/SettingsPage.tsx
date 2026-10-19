@@ -6,7 +6,7 @@ import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { AppearanceTab } from './AppearanceTab';
 import { MembersTab } from './MembersTab';
-import { ExportTab, ImportTab, ScheduleTab, SystemTab } from './OpsTabs';
+import { ExportTab, ScheduleTab, SystemTab } from './OpsTabs';
 import { PolicyTab } from './PolicyTab';
 import { ScopesTab } from './ScopesTab';
 import s from './Settings.module.css';
@@ -31,7 +31,6 @@ const TABS: SettingsTab[] = [
   { key: 'bakim', label: tr.settings.tabs.bakim!, render: () => <ScheduleTab />, visible: (s) => s.roles.has('steward') },
   { key: 'sistem', label: tr.settings.tabs.sistem!, render: () => <SystemTab />, visible: admin },
   { key: 'disa-aktar', label: tr.settings.tabs['disa-aktar']!, render: () => <ExportTab /> },
-  { key: 'aktarim', label: tr.settings.tabs.aktarim!, render: () => <ImportTab />, visible: admin },
   { key: 'gorunum', label: tr.settings.tabs.gorunum!, render: () => <AppearanceTab /> },
 ];
 

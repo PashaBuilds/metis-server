@@ -1,15 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Activity, ArrowRight, BellRing, Circle, ClipboardList, CornerDownLeft, FilePlus2, Plus, Sparkles } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
-import { Button, Chip, ChipButton, SkeletonRows, useToast } from '@/design/primitives';
+import { Button, Chip, ChipButton, SkeletonRows } from '@/design/primitives';
 import { DIMS, useCatalog } from '@/app/ScopeBar';
 import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { api, type Schemas } from '@/lib/api/client';
 import { formatDateTime, formatWhen } from '@/lib/format';
 import { ChangeStateBadge, EvidenceCount, PageKindIcon } from '@/features/shared/kinds';
-import { messageOf, useInbox, type InboxCounts } from '@/features/shared/hooks';
+import { useInbox, type InboxCounts } from '@/features/shared/hooks';
 import { ModelSelect, useAvailableModels } from '@/features/shared/models';
 import s from './Home.module.css';
 
@@ -296,18 +296,7 @@ function useAdminSetup(pid: string | null, models: { eligible: boolean; is_fixtu
 
 function FirstSteps() {
   const session = useSession();
-  const toast = useToast();
   const canContribute = session.roles.has('contributor');
-  const canDemo = session.me?.profile === 'development' && session.isAdmin;
-  const demo = useMutation({
-    mutationFn: () => api.post<{ project_id: string; created: boolean }>('/demo'),
-    onSuccess: async (res) => {
-      await session.refresh();
-      session.setProject(res.project_id);
-      toast.show(tr.home.demoDone);
-    },
-    onError: (e) => toast.show(messageOf(e), { tone: 'error' }),
-  });
   return (
     <section className={[s.section, s.first].join(' ')} aria-labelledby="home-first">
       <h2 id="home-first">{tr.home.firstTitle}</h2>
@@ -332,13 +321,7 @@ function FirstSteps() {
               <FilePlus2 size={16} aria-hidden />
               {tr.home.startCta}
             </Link>
-            {canDemo && (
-              <Button variant="secondary" onClick={() => demo.mutate()} loading={demo.isPending}>
-                {tr.home.demoCta}
-              </Button>
-            )}
           </div>
-          {canDemo && <p className={s.demoHint}>{tr.home.demoHint}</p>}
         </>
       ) : (
         <p className={s.firstLead}>{tr.home.readerEmpty}</p>

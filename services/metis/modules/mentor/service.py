@@ -468,14 +468,3 @@ def delete_answer(db: Session, user: User, answer_id: uuid.UUID) -> None:
 def feedback(db: Session, user: User, answer_id: uuid.UUID, data: schemas.FeedbackIn) -> None:
     answer = get_answer(db, user, answer_id)
     db.add(AnswerFeedback(answer_id=answer.id, user_id=user.id, rating=data.rating, comment=data.comment))
-
-
-def draft_prefill(db: Session, user: User, answer_id: uuid.UUID) -> schemas.DraftPrefill:
-    """'Bu cevaptan bilgi taslağı öner': cevabın kanıtlarını taşıyan taslak önerisi (cevabın kendisi kanıt değildir)."""
-    answer = get_answer(db, user, answer_id)
-    out = answer_out(db, user, answer)
-    if out.decision not in ("SUPPORTED", "PARTIAL") or not out.citations:
-        raise AppError("EVIDENCE_REQUIRED", "only evidence-backed answers can seed a draft")
-    claims = [{"statement": c.quote, "evidence_id": str(c.evidence_id), "quote": c.quote, "page_title": c.page_title} for c in out.citations]
-    scope = out.citations[0].scope
-    return schemas.DraftPrefill(title=answer.question[:200], scope=scope, body_md="\n\n".join(c.quote for c in out.citations), claims=claims, source_answer_id=answer.id)

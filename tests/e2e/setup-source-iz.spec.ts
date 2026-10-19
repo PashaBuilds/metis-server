@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { ADMIN, apiCall, createMember, NOTE, PROJECT, QUOTE, selectInViewer, setupCode, SOURCE_TITLE } from './helpers';
+import { ADMIN, apiCall, createMember, NOTE_TITLE, PDF_FILE, PNG_FILE, PROJECT, QUOTE, setupCode } from './helpers';
 
 /**
- * Faz 1 kabul: kurulum → giriş → kaynak ekle → taslakta alıntıyı iddiaya bağla →
- * (ikinci kullanıcı) onayla + yayımla → bilgi sayfasında ●1 → İz panelinde kaynak ve vurgulu alıntı.
+ * Kabul (2026-10-19, tek adımda taslak): kurulum → giriş → "Taslak hazırla": not + iki ek (görsel, PDF) →
+ * taslağı kaydet → yayımla → (ikinci kullanıcı) bilgi sayfasında ●1 → İz panelinde "Uzman notu" ve vurgulu paragraf,
+ * Ekler bölümünde dosyalar → yazar bilgiyi düzenleyip yeniden yayımlar (kendi notu "kaynak değişti" sayılmaz).
  */
-test('kurulum, kaynak, alıntı-iddia, yayın ve İz paneli', async ({ page, browser }) => {
+test('kurulum, not + ekler, yayın, İz ve düzenleme', async ({ page, browser }) => {
   // 1) Kurulum (tek kullanımlık kod CLI'dan)
   const code = setupCode();
   await page.goto('/');
@@ -20,47 +21,36 @@ test('kurulum, kaynak, alıntı-iddia, yayın ve İz paneli', async ({ page, bro
   await page.getByLabel('İlk proje adı').fill(PROJECT);
   await page.getByRole('button', { name: 'Kurulumu tamamla' }).click();
 
-  // 2) Ana sayfa: boş havuz rehberi
+  // 2) Ana sayfa: boş havuz rehberi → Taslak hazırla
   await expect(page.getByRole('heading', { name: 'Ne öğrenmek istiyorsun?' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'İlk bilgini ekle' })).toBeVisible();
-  await page.getByRole('link', { name: 'Kaynak ekle' }).click();
+  await page.getByRole('link', { name: 'Taslak hazırla' }).click();
 
-  // 3) Yeni kaynak: projede kaynak yokken form doğrudan açılır
+  // 3) Tek adım: başlık + not + iki ek (çoklu seçim). Ayrı kaynak adımı yok.
   await expect(page).toHaveURL(/\/katki/);
-  await expect(page.getByRole('radio', { name: 'Yeni kaynak' })).toBeChecked();
-  await page.getByLabel('Başlık').fill(SOURCE_TITLE);
-  await page.getByLabel('Uzman notu').fill(NOTE);
-  await page.getByRole('button', { name: 'Kaynağı ekle' }).click();
-  await expect(page.getByText('Seçili kaynak')).toBeVisible();
-  await expect(page.getByText('Metin çıkarıldı; alıntı seçebilirsin.')).toBeVisible();
-
-  // 4) Kaynağın hemen altında iki yol: Kendim yazayım → alıntı seç → iddiaya bağla
-  await page.getByRole('button', { name: 'Yazmaya başla' }).click();
-  await page.getByLabel('Başlık').fill('AXI kesme maskesi');
-  await page.getByLabel('Özet').fill('Kesme maskesinin hangi kayıtta tutulduğu.');
-  await page.getByRole('textbox', { name: 'Açıklama' }).fill(`Maske bilgisi için kaynak nota bakılır.\n\n${QUOTE}`);
-  await selectInViewer(page, QUOTE);
-  await page.getByRole('button', { name: 'Bu alıntıyı iddiaya bağla' }).click();
-  await expect(page.getByRole('textbox', { name: 'İddia 1' })).toHaveValue(QUOTE);
-  await expect(page.getByTestId('source-viewer').locator('mark')).toHaveText(QUOTE);
+  await expect(page.getByRole('heading', { level: 1, name: 'Taslak hazırla' })).toBeVisible();
+  await page.getByLabel('Başlık').fill(NOTE_TITLE);
+  await page.getByRole('textbox', { name: 'Not', exact: true }).fill(`${QUOTE}\n\nISR içinde yalnız durum bitleri temizlenir; 1. görselde zamanlama var.`);
+  await page.locator('input[type=file]').setInputFiles([PNG_FILE, PDF_FILE]);
+  await expect(page.getByText(PNG_FILE.name)).toBeVisible();
+  await expect(page.getByText(PDF_FILE.name)).toBeVisible();
   await page.getByRole('button', { name: 'Taslağı kaydet' }).click();
 
-  // 5) Kayıt detayı: "Yazar yayımlar" — Metis yayın öncesi kontrolü yapar; sorun yoksa doğrudan yayımlanır.
+  // 4) Kayıt detayı: "Yazar yayımlar" — yayın öncesi kontrol sorun bulmazsa doğrudan yayımlanır.
   await expect(page).toHaveURL(/\/kayitlar\/[0-9a-f-]{36}$/);
   await expect(page.getByText('Taslak kaydedildi')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'İncelemeye gönder' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Yayımla', exact: true }).click();
   await expect(page.getByText(/^Yayımlandı/).first()).toBeVisible();
   await page.getByRole('link', { name: 'Yayımlanan bilgiyi aç' }).click();
   await expect(page.getByText('Yayımlayan: E2E Yönetici')).toBeVisible();
-  const pageUrl = page.url();
+  const publishedUrl = page.url();
 
-  // 6) API ile ikinci kullanıcı (inceleyici)
+  // 5) API ile ikinci kullanıcı (inceleyici)
   const me = await apiCall<{ memberships: { project_id: string }[] }>(page.request, 'GET', '/auth/me');
   const projectId = me.memberships[0]!.project_id;
   await createMember(page.request, projectId, 'inceleyici', 'E2E İnceleyici', ['reviewer'], 'Gecici-Parola-2026');
 
-  // 7) İnceleyici: ilk girişte parola değişimi, yayımlanan bilgiyi açar
+  // 6) İnceleyici: ilk girişte parola değişimi, yayımlanan bilgiyi açar
   const ctx = await browser.newContext({ baseURL: 'http://localhost:8001', viewport: { width: 1440, height: 900 } });
   const rp = await ctx.newPage();
   await rp.goto('/giris');
@@ -73,33 +63,39 @@ test('kurulum, kaynak, alıntı-iddia, yayın ve İz paneli', async ({ page, bro
   await rp.getByLabel('Yeni parola (tekrar)').fill('Inceleyici-Parola-2026');
   await rp.getByRole('button', { name: 'Parolayı değiştir' }).click();
   await expect(rp.getByRole('heading', { name: 'Ne öğrenmek istiyorsun?' })).toBeVisible();
-  await rp.goto(pageUrl);
+  await rp.goto(publishedUrl);
 
-  // 8) Bilgi sayfası: ●1 → İz paneli; Esc → odak işarete döner
-  await expect(rp.getByRole('heading', { level: 1, name: 'AXI kesme maskesi' })).toBeVisible();
-  const publishedUrl = rp.url();
+  // 7) Bilgi sayfası: Ekler bölümü; ayrı iddia listesi yok; ●1 → İz paneli "Uzman notu" + vurgulu paragraf + ekler.
+  await expect(rp.getByRole('heading', { level: 1, name: NOTE_TITLE })).toBeVisible();
+  await expect(rp.getByRole('heading', { name: 'Ekler (2)' })).toBeVisible();
+  await expect(rp.getByRole('link', { name: PDF_FILE.name })).toHaveAttribute('href', /\/api\/v1\/attachments\/[0-9a-f-]{36}\/download$/);
+  await expect(rp.getByRole('heading', { name: 'Doğrulanabilir iddialar' })).toHaveCount(0);
+  await rp.getByRole('button', { name: `Büyük göster: ${PNG_FILE.name}` }).click();
+  await expect(rp.getByRole('dialog', { name: PNG_FILE.name })).toBeVisible();
+  await rp.keyboard.press('Escape');
   const via = rp.getByRole('button', { name: /^Kaynak 1/ }).first();
   await via.click();
   const panel = rp.locator('#iz-panel');
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole('heading', { name: SOURCE_TITLE })).toBeVisible();
+  await expect(panel.getByText('Uzman notu')).toBeVisible();
+  await expect(panel.getByRole('heading', { name: NOTE_TITLE })).toBeVisible();
   await expect(panel.locator('mark')).toHaveText(QUOTE);
+  await expect(panel.getByRole('heading', { name: 'Ekler (2)' })).toBeVisible();
   await expect(rp.getByTestId('iz-trace')).toBeVisible();
   await rp.keyboard.press('Escape');
   await expect(panel).toBeHidden();
   await expect(via).toBeFocused();
   await ctx.close();
 
-  // 9) Yazar: İz panelinden "Yeni kaynak sürümü ekle" → yeni sürüm → bilgi "Kaynak değişti".
+  // 8) Yazar: "Bilgiyi düzenle" → not değişir, ekler korunur → Yayımla. Kendi notunun yeni sürümü uyarı üretmez.
   await page.goto(publishedUrl);
-  await page.getByRole('button', { name: /^Kaynak 1/ }).first().click();
-  await page.locator('#iz-panel').getByRole('link', { name: 'Yeni sürüm ekle' }).click();
-  await expect(page).toHaveURL(/\/katki\?source=/);
-  await expect(page.getByRole('heading', { name: 'Yeni sürüm ekle' })).toBeVisible();
-  await page.getByLabel('Uzman notu').fill(`${NOTE}\nYeni sürümde maske kaydı değişti.`);
-  await page.getByRole('button', { name: 'Yeni sürümü ekle' }).click();
-  await expect(page.getByText(/Yeni sürüm eklendi/)).toBeVisible();
-  await expect(page.getByText('2. sürüm')).toBeVisible();
-  await page.goto(publishedUrl);
-  await expect(page.getByText(/Bu bilginin dayandığı bir kaynak değişti/)).toBeVisible();
+  await page.getByRole('link', { name: 'Bilgiyi düzenle' }).first().click();
+  await expect(page).toHaveURL(/\/katki\?page=/);
+  await expect(page.getByText(PDF_FILE.name)).toBeVisible();
+  await page.getByRole('textbox', { name: 'Not', exact: true }).fill(`${QUOTE}\n\nYeni sürümde ISR yalnız bayrağı temizler.`);
+  await page.getByRole('button', { name: 'Yayımla', exact: true }).click();
+  await expect(page).toHaveURL(/\/bilgi\/[0-9a-f-]{36}/);
+  await expect(page.getByText('Yeni sürümde ISR yalnız bayrağı temizler.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ekler (2)' })).toBeVisible();
+  await expect(page.getByText(/Bu bilginin dayandığı bir kaynak değişti/)).toHaveCount(0);
 });

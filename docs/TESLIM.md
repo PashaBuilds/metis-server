@@ -1,5 +1,7 @@
 # METIS — Teslim
 
+> **2026-10-19 (2.0.10):** v0.5.5 aktarımı, kurgusal örnek içerik (ürün içinde) ve "önce kaynak ekle, sonra alıntı seç" yöntemi kaldırıldı; bilgi tek adımda not + eklerle yazılır (docs/superpowers/specs/2026-10-19-taslak-ve-ekler-design.md). Aşağıdaki ilgili bölümler tarihî kayıttır.
+
 Bu belge METIS'in teslim özetidir: neyin yapıldığı, neyin nasıl doğrulandığı, neyin bu ortamda
 doğrulanamadığı ve ürün sahibinin yapması gerekenler. Ayrıntılı günlük `docs/PROGRESS.md`'de.
 

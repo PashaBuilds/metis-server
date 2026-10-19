@@ -16,7 +16,7 @@ class SetupInput(BaseModel):
     display_name: str = Field(min_length=1, max_length=150)
     username: str = Field(min_length=2, max_length=150, pattern=r"^[A-Za-z0-9._-]+$")
     password: str = Field(min_length=1, max_length=200)
-    mode: Literal["empty", "import"] = "empty"
+    mode: Literal["empty"] = "empty"  # v0.5.5 aktarımı 2026-10-19'da kaldırıldı
     project_name: str = Field(default="", max_length=180)
 
 
