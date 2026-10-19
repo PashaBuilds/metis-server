@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-  Kurulu METIS'i şirket ağından erişilebilir yapar: IIS, 80 portundan gelen istekleri METIS'e (127.0.0.1:8000) iletir.
+  Kurulu METIS'i şirket ağından http://<makine-tam-adı>/metis adresinde açar: IIS, 80 portunda /metis altına gelen
+  istekleri METIS'e (127.0.0.1:8000) iletir. Kök (/) ve diğer yollar makinedeki başka işlere kalır.
 
 .DESCRIPTION
   METIS-Baslat.exe ile (ya da install-offline.ps1 -AllowHttp ile) kurulmuş bir METIS'e, aynı makinede yönetici
@@ -12,8 +13,9 @@
    2. IIS URL Rewrite 2.1 ve Application Request Routing 3.0 kurulu değilse, bu klasördeki ya da İndirilenler'deki
       rewrite_amd64*.msi ve requestRouter_amd64*.msi kurulur (dosyalar Microsoft'tan bir kez indirilir).
    3. Vekil açılır, yanıt tamponu kapatılır (Mentor akışı parça parça gelsin).
-   4. "METIS" sitesi 80 portunda kurulur (Default Web Site durdurulur); web.config yazılır.
-   5. METIS_PUBLIC_URL makinenin tam adına çevrilir (http://<ad>.<alan-adı>); servisler yeniden başlar.
+   4. Default Web Site (80) altında /metis uygulaması kurulur; web.config yazılır. 2.0.12'nin kökü kaplayan "METIS"
+      sitesi varsa kaldırılır ve Default Web Site yeniden başlatılır.
+   5. METIS_PUBLIC_URL http://<ad>.<alan-adı>/metis olur; servisler yeniden başlar. Başka yol için: -Yol /bilgi
    6. Güvenlik duvarında 80 portu (etki alanı ve özel ağ) açılır; adres bu makineden denenir.
 
   http şifresizdir: deneme profili (development) içindir. Kalıcı kullanımda şirket sertifikasıyla https'e geçilir
@@ -25,7 +27,8 @@ param(
   [string]$Adres = "",
   [string]$KurucuKlasoru = "",
   [int]$ApiPort = 8000,
-  [string]$SiteKlasoru = "C:\inetpub\metis"
+  [string]$SiteKlasoru = "C:\inetpub\metis",
+  [string]$Yol = "/metis"
 )
 
 $ErrorActionPreference = "Stop"
@@ -95,7 +98,9 @@ try {
   }
   if (-not $Adres) { $Adres = Get-FullName }
   $Adres = $Adres.Trim().TrimEnd("/") -replace "^https?://", ""
-  $publicUrl = "http://$Adres"
+  $Yol = "/" + $Yol.Trim().Trim("/")
+  if ($Yol -notmatch '^/[A-Za-z0-9._-]+$') { throw "-Yol tek bir alt yol olmalı (ör. /metis)." }
+  $publicUrl = "http://$Adres$Yol"
   Write-Host "Adres: $publicUrl"
 
   Write-Step "IIS açılıyor"
@@ -109,7 +114,12 @@ try {
       Install-WindowsFeature Web-Server -IncludeManagementTools | Out-Null
     }
   }
-  if (-not (Test-Path $appcmd)) { throw "IIS açılamadı (appcmd.exe yok). Bilgisayarı yeniden başlatıp betiği tekrar çalıştır." }
+  if (-not (Test-Path $appcmd)) {
+    Write-Host ""
+    Write-Host "IIS açıldı; Windows'un bunu tamamlaması için yeniden başlatma gerekiyor." -ForegroundColor Yellow
+    Write-Host "Makineyi yeniden başlat, sonra bu betiği aynı komutla tekrar çalıştır (yapılan adımlar atlanır)." -ForegroundColor Yellow
+    exit 3
+  }
   Write-Host "  IIS hazır."
 
   Write-Step "URL Rewrite ve Application Request Routing"
@@ -126,11 +136,11 @@ try {
     Invoke-AppCmd @("set", "config", "-section:system.webServer/rewrite/allowedServerVariables", "/+[name='HTTP_X_FORWARDED_PROTO']", "/commit:apphost") | Out-Null
   }
 
-  Write-Step "METIS sitesi (80 portu)"
+  Write-Step "METIS uygulaması: Default Web Site$Yol (80 portu)"
   New-Item -ItemType Directory -Force -Path $SiteKlasoru | Out-Null
   $webConfig = @"
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ag-erisimi.ps1 yazdı: http 80 → METIS (127.0.0.1:$ApiPort). https'e geçişte KURULUM.md 5. adımdaki iis-web.config kullanılır. -->
+<!-- ag-erisimi.ps1 yazdı: http://<ad>$Yol → METIS (127.0.0.1:$ApiPort$Yol). Yalnız bu IIS uygulamasına ($Yol) uygulanır. -->
 <configuration>
   <system.webServer>
     <rewrite>
@@ -140,7 +150,7 @@ try {
           <serverVariables>
             <set name="HTTP_X_FORWARDED_PROTO" value="http" />
           </serverVariables>
-          <action type="Rewrite" url="http://127.0.0.1:$ApiPort/{R:1}" />
+          <action type="Rewrite" url="http://127.0.0.1:$ApiPort$Yol/{R:1}" />
         </rule>
       </rules>
     </rewrite>
@@ -155,17 +165,25 @@ try {
 "@
   [IO.File]::WriteAllText((Join-Path $SiteKlasoru "web.config"), $webConfig, (New-Object Text.UTF8Encoding $false))
   $sites = Invoke-AppCmd @("list", "site")
-  if ($sites -match '"Default Web Site"') {
-    Invoke-AppCmd @("stop", "site", "Default Web Site") -AllowFailure | Out-Null
-    Invoke-AppCmd @("set", "site", "Default Web Site", "/serverAutoStart:false") -AllowFailure | Out-Null
-  }
   if ($sites -match '"METIS"') {
-    Invoke-AppCmd @("set", "site", "METIS", "/bindings:http/*:80:", "/[path='/'].[path='/'].physicalPath:$SiteKlasoru") | Out-Null
-  } else {
-    Invoke-AppCmd @("add", "site", "/name:METIS", "/bindings:http/*:80:", "/physicalPath:$SiteKlasoru") | Out-Null
+    # 2.0.12 METIS'i ayrı bir sitede kökten yayınlıyor, Default Web Site'ı durduruyordu; kök artık diğer işlere kalır.
+    Write-Host "  önceki kök 'METIS' sitesi kaldırılıyor"
+    Invoke-AppCmd @("stop", "site", "METIS") -AllowFailure | Out-Null
+    Invoke-AppCmd @("delete", "site", "METIS") | Out-Null
   }
-  Invoke-AppCmd @("set", "site", "METIS", "/serverAutoStart:true") | Out-Null
-  Invoke-AppCmd @("start", "site", "METIS") -AllowFailure | Out-Null
+  if ($sites -notmatch '"Default Web Site"') {
+    $root = Join-Path $env:SystemDrive "inetpub\wwwroot"
+    New-Item -ItemType Directory -Force -Path $root | Out-Null
+    Invoke-AppCmd @("add", "site", "/name:Default Web Site", "/bindings:http/*:80:", "/physicalPath:$root") | Out-Null
+  }
+  Invoke-AppCmd @("set", "site", "Default Web Site", "/serverAutoStart:true") | Out-Null
+  Invoke-AppCmd @("start", "site", "Default Web Site") -AllowFailure | Out-Null
+  $appId = "Default Web Site$Yol"
+  if ((Invoke-AppCmd @("list", "app", $appId) -AllowFailure) -match [regex]::Escape("`"$appId`"")) {
+    Invoke-AppCmd @("set", "app", $appId, "/[path='/'].physicalPath:$SiteKlasoru") | Out-Null
+  } else {
+    Invoke-AppCmd @("add", "app", "/site.name:Default Web Site", "/path:$Yol", "/physicalPath:$SiteKlasoru") | Out-Null
+  }
 
   Write-Step "METIS adresi: $publicUrl"
   Set-EnvValue $envFile "METIS_PUBLIC_URL" $publicUrl
@@ -191,7 +209,7 @@ try {
   }
   Write-Host ""
   Write-Host "Hazır. Şirket ağındaki bilgisayarlardan aç: $publicUrl" -ForegroundColor Green
-  Write-Host "Adresi her zaman bu tam adla yaz (kısa ad ya da IP ile giriş yapılamaz)."
+  Write-Host "Adresi her zaman bu tam adla yaz (kısa ad ya da IP ile giriş yapılamaz). Kök (/) ve diğer yollar METIS'in değil."
   exit 0
 } catch {
   Write-Host ""

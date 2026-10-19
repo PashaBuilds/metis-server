@@ -20,6 +20,7 @@ import { TaskDetailPage } from '@/features/tasks/TaskDetailPage';
 import { HealthPage } from '@/features/health/HealthPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { NotFound } from '@/features/home/NotFound';
+import { BASE_PATH } from '@/lib/api/base';
 
 const MapPage = lazy(() => import('@/features/map/MapPage'));
 const LabPage = lazy(() => import('@/features/lab/LabPage'));
@@ -178,7 +179,7 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
-export const router = createRouter({ routeTree, defaultPreload: 'intent', scrollRestoration: true });
+export const router = createRouter({ routeTree, basepath: BASE_PATH || '/', defaultPreload: 'intent', scrollRestoration: true });
 
 declare module '@tanstack/react-router' {
   interface Register {

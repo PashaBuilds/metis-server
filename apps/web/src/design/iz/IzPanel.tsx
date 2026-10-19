@@ -9,6 +9,7 @@ import { Attachments } from '@/features/shared/Attachments';
 import { useIz } from './IzContext';
 import { SourceKindIcon } from './SourceKindIcon';
 import s from './Iz.module.css';
+import { apiUrl } from '@/lib/api/base';
 
 const WINDOW = 4000;
 
@@ -113,7 +114,7 @@ export function IzPanel({ mode }: { mode: 'docked' | 'overlay' }) {
               ) : (
                 <>
                   {data.can_download && (
-                    <a className={s.linkButton} href={`/api/v1/source-revisions/${data.revision.id}/download`} download>
+                    <a className={s.linkButton} href={apiUrl(`/source-revisions/${data.revision.id}/download`)} download>
                       <Download size={15} aria-hidden />
                       {tr.iz.download}
                     </a>
@@ -122,7 +123,7 @@ export function IzPanel({ mode }: { mode: 'docked' | 'overlay' }) {
               )}
             </div>
             {!data.note_page_id && data.can_download && data.revision.media_type.startsWith('image/') && (
-              <img className={s.sourceImage} src={`/api/v1/source-revisions/${data.revision.id}/download`} alt={data.source.title} />
+              <img className={s.sourceImage} src={apiUrl(`/source-revisions/${data.revision.id}/download`)} alt={data.source.title} />
             )}
             {(data.attachments ?? []).length > 0 && <Attachments items={data.attachments ?? []} headingLevel={3} />}
             <div ref={bodyRef} className={s.sourceText} tabIndex={0} aria-label={tr.iz.fullText}>

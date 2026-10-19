@@ -3,12 +3,13 @@ import { Dialog } from '@/design/primitives';
 import { tr } from '@/i18n/tr';
 import { Markdown } from './Markdown';
 import s from './shared.module.css';
+import { apiUrl } from '@/lib/api/base';
 
 /** Gövdede görselin yeri: kendi satırında `{{görsel N}}` (N = 1'den başlayan sıra). Sunucudaki desenle aynı. */
 export const FIGURE_LINE = /^[ \t]*\{\{\s*görsel\s+(\d+)\s*\}\}[ \t]*$/i;
 
 export const figureToken = (n: number) => `{{görsel ${n}}}`;
-export const figureUrl = (sourceRevisionId: string) => `/api/v1/source-revisions/${sourceRevisionId}/download`;
+export const figureUrl = (sourceRevisionId: string) => apiUrl(`/source-revisions/${sourceRevisionId}/download`);
 
 export interface FigureData {
   source_revision_id: string;

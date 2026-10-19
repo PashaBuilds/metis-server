@@ -103,24 +103,30 @@ Dosyayı şirket parola kasasına koy; yedek arşivleri anahtarı içermez (yaln
 7. Tarayıcıdan `https://metis.sirket.local` aç. Sayfa gelmezse: `C:\METIS\bin\metis doctor` ve
    `C:\METIS\data\logs\service\metis-api.*.log`.
 
-### 5a. Hızlı deneme: http ile şirket ağına açma (`ag-erisimi.ps1`, 2.0.12'den beri)
+### 5a. Hızlı deneme: http ile şirket ağına açma (`ag-erisimi.ps1`, 2.0.12'den beri; `/metis` alt yolu 2.0.13'ten beri)
 
-METIS-Baslat.exe ile kurulmuş bir METIS'i (http, deneme profili) sertifikasız olarak şirket ağına açar. Aynı makinede,
+METIS-Baslat.exe ile kurulmuş bir METIS'i (http, deneme profili) sertifikasız olarak şirket ağına
+`http://<ad>.<alan-adı>/metis` adresinde açar. Kök (`/`) ve diğer yollar makinedeki başka işlere kalır. Aynı makinede,
 paket klasöründe yönetici PowerShell ile:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\ag-erisimi.ps1
 ```
 
-Betik IIS'i açar (Windows 10/11'de Windows özelliği olarak), URL Rewrite 2.1 ve ARR 3.0'ı kurar (kurucuları
-`rewrite_amd64*.msi` ve `requestRouter_amd64*.msi` Microsoft'tan bir kez indirilip paket klasörüne ya da
-İndirilenler'e konur), vekili ayarlar, 80 portunda "METIS" sitesini kurar (Default Web Site durur),
-`METIS_PUBLIC_URL`'ü makinenin DNS'teki tam adına (`http://<ad>.<alan-adı>`) çevirir, servisleri yeniden başlatır,
-güvenlik duvarında 80'i etki alanı/özel ağ için açar ve adresi dener. Farklı bir ad için `-Adres <ad>`. Tekrar
-çalıştırılabilir. Adres her zaman bu tam adla yazılmalı (kısa ad ya da IP ile giriş reddedilir).
-http şifresizdir (parolalar ağda açık gider): birkaç kişilik deneme içindir; kalıcı kullanımda şirket sertifikasıyla
-yukarıdaki https düzenine geçilir. Ürün sahibinin şirket içi Windows 10 sanal makinesinde denendi (2026-10-19): IIS ilk açılışta yeniden başlatma istedi, sonra betik tamamlandı ve METIS başka bir bilgisayardan tam adla açılıp giriş yapıldı. CI yalnız betiğin sözdizimini denetler.
+Betik IIS'i açar (Windows 10/11'de Windows özelliği olarak; ilk açılışta Windows yeniden başlatma isteyebilir, o zaman
+yeniden başlatıp betiği tekrar çalıştır), URL Rewrite 2.1 ve ARR 3.0'ı kurar (kurucuları `rewrite_amd64*.msi` ve
+`requestRouter_amd64*.msi` Microsoft'tan bir kez indirilip paket klasörüne ya da İndirilenler'e konur), vekili
+ayarlar, **Default Web Site** (80) altında `/metis` uygulamasını kurar (2.0.12'nin kökü kaplayan "METIS" sitesi varsa
+kaldırılır), `METIS_PUBLIC_URL`'ü `http://<tam-ad>/metis` yapar, servisleri yeniden başlatır, güvenlik duvarında 80'i
+etki alanı/özel ağ için açar ve adresi dener. Seçenekler: `-Adres <ad>` (farklı DNS adı), `-Yol /bilgi` (farklı alt
+yol). Tekrar çalıştırılabilir. Adres her zaman bu tam adla yazılmalı (kısa ad ya da IP ile giriş reddedilir).
 
+METIS alt yolu `METIS_PUBLIC_URL`'ün yolundan öğrenir: API, arayüz ve oturum çerezi o yolun altındadır; süreç yine
+yalnız `127.0.0.1:8000`'de dinler ve kökten de yanıt verir (başlatıcı ve kurulum betiklerinin sağlık denetimleri).
+http şifresizdir (parolalar ağda açık gider): birkaç kişilik deneme içindir; kalıcı kullanımda şirket sertifikasıyla
+https'e geçilir (aynı `/metis` uygulaması, 443 bağlaması). Kökte yayın (2.0.12) ürün sahibinin şirket içi Windows 10
+sanal makinesinde denendi (2026-10-19); `/metis` alt yolu yerelde (geliştirme sunucusu, tarayıcı) denendi, IIS ile
+gerçek makinede ilk deneme 2.0.13'te. CI yalnız betiğin sözdizimini denetler.
 `METIS_PUBLIC_URL` tarayıcıda yazılan adresle **birebir** aynı olmalı (Origin ve CSRF denetimi buna göre yapılır).
 Adres değişirse `metis.env` içinde düzelt ve servisleri yeniden başlat (`Restart-Service metis-api`).
 

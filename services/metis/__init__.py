@@ -1,3 +1,3 @@
 """METIS — Ekibin teknik bilgisi, kaynaklarıyla."""
 
-__version__ = "2.0.12"
+__version__ = "2.0.13"

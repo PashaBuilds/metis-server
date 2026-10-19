@@ -10,6 +10,7 @@ import { Banner } from '@/features/shared/Banner';
 import { messageOf } from '@/features/shared/hooks';
 import { ModelSelect, useAvailableModels } from '@/features/shared/models';
 import s from './Settings.module.css';
+import { apiUrl } from '@/lib/api/base';
 
 const notDeployed = (e: unknown) => e instanceof ApiError && (e.status === 404 || e.status === 405) && e.code !== 'NOT_FOUND';
 const asDate = (v: unknown): string | null => (typeof v === 'string' ? v : null);
@@ -302,7 +303,7 @@ export function ExportTab() {
       </h2>
       <p className={s.hint}>{tr.settingsExtra.exportLead}</p>
       {projectId && (
-        <a className={s.downloadLink} href={`/api/v1/projects/${projectId}/export.zip`} download>
+        <a className={s.downloadLink} href={apiUrl(`/projects/${projectId}/export.zip`)} download>
           <Download size={16} aria-hidden />
           {tr.settingsExtra.exportButton}
           {project && <span className={s.downloadName}>{project.project_name}</span>}

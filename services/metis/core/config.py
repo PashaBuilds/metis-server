@@ -68,6 +68,11 @@ class Settings:
         return self.public_url.startswith("https://")
 
     @property
+    def base_path(self) -> str:
+        """METIS_PUBLIC_URL'ün yolu (ör. /metis): METIS o alt yolda yayınlanır. Kökteyse boş."""
+        return urlsplit(self.public_url).path.rstrip("/")
+
+    @property
     def allowed_hosts(self) -> list[str]:
         hosts = {urlsplit(self.public_url).hostname or "localhost", "localhost", "127.0.0.1", *self.extra_hosts}
         if self.env == "test":

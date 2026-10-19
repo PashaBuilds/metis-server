@@ -40,10 +40,14 @@ def test_script_parses_in_windows_powershell(script: Path):
     assert r.returncode == 0, r.stdout + r.stderr
 
 
-def test_network_access_script_keeps_metis_local_and_refuses_production():
+def test_network_access_script_publishes_metis_under_subpath_and_refuses_production():
     text = AG.read_text(encoding="utf-8")
     assert "Assert-Admin" in text
-    assert "http://127.0.0.1:$ApiPort/{R:1}" in text, "IIS yalnız yerel METIS'e iletir"
+    assert "http://127.0.0.1:$ApiPort$Yol/{R:1}" in text, "IIS yalnız yerel METIS'e, aynı alt yolla iletir"
+    assert '[string]$Yol = "/metis"' in text, "varsayılan adres http://<ad>/metis (çok amaçlı sunucu)"
+    assert '"add", "app", "/site.name:Default Web Site", "/path:$Yol"' in text, "kök Default Web Site'ta kalır"
+    assert '"stop", "site", "Default Web Site"' not in text, "kök başka işler için durdurulmaz"
+    assert '"delete", "site", "METIS"' in text, "2.0.12'nin kökü kaplayan sitesi kaldırılır"
     assert '"METIS_ENV") -eq "production"' in text, "https kurulumunu http'ye çevirmez"
     assert "responseBufferLimit:0" in text, "Mentor akışı (SSE) tamponlanmamalı"
     assert "Write-PublicUrlFile" in text, "başlatıcı yeni adresi açmalı"

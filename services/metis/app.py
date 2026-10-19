@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import re
 import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from metis import __version__
 from metis.core.audit import correlation_id
@@ -31,6 +33,30 @@ def _client_ip(request: Request) -> str:
     if forwarded and peer in settings.trusted_proxies:
         return forwarded.split(",")[0].strip()
     return peer
+
+
+def _route_path(scope: Scope) -> str:
+    """Alt yolsuz istek yolu (METIS /metis altında yayınlanınca /metis/api/v1/... → /api/v1/...)."""
+    path, root = scope["path"], scope.get("root_path", "")
+    if root and (path == root or path.startswith(root + "/")):
+        return path[len(root) :] or "/"
+    return path
+
+
+class BasePathMiddleware:
+    """METIS_PUBLIC_URL bir yol içeriyorsa (ör. http://sunucu/metis) o ön ekle gelen istekleri uygulamaya kökteymiş gibi
+    yönlendirir (ASGI root_path). Kökten gelen istekler de aynen çalışır: süreç yalnız 127.0.0.1'de dinler ve başlatıcı ile
+    kurulum betiklerinin sağlık denetimleri köke gider."""
+
+    def __init__(self, app: ASGIApp, prefix: str) -> None:
+        self.app, self.prefix = app, prefix
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] in ("http", "websocket"):
+            path = scope["path"]
+            if path == self.prefix or path.startswith(self.prefix + "/"):
+                scope = {**scope, "root_path": scope.get("root_path", "") + self.prefix}
+        await self.app(scope, receive, send)
 
 
 def _csp() -> str:
@@ -54,7 +80,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         host = (request.headers.get("host") or "").split(":")[0].strip("[]").lower()
         if host and host not in settings.allowed_hosts:
             return JSONResponse(AppError("FORBIDDEN", "host not allowed").envelope(cid), status_code=400)
-        if request.method not in ("GET", "HEAD", "OPTIONS") and request.url.path.startswith(API_PREFIX):
+        route = _route_path(request.scope)
+        if request.method not in ("GET", "HEAD", "OPTIONS") and route.startswith(API_PREFIX):
             origin = request.headers.get("origin")
             allowed = {settings.public_origin}
             if settings.is_dev:
@@ -76,7 +103,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         if settings.secure_cookies:
             response.headers["Strict-Transport-Security"] = "max-age=31536000"
-        if request.url.path.startswith(API_PREFIX):
+        if route.startswith(API_PREFIX):
             response.headers.setdefault("Cache-Control", "no-store")
         return response
 
@@ -114,12 +141,15 @@ def _register_errors(app: FastAPI) -> None:
         return JSONResponse(AppError("INTERNAL", "internal error").envelope(cid), status_code=500)
 
 
+_HEAD = re.compile(r"<head(\s[^>]*)?>", re.IGNORECASE)
+
+
 def _register_spa(app: FastAPI) -> None:
     settings = get_settings()
     static: Path = settings.static_dir
 
     @app.get("/{path:path}", include_in_schema=False)
-    def spa(path: str) -> Response:
+    def spa(path: str, request: Request) -> Response:
         if path.startswith("api/"):
             raise AppError("NOT_FOUND", "route not found")
         if path.startswith("_vitrin") and not settings.is_dev:
@@ -131,7 +161,10 @@ def _register_spa(app: FastAPI) -> None:
         index = static / "index.html"
         if not index.is_file():
             return JSONResponse({"detail": "frontend not built"}, status_code=404)
-        return FileResponse(index, headers={"Cache-Control": "no-cache"})
+        # Arayüz göreli yollarla derlenir; hangi alt yolda (/ ya da /metis/) yayınlandığını <base> söyler.
+        base = f'<base href="{request.scope.get("root_path", "")}/">'
+        html = _HEAD.sub(lambda m: m.group(0) + base, index.read_text(encoding="utf-8"), count=1)
+        return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
 def create_app() -> FastAPI:
@@ -145,6 +178,8 @@ def create_app() -> FastAPI:
         redoc_url=None,
     )
     app.add_middleware(SecurityMiddleware)
+    if settings.base_path:  # en dışta: güvenlik denetimi ön eki çözülmüş yolu görür
+        app.add_middleware(BasePathMiddleware, prefix=settings.base_path)
     _register_errors(app)
 
     from metis.modules.registry import include_routers

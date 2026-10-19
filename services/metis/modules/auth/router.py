@@ -13,7 +13,13 @@ from metis.modules.auth import schemas, service
 router = APIRouter(tags=["auth"])
 
 
-def _set_cookie(response: Response, raw: str) -> None:
+def _cookie_path(request: Request) -> str:
+    # METIS bir alt yolda yayınlanıyorsa (ör. /metis) oturum çerezi yalnız o yola gönderilir; makinedeki diğer
+    # uygulamalar onu görmez.
+    return request.scope.get("root_path", "") or "/"
+
+
+def _set_cookie(response: Response, raw: str, path: str) -> None:
     settings = get_settings()
     response.set_cookie(
         SESSION_COOKIE,
@@ -22,7 +28,7 @@ def _set_cookie(response: Response, raw: str) -> None:
         httponly=True,
         secure=settings.secure_cookies,
         samesite="strict",
-        path="/",
+        path=path,
     )
 
 
@@ -47,7 +53,7 @@ def setup(
 ) -> schemas.MeOut:
     user = service.complete_setup(db, data)
     raw, sess = service.create_session(db, user, request.state.client_ip)
-    _set_cookie(response, raw)
+    _set_cookie(response, raw, _cookie_path(request))
     return _me(db, user, sess)
 
 
@@ -56,16 +62,19 @@ def login(
     data: schemas.LoginInput, request: Request, response: Response, db: Session = Depends(get_db, scope="function")
 ) -> schemas.MeOut:
     raw, sess, user = service.login(db, data, request.state.client_ip)
-    _set_cookie(response, raw)
+    _set_cookie(response, raw, _cookie_path(request))
     return _me(db, user, sess)
 
 
 @router.post("/auth/logout", status_code=204)
 def logout(
-    response: Response, pair: tuple[UserSession, User] = Depends(current_session), db: Session = Depends(get_db, scope="function")
+    request: Request,
+    response: Response,
+    pair: tuple[UserSession, User] = Depends(current_session),
+    db: Session = Depends(get_db, scope="function"),
 ) -> Response:
     service.logout(db, db.merge(pair[0]))
-    response.delete_cookie(SESSION_COOKIE, path="/")
+    response.delete_cookie(SESSION_COOKIE, path=_cookie_path(request))
     response.status_code = 204
     return response
 

@@ -5,10 +5,11 @@ import { tr } from '@/i18n/tr';
 import type { Schemas } from '@/lib/api/client';
 import { formatBytes } from '@/lib/format';
 import s from './Attachments.module.css';
+import { apiUrl } from '@/lib/api/base';
 
 export type AttachmentData = Schemas['AttachmentOut'];
 
-export const attachmentUrl = (id: string) => `/api/v1/attachments/${id}/download`;
+export const attachmentUrl = (id: string) => apiUrl(`/attachments/${id}/download`);
 
 /** Bilginin ekleri: görseller küçük önizlemeyle (tıklayınca büyür), PDF'ler adıyla açılır/indirilir. Kanıt değildir. */
 export function Attachments({ items, headingLevel = 2 }: { items: AttachmentData[]; headingLevel?: 2 | 3 }) {

@@ -3,6 +3,7 @@
  * CSRF belirteci /auth/me cevabından alınır; mutasyonlarda X-CSRF-Token başlığıyla gönderilir.
  */
 
+import { apiUrl } from './base';
 import type { components } from './schema';
 
 export type Schemas = components['schemas'];
@@ -36,7 +37,7 @@ export function setCsrfToken(token: string) {
 type Query = Record<string, string | number | boolean | null | undefined | string[]>;
 
 function buildUrl(path: string, query?: Query): string {
-  const url = new URL(`/api/v1${path}`, window.location.origin);
+  const url = new URL(apiUrl(path), window.location.origin);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v === undefined || v === null || v === '') continue;

@@ -737,7 +737,7 @@ export const tr = {
     deactivated: 'Devre dışı bırakıldı',
     activated: 'Etkinleştirildi',
     inactive: 'Devre dışı',
-    rolesHelp: 'Okur bilgileri görür. Katkı sahibi kaynak ekler, taslak yazar ve kapsam tanımlarını düzenler. İnceleyici onaylar ve yayımlar. Bilgi sorumlusu bunların hepsini yapar, bulguları ve bakım planını yönetir. Yönetici kullanıcıları ve sistem ayarlarını yönetir.',
+    rolesHelp: 'Okur bilgileri görür. Katkı sahibi taslak hazırlar (not ve ekler), kendi bilgisini yayımlar ve kapsam tanımlarını düzenler. İnceleyici onaylar ve yayımlar. Bilgi sorumlusu bunların hepsini yapar, bulguları ve bakım planını yönetir. Yönetici kullanıcıları ve sistem ayarlarını yönetir.',
     memberActions: (name: string) => `İşlemler: ${name}`,
     policy: 'Yayın politikası',
     policySelf: 'Yazar yayımlar (önerilen)',

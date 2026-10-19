@@ -2,7 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
-export default defineConfig({
+// Derleme göreli yollarla: sunucu index.html'e <base href> yazar; aynı paket kökte ya da bir alt yolda (/metis) çalışır.
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? './' : '/',
   plugins: [react()],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
   server: {
@@ -24,4 +26,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

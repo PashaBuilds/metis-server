@@ -4,6 +4,21 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.13 — METIS bir alt yolda: http://<makine>/metis:**
+- METIS artık bir alt yolda yayınlanabilir; sunucu makinesi başka işler için de kullanılabilir. Alt yol
+  `METIS_PUBLIC_URL`'ün yolundan gelir (ör. `http://<ad>.<alan-adı>/metis`); API, arayüz ve oturum çerezi o yolun
+  altındadır. Aynı paket kökte de çalışır.
+- `ag-erisimi.ps1` artık METIS'i IIS Default Web Site altında `/metis` uygulaması olarak açar; kök (`/`) ve diğer
+  yollar boş kalır. 2.0.12'nin kökü kaplayan "METIS" sitesi varsa kaldırılır. Farklı yol için `-Yol /bilgi`.
+  IIS ilk açılışta yeniden başlatma isterse betik kırmızı hata yerine ne yapılacağını söyler.
+- **2.0.12 ile şirket ağına açtıysan:** yükselttikten sonra `ag-erisimi.ps1`'i bir kez daha çalıştır; adres
+  `http://<ad>/metis` olur. Çalıştırmazsan METIS eski adresinde (kökte) çalışmaya devam eder.
+- Ekip ve izinler'deki rol açıklaması yeni yönteme göre düzeltildi (Katkı sahibi taslak hazırlar, yayımlar).
+- `/metis` alt yolu yerel geliştirme sunucusunda tarayıcıyla denendi (giriş, gezinme, derin bağlantı, çıkış); IIS
+  ile gerçek makinede ilk deneme bu sürümde. Bu ZIP yerel Windows 10 bilgisayarda derlendi; çift tıklamada yükseltme
+  sorusu denendi; yükseltmenin kendisi o bilgisayarda **denenmedi** (ajan Windows yönetici iznini onaylayamaz; ürün
+  sahibinin "beklemeden yayımla" kararıyla istisna); temiz Windows Server 2022'de kurulum, yükseltme ve kaldırma CI'da.
+
 **2.0.12 — şirket ağından erişim (deneme) ve ek yükleme düzeltmesi:**
 - Yeni `ag-erisimi.ps1`: METIS-Baslat.exe ile kurulmuş METIS'i tek komutla şirket ağına açar. IIS'i açar, 80
   portundan METIS'e iletir, adresi makinenin tam adına (`http://<ad>.<alan-adı>`) çevirir, güvenlik duvarını ayarlar

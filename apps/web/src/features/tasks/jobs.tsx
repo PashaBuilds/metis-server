@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { StatusBadge, type Tone } from '@/design/primitives';
 import { tr } from '@/i18n/tr';
 import { subscribeSse } from '@/lib/api/sse';
+import { apiUrl } from '@/lib/api/base';
 
 export const ACTIVE_STATES = new Set(['queued', 'running', 'awaiting_input']);
 
@@ -41,7 +42,7 @@ export function useJobEvents(jobIds: string[], invalidate: readonly (readonly un
     const keys = JSON.parse(invKey) as unknown[][];
     for (const id of key.split(',')) {
       subscribeSse(
-        `/api/v1/jobs/${id}/events`,
+        apiUrl(`/jobs/${id}/events`),
         () => {
           for (const k of keys) void qc.invalidateQueries({ queryKey: k });
         },
