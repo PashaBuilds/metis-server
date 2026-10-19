@@ -2090,7 +2090,7 @@ export interface components {
             group_dn: string;
             /**
              * New User Role
-             * @default none
+             * @default reader
              * @enum {string}
              */
             new_user_role: "none" | "reader";
@@ -2126,7 +2126,7 @@ export interface components {
             https_ok: boolean;
             /**
              * New User Role
-             * @default none
+             * @default reader
              * @enum {string}
              */
             new_user_role: "none" | "reader";

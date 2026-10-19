@@ -1620,7 +1620,7 @@
             "type": "string"
           },
           "new_user_role": {
-            "default": "none",
+            "default": "reader",
             "enum": [
               "none",
               "reader"
@@ -1668,7 +1668,7 @@
             "type": "boolean"
           },
           "new_user_role": {
-            "default": "none",
+            "default": "reader",
             "enum": [
               "none",
               "reader"
