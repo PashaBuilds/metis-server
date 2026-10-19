@@ -88,3 +88,38 @@ def test_routing_prefers_lower_latency_deterministically(team, mock_llm):
     with transaction() as db:
         chosen, reasons = route(db, db.get(Project, uuid.UUID(team["pid"])))
         assert str(chosen.id) == fast
+
+
+def test_members_see_models_and_benchmark_results_read_only(team, mock_llm):
+    """Ürün sahibinin isteği (2026-10-19): yönetici olmayanlar Model laboratuvarında eklenen modelleri, son benchmark
+    sonuçlarını ve grafiği görür; ekleme, test, benchmark, açma/kapama, silme yalnız yöneticide."""
+    make_demo(team["pid"])
+    prov = add_provider(team["admin"], ["fixture-reference"])
+    mid = model_id("fixture-reference", prov["id"])
+    qualify(team["admin"], mid)
+    reader = team["reader"]
+    models = reader.get("/api/v1/models")
+    assert models.status_code == 200, models.text
+    row = next(r for r in models.json() if r["id"] == mid)
+    assert row["eligible"] is True and row["benchmark"]["n"] == 26 and row["latency"]["p50_ms"] is not None
+    # Bağlantı ayrıntıları (sağlayıcı adresi — ad verilmezse adı da adrestir —, istek profili) yalnız yöneticide.
+    assert "127.0.0.1" not in models.text and row["provider_name"] == "" and row["transport_profile"] == {}
+    assert _row(team["admin"], mid)["provider_name"] and _row(team["admin"], mid)["transport_profile"]
+    runs = reader.get("/api/v1/benchmark-runs").json()
+    assert [r["model_id"] for r in runs] == [mid]
+    detail = reader.get(f"/api/v1/benchmark-runs/{runs[0]['id']}")
+    assert detail.status_code == 200 and len(detail.json()["results"]) == 26
+    for denied in (
+        reader.get("/api/v1/providers"),
+        reader.get("/api/v1/allowed-endpoints"),
+        reader.post(f"/api/v1/models/{mid}/probe"),
+        reader.post("/api/v1/models/benchmark", json={"model_ids": [mid]}),
+        reader.patch(f"/api/v1/models/{mid}", json={"enabled": False}),
+        reader.delete(f"/api/v1/models/{mid}"),
+        reader.post("/api/v1/models/clear-results", json={"model_id": mid}),
+    ):
+        assert denied.status_code == 403, denied.text
+    assert _row(team["admin"], mid)["enabled"] is True
+    # Hiçbir projeye üye olmayan kullanıcı görmez.
+    assert team["outsider"].get("/api/v1/models").status_code == 403
+    assert team["outsider"].get("/api/v1/benchmark-runs").status_code == 403

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckSquare, ChevronRight, FlaskConical, KeyRound, Play, Plus, ShieldCheck, Square, Trash2, Zap, ZapOff } from 'lucide-react';
+import { CheckSquare, ChevronRight, KeyRound, Play, Plus, ShieldCheck, Square, Trash2, Zap, ZapOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Button, ConfirmDialog, Dialog, Drawer, EmptyState, Field, Input, SkeletonRows, StatusBadge, Textarea, useToast, type Tone } from '@/design/primitives';
+import { Button, ConfirmDialog, Dialog, Drawer, Field, Input, SkeletonRows, StatusBadge, Textarea, useToast, type Tone } from '@/design/primitives';
 import { PageHeader } from '@/app/Shell';
 import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
@@ -91,20 +91,14 @@ function useRuns() {
 
 export default function LabPage() {
   const session = useSession();
-  if (!session.isAdmin)
-    return (
-      <div className={s.page}>
-        <PageHeader title={tr.lab.title} />
-        <EmptyState icon={<FlaskConical size={24} />} title={tr.lab.adminOnly} />
-      </div>
-    );
-  return <Lab />;
+  return <Lab admin={session.isAdmin} />;
 }
 
-function Lab() {
+/** Yönetici her şeyi yönetir; diğer üyeler salt okunur görür: modeller, son benchmark sonuçları, grafik, geçmiş. */
+function Lab({ admin }: { admin: boolean }) {
   const qc = useQueryClient();
   const toast = useToast();
-  const providers = useQuery({ queryKey: ['providers'], queryFn: () => api.get<Provider[]>('/providers') });
+  const providers = useQuery({ queryKey: ['providers'], queryFn: () => api.get<Provider[]>('/providers'), enabled: admin });
   const models = useQuery({ queryKey: ['models'], queryFn: () => api.get<ModelRow[]>('/models') });
   const runs = useRuns();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -195,49 +189,52 @@ function Lab() {
     <div className={s.page}>
       <PageHeader title={tr.lab.title} />
       <div className={s.stack}>
+        {!admin && <p className={s.hint}>{tr.lab.readOnlyLead}</p>}
         {/* ---------------------------------------------------------- sağlayıcılar */}
-        <section className={s.section} aria-labelledby="lab-providers">
-          <div className={s.sectionHead}>
-            <h2 id="lab-providers" className={s.sectionTitle}>
-              {tr.lab.providers}
-            </h2>
-            <Button icon={<Plus size={16} aria-hidden />} onClick={() => setAdding(true)}>
-              {tr.lab.addProvider}
-            </Button>
-          </div>
-          {providers.isLoading ? (
-            <SkeletonRows rows={2} />
-          ) : providers.isError ? (
-            <p className={s.error}>{messageOf(providers.error)}</p>
-          ) : !providers.data?.length ? (
-            <p className={s.hint}>{tr.lab.providersEmpty}</p>
-          ) : (
-            <ul className={s.rows}>
-              {providers.data.map((p) => (
-                <li key={p.id} className={s.providerRow}>
-                  <div className={s.providerMain}>
-                    <span className={s.providerName}>{p.name}</span>
-                    <span className={s.mono}>{p.base_url}</span>
-                  </div>
-                  <span className={s.keyState}>
-                    <KeyRound size={15} aria-hidden />
-                    {p.secret_configured ? tr.lab.keySet(formatDate(p.secret_updated_at)) : tr.lab.keyNone}
-                  </span>
-                  <Button size="sm" onClick={() => setKeyFor(p)}>
-                    {tr.lab.changeKey}
-                  </Button>
-                  <RowMenu
-                    label={tr.lab.providerActions(p.name)}
-                    actions={[
-                      { label: tr.lab.addModels, icon: <Plus size={15} />, onSelect: () => setModelsFor(p) },
-                      { label: tr.lab.deleteProvider, icon: <Trash2 size={15} />, danger: true, separatorBefore: true, onSelect: () => setDelProvider(p) },
-                    ]}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {admin && (
+          <section className={s.section} aria-labelledby="lab-providers">
+            <div className={s.sectionHead}>
+              <h2 id="lab-providers" className={s.sectionTitle}>
+                {tr.lab.providers}
+              </h2>
+              <Button icon={<Plus size={16} aria-hidden />} onClick={() => setAdding(true)}>
+                {tr.lab.addProvider}
+              </Button>
+            </div>
+            {providers.isLoading ? (
+              <SkeletonRows rows={2} />
+            ) : providers.isError ? (
+              <p className={s.error}>{messageOf(providers.error)}</p>
+            ) : !providers.data?.length ? (
+              <p className={s.hint}>{tr.lab.providersEmpty}</p>
+            ) : (
+              <ul className={s.rows}>
+                {providers.data.map((p) => (
+                  <li key={p.id} className={s.providerRow}>
+                    <div className={s.providerMain}>
+                      <span className={s.providerName}>{p.name}</span>
+                      <span className={s.mono}>{p.base_url}</span>
+                    </div>
+                    <span className={s.keyState}>
+                      <KeyRound size={15} aria-hidden />
+                      {p.secret_configured ? tr.lab.keySet(formatDate(p.secret_updated_at)) : tr.lab.keyNone}
+                    </span>
+                    <Button size="sm" onClick={() => setKeyFor(p)}>
+                      {tr.lab.changeKey}
+                    </Button>
+                    <RowMenu
+                      label={tr.lab.providerActions(p.name)}
+                      actions={[
+                        { label: tr.lab.addModels, icon: <Plus size={15} />, onSelect: () => setModelsFor(p) },
+                        { label: tr.lab.deleteProvider, icon: <Trash2 size={15} />, danger: true, separatorBefore: true, onSelect: () => setDelProvider(p) },
+                      ]}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         {/* --------------------------------------------------------------- modeller */}
         <section className={s.section} aria-labelledby="lab-models">
@@ -246,21 +243,23 @@ function Lab() {
               {tr.lab.models}
             </h2>
           </div>
-          <div className={s.toolbar} role="toolbar" aria-label={tr.lab.models}>
-            <Button size="sm" icon={allSelected ? <CheckSquare size={15} aria-hidden /> : <Square size={15} aria-hidden />} onClick={() => setSelected(allSelected ? new Set() : new Set(list.map((m) => m.id)))} disabled={!list.length}>
-              {allSelected ? tr.lab.clearSelection : tr.lab.selectAll}
-            </Button>
-            <Button size="sm" icon={<Zap size={15} aria-hidden />} disabled={!sel.length || testing.size > 0} onClick={() => void probe(sel)}>
-              {tr.lab.testSelected}
-            </Button>
-            <Button size="sm" icon={<Play size={15} aria-hidden />} disabled={!sel.length} loading={bench.isPending} onClick={() => bench.mutate(sel)}>
-              {tr.lab.runBenchmark}
-            </Button>
-            <Button size="sm" variant="ghost" icon={<Trash2 size={15} aria-hidden />} disabled={!list.length} onClick={() => setClearAll(true)}>
-              {tr.lab.clearAll}
-            </Button>
-            {sel.length > 0 && <span className={s.selCount}>{tr.lab.selected(sel.length)}</span>}
-          </div>
+          {admin && (
+            <div className={s.toolbar} role="toolbar" aria-label={tr.lab.models}>
+              <Button size="sm" icon={allSelected ? <CheckSquare size={15} aria-hidden /> : <Square size={15} aria-hidden />} onClick={() => setSelected(allSelected ? new Set() : new Set(list.map((m) => m.id)))} disabled={!list.length}>
+                {allSelected ? tr.lab.clearSelection : tr.lab.selectAll}
+              </Button>
+              <Button size="sm" icon={<Zap size={15} aria-hidden />} disabled={!sel.length || testing.size > 0} onClick={() => void probe(sel)}>
+                {tr.lab.testSelected}
+              </Button>
+              <Button size="sm" icon={<Play size={15} aria-hidden />} disabled={!sel.length} loading={bench.isPending} onClick={() => bench.mutate(sel)}>
+                {tr.lab.runBenchmark}
+              </Button>
+              <Button size="sm" variant="ghost" icon={<Trash2 size={15} aria-hidden />} disabled={!list.length} onClick={() => setClearAll(true)}>
+                {tr.lab.clearAll}
+              </Button>
+              {sel.length > 0 && <span className={s.selCount}>{tr.lab.selected(sel.length)}</span>}
+            </div>
+          )}
           {models.isLoading ? (
             <SkeletonRows rows={3} />
           ) : models.isError ? (
@@ -272,10 +271,12 @@ function Lab() {
               <table className={s.table}>
                 <thead>
                   <tr>
-                    <th scope="col" className={s.colSel}>
-                      <span className="sr-only">{tr.lab.colSelect}</span>
-                      <span aria-hidden>{tr.lab.colSelect}</span>
-                    </th>
+                    {admin && (
+                      <th scope="col" className={s.colSel}>
+                        <span className="sr-only">{tr.lab.colSelect}</span>
+                        <span aria-hidden>{tr.lab.colSelect}</span>
+                      </th>
+                    )}
                     <th scope="col">{tr.lab.colModel}</th>
                     <th scope="col">{tr.lab.colConnection}</th>
                     <th scope="col">{tr.lab.colBenchmark}</th>
@@ -290,6 +291,7 @@ function Lab() {
                     <ModelTr
                       key={m.id}
                       m={m}
+                      admin={admin}
                       checked={selected.has(m.id)}
                       onCheck={(on) =>
                         setSelected((old) => {
@@ -422,6 +424,7 @@ function RunStateBadge({ state }: { state: string }) {
 
 interface ModelTrProps {
   m: ModelRow;
+  admin: boolean;
   checked: boolean;
   onCheck: (on: boolean) => void;
   testing: boolean;
@@ -433,21 +436,21 @@ interface ModelTrProps {
   onDelete: () => void;
 }
 
-function ModelTr({ m, checked, onCheck, testing, runState, onTest, onOpen, onClear, onToggle, onDelete }: ModelTrProps) {
+function ModelTr({ m, admin, checked, onCheck, testing, runState, onTest, onOpen, onClear, onToggle, onDelete }: ModelTrProps) {
   const probe = probeSummary(m);
   const b = benchOf(m);
   const lat = latencyOf(m);
   return (
     <tr>
-      <td className={s.colSel}>
-        <input type="checkbox" className={s.check} checked={checked} onChange={(e) => onCheck(e.target.checked)} aria-label={tr.lab.selectModel(m.display_name)} />
-      </td>
+      {admin && (
+        <td className={s.colSel}>
+          <input type="checkbox" className={s.check} checked={checked} onChange={(e) => onCheck(e.target.checked)} aria-label={tr.lab.selectModel(m.display_name)} />
+        </td>
+      )}
       <td>
         <div className={s.modelCell}>
           <span className={s.modelName}>{m.display_name}</span>
-          <span className={s.mono}>
-            {m.provider_name} / {m.remote_id}
-          </span>
+          <span className={s.mono}>{m.provider_name ? `${m.provider_name} / ${m.remote_id}` : m.remote_id}</span>
           <span className={s.modelTags}>
             {m.is_fixture && <span className={s.tag}>{tr.lab.fixture}</span>}
             {!m.enabled && <span className={s.tag}>{tr.lab.disabled}</span>}
@@ -489,13 +492,17 @@ function ModelTr({ m, checked, onCheck, testing, runState, onTest, onOpen, onCle
       <td className={s.colMenu}>
         <RowMenu
           label={tr.lab.modelActions(m.display_name)}
-          actions={[
-            { label: tr.lab.test, icon: <Zap size={15} />, onSelect: onTest },
-            { label: tr.lab.openResult, icon: <ChevronRight size={15} />, onSelect: onOpen },
-            { label: tr.lab.clearResult, icon: <Trash2 size={15} />, onSelect: onClear },
-            { label: m.enabled ? tr.lab.disable : tr.lab.enable, icon: m.enabled ? <ZapOff size={15} /> : <Zap size={15} />, onSelect: onToggle, separatorBefore: true },
-            { label: tr.lab.deleteModel, icon: <Trash2 size={15} />, onSelect: onDelete, danger: true },
-          ]}
+          actions={
+            admin
+              ? [
+                  { label: tr.lab.test, icon: <Zap size={15} />, onSelect: onTest },
+                  { label: tr.lab.openResult, icon: <ChevronRight size={15} />, onSelect: onOpen },
+                  { label: tr.lab.clearResult, icon: <Trash2 size={15} />, onSelect: onClear },
+                  { label: m.enabled ? tr.lab.disable : tr.lab.enable, icon: m.enabled ? <ZapOff size={15} /> : <Zap size={15} />, onSelect: onToggle, separatorBefore: true },
+                  { label: tr.lab.deleteModel, icon: <Trash2 size={15} />, onSelect: onDelete, danger: true },
+                ]
+              : [{ label: tr.lab.openResult, icon: <ChevronRight size={15} />, onSelect: onOpen }]
+          }
         />
       </td>
     </tr>

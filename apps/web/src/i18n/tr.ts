@@ -1067,7 +1067,7 @@ export const tr = {
   },
   lab: {
     title: 'Model laboratuvarı',
-    adminOnly: 'Model laboratuvarı yalnız yöneticilere açıktır.',
+    readOnlyLead: 'Modelleri yönetici ekler ve sınar. Burada eklenen modelleri, son benchmark sonuçlarını ve karşılaştırma grafiğini görebilirsin.',
     providers: 'Sağlayıcılar',
     providersEmpty: 'Henüz sağlayıcı yok. OpenAI uyumlu bir model sunucusu ekleyerek başla.',
     addProvider: 'Sağlayıcı ekle',

@@ -79,7 +79,8 @@ export function Shell() {
       { to: '/gorevler', label: tr.nav.tasks, icon: Sparkles, badge: inbox.data?.questions_waiting },
       { to: '/saglik', label: tr.nav.health, icon: Activity },
     ],
-    session.isAdmin ? [{ to: '/lab', label: tr.nav.lab, icon: FlaskConical, adminOnly: true }] : [],
+    // Model laboratuvarı herkese açık (salt okunur: modeller, sonuçlar, grafik); yönetim yalnız yöneticide.
+    [{ to: '/lab', label: tr.nav.lab, icon: FlaskConical }],
   ];
 
   const rail = (inDrawer: boolean) => (

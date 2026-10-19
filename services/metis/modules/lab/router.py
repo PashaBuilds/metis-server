@@ -11,10 +11,19 @@ from sqlalchemy.orm import Session
 from metis.core.access import require_admin
 from metis.core.deps import current_user, get_db
 from metis.core.errors import AppError
-from metis.core.models import BenchmarkCase, BenchmarkResult, BenchmarkRun, Job, Model, Provider, User
+from metis.core.models import BenchmarkCase, BenchmarkResult, BenchmarkRun, Job, Model, ProjectMember, Provider, User
 from metis.modules.lab import service
 
 router = APIRouter(tags=["lab"])
+
+
+def _require_member(db: Session, user: User) -> None:
+    """Model listesi ve benchmark sonuçları (salt okunur) her proje üyesine açık (ürün sahibinin isteği 2026-10-19);
+    sağlayıcılar, adresler, anahtarlar ve tüm işlemler yalnız yöneticide."""
+    if user.is_admin and user.kind == "human":
+        return
+    if db.scalar(select(ProjectMember.user_id).where(ProjectMember.user_id == user.id).limit(1)) is None:
+        raise AppError("ROLE_REQUIRED", "project membership required")
 
 
 class ProviderIn(BaseModel):
@@ -179,10 +188,18 @@ def _model_row(db: Session, m: Model) -> ModelRow:
     )
 
 
+def _member_view(row: ModelRow) -> ModelRow:
+    """Yönetici olmayan üyeye bağlantı ayrıntısı gönderilmez: sağlayıcı adı (ad verilmezse model sunucusunun iç
+    adresidir), istek profili ve test hata metinleri. Model adı, uygunluk, benchmark ve gecikme görünür."""
+    probes = {k: {**v, "error": None} for k, v in row.probes.items()}
+    return row.model_copy(update={"provider_id": "", "provider_name": "", "transport_profile": {}, "probes": probes})
+
+
 @router.get("/models", response_model=list[ModelRow])
 def models(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> list[ModelRow]:
-    require_admin(user)
-    return [_model_row(db, m) for m in db.scalars(select(Model).where(Model.deleted_at.is_(None)).order_by(Model.display_name))]
+    _require_member(db, user)
+    rows = [_model_row(db, m) for m in db.scalars(select(Model).where(Model.deleted_at.is_(None)).order_by(Model.display_name))]
+    return rows if user.is_admin else [_member_view(r) for r in rows]
 
 
 @router.patch("/models/{model_id}", response_model=ModelRow)
@@ -218,7 +235,7 @@ def benchmark(data: BenchmarkIn, user: User = Depends(current_user), db: Session
 
 @router.get("/benchmark-runs", response_model=list[RunRow])
 def runs(model_id: uuid.UUID | None = None, limit: int = Query(default=50, le=200), user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> list[RunRow]:
-    require_admin(user)
+    _require_member(db, user)
     q = select(BenchmarkRun).where(BenchmarkRun.hidden_at.is_(None))
     if model_id:
         q = q.where(BenchmarkRun.model_id == model_id)
@@ -232,7 +249,7 @@ def runs(model_id: uuid.UUID | None = None, limit: int = Query(default=50, le=20
 
 @router.get("/benchmark-runs/{run_id}")
 def run_detail(run_id: uuid.UUID, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict:
-    require_admin(user)
+    _require_member(db, user)
     run = db.get(BenchmarkRun, run_id)
     if not run or run.hidden_at is not None:
         raise AppError("NOT_FOUND", "run not found")

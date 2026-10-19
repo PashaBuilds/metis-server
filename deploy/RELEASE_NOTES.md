@@ -4,6 +4,16 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.14 — Model laboratuvarı herkese salt okunur:**
+- Yönetici olmayan kullanıcılar da sol menüde **Model laboratuvarı**'nı görür: eklenen modeller, uygunluk durumu,
+  son benchmark sonuçları (isabet, kritik hata, süre), **Kalite ve gecikme** grafiği, benchmark geçmişi ve sonuç
+  ayrıntısı ("Sonucu aç").
+- Ekleme, test, benchmark, açma/kapama, silme, sonuç temizleme yalnız yöneticide (sunucu da reddeder). Sağlayıcılar
+  bölümü, model sunucusunun adresi, anahtar durumu ve bağlantı ayrıntıları yöneticiye özel kalır.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi; çift tıklamada yükseltme sorusu denendi; yükseltmenin kendisi o
+  bilgisayarda **denenmedi** (ajan Windows yönetici iznini onaylayamaz; ürün sahibinin "beklemeden yayımla" kararıyla
+  istisna); temiz Windows Server 2022'de kurulum, yükseltme ve kaldırma CI'da.
+
 **2.0.13 — METIS bir alt yolda: http://<makine>/metis; http'de Taslak hazırla düzeltmesi:**
 - **Düzeltme:** şirket içi http adresinden (https değil, localhost değil) açınca "İlk bilgiyi ekle" / "Taslak hazırla"
   "Something went wrong!" ile çöküyordu: sayfa, tarayıcının yalnız https ve localhost'ta verdiği `crypto.randomUUID`'i
