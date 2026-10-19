@@ -412,6 +412,19 @@
         "title": "AttachmentOut",
         "type": "object"
       },
+      "AuthMethodsOut": {
+        "properties": {
+          "directory": {
+            "title": "Directory",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "title": "AuthMethodsOut",
+        "type": "object"
+      },
       "AvailableModel": {
         "properties": {
           "display_name": {
@@ -1579,6 +1592,206 @@
           "evidence_id"
         ],
         "title": "ConflictSide",
+        "type": "object"
+      },
+      "DirectorySettingsIn": {
+        "properties": {
+          "base_dn": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Base Dn",
+            "type": "string"
+          },
+          "domain": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Domain",
+            "type": "string"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "group_dn": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Group Dn",
+            "type": "string"
+          },
+          "new_user_role": {
+            "default": "none",
+            "enum": [
+              "none",
+              "reader"
+            ],
+            "title": "New User Role",
+            "type": "string"
+          },
+          "server_url": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Server Url",
+            "type": "string"
+          }
+        },
+        "title": "DirectorySettingsIn",
+        "type": "object"
+      },
+      "DirectorySettingsOut": {
+        "properties": {
+          "base_dn": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Base Dn",
+            "type": "string"
+          },
+          "domain": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Domain",
+            "type": "string"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "group_dn": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Group Dn",
+            "type": "string"
+          },
+          "https_ok": {
+            "title": "Https Ok",
+            "type": "boolean"
+          },
+          "new_user_role": {
+            "default": "none",
+            "enum": [
+              "none",
+              "reader"
+            ],
+            "title": "New User Role",
+            "type": "string"
+          },
+          "server_url": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Server Url",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "https_ok"
+        ],
+        "title": "DirectorySettingsOut",
+        "type": "object"
+      },
+      "DirectoryTestIn": {
+        "properties": {
+          "password": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Password",
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/DirectorySettingsIn"
+          },
+          "username": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "settings",
+          "username"
+        ],
+        "title": "DirectoryTestIn",
+        "type": "object"
+      },
+      "DirectoryTestOut": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "in_group": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "In Group"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "DirectoryTestOut",
         "type": "object"
       },
       "DomainRow": {
@@ -5308,6 +5521,11 @@
             "title": "Active",
             "type": "boolean"
           },
+          "auth_source": {
+            "default": "local",
+            "title": "Auth Source",
+            "type": "string"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -5328,6 +5546,11 @@
           },
           "must_change_password": {
             "title": "Must Change Password",
+            "type": "boolean"
+          },
+          "pending_role": {
+            "default": false,
+            "title": "Pending Role",
             "type": "boolean"
           },
           "username": {
@@ -5460,7 +5683,7 @@
   },
   "info": {
     "title": "METIS API",
-    "version": "2.0.14"
+    "version": "2.0.15"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5801,6 +6024,28 @@
         "summary": "Me",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/methods": {
+      "get": {
+        "description": "Giriş ekranı için (oturum gerekmez): şirket hesabıyla giriş açık mı.",
+        "operationId": "methods_api_v1_auth_methods_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthMethodsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Methods",
+        "tags": [
+          "directory"
         ]
       }
     },
@@ -6481,6 +6726,107 @@
         "summary": "Create Demo",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/directory": {
+      "get": {
+        "operationId": "get_settings_api_v1_directory_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorySettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Settings",
+        "tags": [
+          "directory"
+        ]
+      },
+      "put": {
+        "operationId": "put_settings_api_v1_directory_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectorySettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorySettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Settings",
+        "tags": [
+          "directory"
+        ]
+      }
+    },
+    "/api/v1/directory/test": {
+      "post": {
+        "operationId": "test_api_v1_directory_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectoryTestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryTestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Test",
+        "tags": [
+          "directory"
         ]
       }
     },

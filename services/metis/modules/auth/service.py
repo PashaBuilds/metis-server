@@ -145,6 +145,8 @@ def logout(db: Session, sess: UserSession) -> None:
 
 
 def change_password(db: Session, user: User, data: schemas.PasswordChangeInput, keep_session: uuid.UUID) -> None:
+    if user.auth_source == "directory":
+        raise AppError("PASSWORD_MANAGED_BY_DIRECTORY", "password is managed by the company directory")
     ok, _ = verify_password(data.current_password, user.password_hash)
     if not ok:
         raise AppError("INVALID_CREDENTIALS", "current password incorrect", field="current_password")
@@ -220,7 +222,13 @@ def to_out(user: User) -> schemas.UserOut:
 
 def list_users(db: Session, actor: User) -> list[schemas.UserOut]:
     require_admin(actor)
-    return [to_out(u) for u in db.scalars(select(User).where(User.kind == "human").order_by(func.lower(User.username)))]
+    with_roles = set(db.scalars(select(ProjectMember.user_id).distinct()))
+    out = []
+    for u in db.scalars(select(User).where(User.kind == "human").order_by(func.lower(User.username))):
+        row = to_out(u)
+        row.pending_role = u.auth_source == "directory" and not u.is_admin and u.id not in with_roles
+        out.append(row)
+    return out
 
 
 def create_user(db: Session, actor: User, data: schemas.UserCreateInput) -> User:
@@ -257,6 +265,8 @@ def update_user(db: Session, actor: User, user_id: uuid.UUID, data: schemas.User
     if data.is_admin is not None:
         user.is_admin = data.is_admin
     if data.temporary_password is not None:
+        if user.auth_source == "directory":
+            raise AppError("PASSWORD_MANAGED_BY_DIRECTORY", "password is managed by the company directory")
         check_password_strength(data.temporary_password)
         user.password_hash = hash_password(data.temporary_password)
         user.must_change_password = True

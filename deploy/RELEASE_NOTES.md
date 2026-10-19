@@ -4,6 +4,24 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.15 — şirket hesabıyla giriş (Active Directory):**
+- Kullanıcılar METIS'e Windows'a girdikleri kullanıcı adı ve parolayla girebilir; yönetici her kullanıcıyı elle
+  açmaz. İlk girişte hesap kendiliğinden oluşur ve kişi **Okur** olarak başlar; diğer rolleri yönetici verir
+  (Ayarlar → Üyeler ve roller'de "Şirket hesabı" etiketiyle görünür). İstenirse "Rol bekler" seçilebilir.
+- **Parola saklanmaz:** METIS her girişte şirket dizinine kişinin kendi bilgileriyle **LDAPS** üzerinden sorar; hizmet
+  hesabı yok. Şirket hesabının parolası METIS'te değiştirilemez/sıfırlanamaz.
+- Ayar: **Ayarlar → Şirket hesabıyla giriş** (yalnız yönetici): dizin sunucusu, etki alanı, isteğe bağlı izinli grup,
+  **Bağlantıyı dene** (kaydetmez, hesap açmaz). Ayrıntı: KURULUM.md 6a.
+- **https şart:** şirket parolası tarayıcıdan METIS'e geldiği için özellik yalnız METIS https ile açılıyorsa
+  etkinleşir; ayarlar http'de de girilip kaydedilebilir. Kurulumdaki yerel yönetici hesabı her zaman çalışır.
+- Rolü olmayan kullanıcı giriş yapınca "yöneticinin rol vermesi bekleniyor" ekranı görür.
+- Düzeltme: geri yükleme tatbikatı geçici veritabanını silerken o anda bağlı bir arka plan süreci varsa ara sıra
+  başarısız oluyor ve geçici veritabanı kalıyordu; silme artık yeniden denenir.
+- Gerçek bir Active Directory ile **henüz denenmedi** (kurgusal dizinle testler ve https geliştirme sunucusunda uçtan uca
+  akış). Şema 0007. Bu ZIP yerel Windows 10 bilgisayarda derlendi; çift tıklamada yükseltme sorusu denendi; yükseltmenin
+  kendisi o bilgisayarda **denenmedi** (ajan Windows yönetici iznini onaylayamaz; ürün sahibinin "beklemeden yayımla"
+  kararıyla istisna); temiz Windows Server 2022'de kurulum, yükseltme ve kaldırma CI'da.
+
 **2.0.14 — Model laboratuvarı herkese salt okunur:**
 - Yönetici olmayan kullanıcılar da sol menüde **Model laboratuvarı**'nı görür: eklenen modeller, uygunluk durumu,
   son benchmark sonuçları (isabet, kritik hata, süre), **Kalite ve gecikme** grafiği, benchmark geçmişi ve sonuç

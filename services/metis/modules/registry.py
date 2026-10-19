@@ -9,6 +9,7 @@ from fastapi import FastAPI
 MODULES = [
     "system",
     "auth",
+    "directory",
     "projects",
     "scopes",
     "sources",

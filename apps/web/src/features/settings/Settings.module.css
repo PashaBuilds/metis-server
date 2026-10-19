@@ -150,6 +150,17 @@
   color: var(--celiski);
 }
 
+/* Şirket hesabıyla ilk kez girip rol bekleyen kullanıcı. */
+.pending {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: var(--r-chip);
+  font-size: var(--fs-12);
+  font-weight: 500;
+  background: var(--inceleme-zemin);
+  color: var(--inceleme);
+}
+
 .roleSet {
   display: flex;
   flex-direction: column;

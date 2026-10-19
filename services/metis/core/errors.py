@@ -52,6 +52,8 @@ CATALOG: dict[str, tuple[int, bool]] = {
     "ENDPOINT_NOT_ALLOWED": (422, False),
     "ENDPOINT_IN_USE": (409, False),
     "ENDPOINT_CONFIGURED": (409, False),
+    "HTTPS_REQUIRED": (409, False),  # şirket hesabıyla giriş: parola tarayıcıdan geldiği için yalnız https
+    "PASSWORD_MANAGED_BY_DIRECTORY": (409, False),
     "ADDRESS_NOT_ALLOWED": (422, False),
     "TLS_REQUIRED": (422, False),
     "MODEL_NOT_ELIGIBLE": (422, False),
@@ -60,6 +62,7 @@ CATALOG: dict[str, tuple[int, bool]] = {
     "REASON_REQUIRED": (422, False),
     "RATE_LIMITED": (429, True),
     "DNS_UNAVAILABLE": (503, True),
+    "DIRECTORY_UNAVAILABLE": (503, True),
     "SECRET_STORE_UNAVAILABLE": (503, False),
     "SERVICE_UNAVAILABLE": (503, True),
     "INTERNAL": (500, True),

@@ -18,6 +18,7 @@ dependencies = [
   "pypdf>=5,<7",
   "cryptography>=43",
   "python-multipart>=0.0.9",
+  "ldap3>=2.9,<3",  # şirket hesabıyla giriş (Active Directory, LDAPS); saf Python
 ]
 
 [project.optional-dependencies]

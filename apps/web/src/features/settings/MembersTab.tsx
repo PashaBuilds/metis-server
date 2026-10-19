@@ -19,6 +19,10 @@ interface Person {
   active: boolean;
   is_admin: boolean;
   roles: Role[];
+  /** Şirket hesabı (dizin): parolası METIS'te değil; ilk girişte kendiliğinden oluşur. */
+  directory: boolean;
+  /** Hiçbir projede rolü yok (şirket hesabıyla ilk kez girmiş). */
+  pending: boolean;
 }
 
 export function generatePassword(): string {
@@ -42,13 +46,19 @@ export function MembersTab() {
 
   const people: Person[] = (() => {
     const byId = new Map<string, Person>();
-    for (const m of members.data ?? []) byId.set(m.user_id, { user_id: m.user_id, username: m.username, display_name: m.display_name, active: m.active, is_admin: false, roles: m.roles });
+    for (const m of members.data ?? []) byId.set(m.user_id, { user_id: m.user_id, username: m.username, display_name: m.display_name, active: m.active, is_admin: false, roles: m.roles, directory: false, pending: false });
     for (const u of users.data ?? []) {
       const p = byId.get(u.id);
-      if (p) p.is_admin = u.is_admin;
-      else byId.set(u.id, { user_id: u.id, username: u.username, display_name: u.display_name, active: u.active, is_admin: u.is_admin, roles: [] });
+      const directory = u.auth_source === 'directory';
+      if (p) {
+        p.is_admin = u.is_admin;
+        p.directory = directory;
+        p.pending = u.pending_role;
+      } else byId.set(u.id, { user_id: u.id, username: u.username, display_name: u.display_name, active: u.active, is_admin: u.is_admin, roles: [], directory, pending: u.pending_role });
     }
-    return [...byId.values()].sort((a, b) => a.display_name.localeCompare(b.display_name, 'tr'));
+    // Şirket hesabıyla ilk kez girip rol bekleyenler en üstte.
+    const waiting = (p: Person) => (p.pending ? 0 : 1);
+    return [...byId.values()].sort((a, b) => waiting(a) - waiting(b) || a.display_name.localeCompare(b.display_name, 'tr'));
   })();
 
   const refresh = () => {
@@ -103,8 +113,9 @@ export function MembersTab() {
                     {tr.settings.inactive}
                   </span>
                 )}
+                {p.directory && <Chip tone="muted">{tr.settings.companyAccount}</Chip>}
                 {p.roles.length === 0 ? (
-                  <span className={s.hint}>{tr.settings.noRole}</span>
+                  <span className={p.pending ? s.pending : s.hint}>{p.pending ? tr.settings.pendingRole : tr.settings.noRole}</span>
                 ) : (
                   ROLES.filter((r) => p.roles.includes(r)).map((r) => (
                     <Chip key={r} tone="muted">
@@ -120,7 +131,7 @@ export function MembersTab() {
                     { label: tr.settings.roles, icon: <Users size={15} />, onSelect: () => setRolesFor(p) },
                     ...(session.isAdmin
                       ? [
-                          { label: tr.settings.resetPassword, icon: <KeyRound size={15} />, onSelect: () => setResetFor(p) },
+                          ...(!p.directory ? [{ label: tr.settings.resetPassword, icon: <KeyRound size={15} />, onSelect: () => setResetFor(p) }] : []),
                           ...(!me
                             ? [
                                 p.active

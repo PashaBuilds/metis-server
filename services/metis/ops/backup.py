@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 import uuid
 import zipfile
 from datetime import UTC, datetime, timedelta
@@ -256,6 +257,19 @@ def restore_backup(archive: Path, database_url: str | None = None, data_dir: Pat
     return {"ok": True, "mode": "restore", "archive": str(archive), "created_at": manifest.get("created_at"), **check, "note": "Oturumlar geri yüklenen veriyle birlikte gelir; güvenlik için servisleri yeniden başlatıp kullanıcılardan yeniden giriş yapmalarını iste."}
 
 
+def drop_database(admin_url: str, name: str, attempts: int = 10) -> None:
+    """Geçici veritabanını siler. O anda bağlı bir arka plan süreci (ör. autovacuum) varsa süper kullanıcı olmayan rol
+    onu sonlandıramaz ("permission denied to terminate process"); süreç kısa sürede biter, yeniden denenir."""
+    for attempt in range(attempts):
+        try:
+            with psycopg.connect(admin_url, autocommit=True) as conn:
+                conn.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+            return
+        except psycopg.errors.InsufficientPrivilege:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(1)
+
 def rehearse_restore(archive: Path) -> dict[str, Any]:
     """Geçici veritabanına geri yükler, doğrular ve siler. Canlı veritabanına ve blob deposuna dokunmaz."""
     settings = get_settings()
@@ -280,8 +294,7 @@ def rehearse_restore(archive: Path) -> dict[str, Any]:
         except pgtools.PgToolError as exc:
             return {"ok": False, "code": "PG_RESTORE_FAILED", "message": str(exc)}
         finally:
-            with psycopg.connect(admin_url, autocommit=True) as conn:
-                conn.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+            drop_database(admin_url, name)
     result = {"ok": True, "mode": "rehearsal", "archive": str(archive), "created_at": manifest.get("created_at"), **check, "seconds": round((datetime.now(UTC) - started).total_seconds(), 1)}
     marker = backups_dir() / "last-rehearsal.json"
     marker.parent.mkdir(parents=True, exist_ok=True)

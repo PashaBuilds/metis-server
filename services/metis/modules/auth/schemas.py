@@ -44,6 +44,8 @@ class UserOut(BaseModel):
     is_admin: bool
     active: bool
     must_change_password: bool
+    auth_source: str = "local"  # 'local' | 'directory' (şirket hesabı)
+    pending_role: bool = False  # şirket hesabıyla girmiş, hiçbir projede rolü yok (yalnız kullanıcı listesinde)
     created_at: datetime
 
 

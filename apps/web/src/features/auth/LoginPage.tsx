@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { Button, Field, Input } from '@/design/primitives';
@@ -16,6 +16,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const methods = useQuery({ queryKey: ['auth-methods'], queryFn: () => api.get<{ directory: boolean }>('/auth/methods'), staleTime: 60_000 });
+  const directory = methods.data?.directory ?? false;
 
   if (session.me) return <Navigate to="/" />;
 
@@ -39,6 +41,7 @@ export function LoginPage() {
   return (
     <AuthLayout title={tr.auth.loginTitle}>
       <form className={s.form} onSubmit={submit} noValidate>
+        {directory && <p className={s.lead}>{tr.auth.directoryHint}</p>}
         {error && (
           <p className={s.error} role="alert">
             {error}
@@ -53,7 +56,7 @@ export function LoginPage() {
         <Button type="submit" variant="primary" loading={busy} disabled={!username || !password}>
           {tr.auth.login}
         </Button>
-        <p className={s.lead}>{tr.auth.forgot}</p>
+        <p className={s.lead}>{directory ? tr.auth.directoryForgot : tr.auth.forgot}</p>
       </form>
     </AuthLayout>
   );

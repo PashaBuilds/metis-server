@@ -21,6 +21,7 @@ from sqlalchemy import (
     Index,
     Integer,
     PrimaryKeyConstraint,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
@@ -66,10 +67,15 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # 'local': METIS parolası · 'directory': şirket dizini (parola METIS'te tutulmaz; password_hash boş).
+    auth_source: Mapped[str] = mapped_column(String(20), nullable=False, default="local", server_default="local")
+    external_id: Mapped[str | None] = mapped_column(String(200), nullable=True)  # dizinde objectGUID
     created_at: Mapped[datetime] = ts()
     __table_args__ = (
         Index("ux_users_username", text("lower(username)"), unique=True),
         CheckConstraint("kind in ('human','worker')", name="ck_users_kind"),
+        CheckConstraint("auth_source in ('local','directory')", name="ck_users_auth_source"),
+        Index("ux_users_external_id", "external_id", unique=True, postgresql_where=text("external_id IS NOT NULL")),
     )
 
 
@@ -718,6 +724,26 @@ class Provider(Base):
     timeout_s: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
     created_at: Mapped[datetime] = ts()
     deleted_at: Mapped[datetime | None] = ts(nullable=True)
+
+
+class DirectorySettings(Base):
+    """Şirket hesabıyla giriş ayarı (tek satır, id=1). Parola ya da hizmet hesabı tutulmaz: doğrulama kullanıcının kendi
+    bilgileriyle LDAPS bağlanmasıdır."""
+
+    __tablename__ = "directory_settings"
+    id: Mapped[int] = mapped_column(SmallInteger, primary_key=True, default=1)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    server_url: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    domain: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    base_dn: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    group_dn: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    new_user_role: Mapped[str] = mapped_column(String(20), nullable=False, default="reader")  # yeni gelen Okur başlar
+    __table_args__ = (
+        CheckConstraint("id = 1", name="ck_directory_settings_single"),
+        CheckConstraint("new_user_role in ('none','reader')", name="ck_directory_settings_role"),
+    )
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    updated_at: Mapped[datetime] = ts()
 
 
 class AllowedEndpoint(Base):

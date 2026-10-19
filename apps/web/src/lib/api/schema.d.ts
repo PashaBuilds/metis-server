@@ -142,6 +142,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Methods
+         * @description Giriş ekranı için (oturum gerekmez): şirket hesabıyla giriş açık mı.
+         */
+        get: operations["methods_api_v1_auth_methods_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/password": {
         parameters: {
             query?: never;
@@ -365,6 +385,41 @@ export interface paths {
          * @description Kurgusal çalışma alanını oluşturur — yalnız geliştirme profili ve yönetici.
          */
         post: operations["create_demo_api_v1_demo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/directory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_v1_directory_get"];
+        /** Put Settings */
+        put: operations["put_settings_api_v1_directory_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/directory/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test */
+        post: operations["test_api_v1_directory_test_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1570,6 +1625,11 @@ export interface components {
             /** Size Bytes */
             size_bytes: number;
         };
+        /** AuthMethodsOut */
+        AuthMethodsOut: {
+            /** Directory */
+            directory: boolean;
+        };
         /** AvailableModel */
         AvailableModel: {
             /** Display Name */
@@ -2005,6 +2065,104 @@ export interface components {
             page_title: string;
             /** Quote */
             quote: string;
+        };
+        /** DirectorySettingsIn */
+        DirectorySettingsIn: {
+            /**
+             * Base Dn
+             * @default
+             */
+            base_dn: string;
+            /**
+             * Domain
+             * @default
+             */
+            domain: string;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Group Dn
+             * @default
+             */
+            group_dn: string;
+            /**
+             * New User Role
+             * @default none
+             * @enum {string}
+             */
+            new_user_role: "none" | "reader";
+            /**
+             * Server Url
+             * @default
+             */
+            server_url: string;
+        };
+        /** DirectorySettingsOut */
+        DirectorySettingsOut: {
+            /**
+             * Base Dn
+             * @default
+             */
+            base_dn: string;
+            /**
+             * Domain
+             * @default
+             */
+            domain: string;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Group Dn
+             * @default
+             */
+            group_dn: string;
+            /** Https Ok */
+            https_ok: boolean;
+            /**
+             * New User Role
+             * @default none
+             * @enum {string}
+             */
+            new_user_role: "none" | "reader";
+            /**
+             * Server Url
+             * @default
+             */
+            server_url: string;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** DirectoryTestIn */
+        DirectoryTestIn: {
+            /**
+             * Password
+             * @default
+             */
+            password: string;
+            settings: components["schemas"]["DirectorySettingsIn"];
+            /** Username */
+            username: string;
+        };
+        /** DirectoryTestOut */
+        DirectoryTestOut: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Error */
+            error?: string | null;
+            /** In Group */
+            in_group?: boolean | null;
+            /** Ok */
+            ok: boolean;
+            /** Username */
+            username?: string | null;
         };
         /** DomainRow */
         DomainRow: {
@@ -3560,6 +3718,11 @@ export interface components {
             /** Active */
             active: boolean;
             /**
+             * Auth Source
+             * @default local
+             */
+            auth_source: string;
+            /**
              * Created At
              * Format: date-time
              */
@@ -3575,6 +3738,11 @@ export interface components {
             is_admin: boolean;
             /** Must Change Password */
             must_change_password: boolean;
+            /**
+             * Pending Role
+             * @default false
+             */
+            pending_role: boolean;
             /** Username */
             username: string;
         };
@@ -3889,6 +4057,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
+                };
+            };
+        };
+    };
+    methods_api_v1_auth_methods_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthMethodsOut"];
                 };
             };
         };
@@ -4366,6 +4554,92 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    get_settings_api_v1_directory_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorySettingsOut"];
+                };
+            };
+        };
+    };
+    put_settings_api_v1_directory_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectorySettingsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorySettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_api_v1_directory_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectoryTestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryTestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

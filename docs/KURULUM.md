@@ -137,6 +137,38 @@ Adres değişirse `metis.env` içinde düzelt ve servisleri yeniden başlat (`Re
 2. Yönetici hesabını oluştur; **Ayarlar → Ekip ve izinler**'den kullanıcıları ve rollerini ekle.
 3. Komut satırından yönetici gerekirse: `C:\METIS\bin\metis admin create --username ayse`.
 
+### 6a. Şirket hesabıyla giriş (Active Directory, 2.0.15'ten beri)
+
+Kullanıcılar METIS'e Windows'a girdikleri kullanıcı adı ve parolayla girer; yönetici her kullanıcıyı elle açmaz.
+
+- **Parola saklanmaz.** Her girişte METIS, kişinin kendi kullanıcı adı ve parolasıyla şirket dizinine (Active
+  Directory) **LDAPS** üzerinden bağlanıp kendi kaydını okur (ad, e-posta, gruplar). Hizmet hesabı gerekmez.
+- **İlk giriş:** METIS hesabı kendiliğinden oluşur (ad dizinden gelir). Kişi "yöneticinin rol vermesi bekleniyor"
+  **Okur** olarak başlar (varsayılan); diğer rolleri yönetici **Ayarlar → Üyeler ve roller**'den verir (orada
+  "Şirket hesabı" etiketiyle görünür). İstenirse ayardan "Rol bekler" seçilir: o zaman kişi "yöneticinin rol vermesi
+  bekleniyor" ekranını görür ve listenin başında "Rol bekliyor" olarak durur.
+- **Önkoşul: https.** Şirket parolası tarayıcıdan METIS'e gelir; http'de ağda şifresiz giderdi. Bu yüzden özellik
+  yalnız `METIS_PUBLIC_URL` https iken açılır (5. adım). Ayarlar http'de de girilip kaydedilebilir.
+- **Yerel hesaplar** (kurulumdaki yönetici) her zaman kendi parolasıyla çalışır; aynı adlı bir şirket hesabı yerel
+  hesabı ele geçiremez. Dizine ulaşılamazsa yerel yöneticiyle girilir.
+- Şirket hesabının parolası METIS'te değiştirilmez/sıfırlanmaz. Erişimi kesmek için METIS'te kullanıcıyı pasifleştir
+  ya da dizinde hesabı kapat (bir sonraki girişte reddedilir; açık oturum en geç oturum süresi sonunda biter).
+
+**BT'den istenecekler:** etki alanı denetleyicisinin adı (LDAPS, 636 açık mı), kullanıcı adlarının UPN soneki
+(`kullanici@sirket.com.tr`'deki `sirket.com.tr`) ya da kısa etki alanı adı (`SIRKET`), isteğe bağlı olarak METIS'e
+girebilecek AD grubunun tam adı (`CN=…`), dizin sunucusunun sertifikasını doğrulamak için şirket kök sertifikası
+(etki alanına katılmış Windows'ta genellikle zaten güvenilir sertifikalar deposundadır; değilse `.pem` dosyası
+`METIS_CA_BUNDLE`'a).
+
+**Ayar:** **Ayarlar → Şirket hesabıyla giriş**: dizin sunucusu (`ldaps://dc1.sirket.local`), etki alanı, (gerekirse)
+arama kökü ve izinli grup → **Bağlantıyı dene** (kendi şirket kullanıcı adın/parolanla; kaydetmez, hesap açmaz) →
+**Şirket hesabıyla girişi aç** → **Kaydet**. Giriş ekranında "Windows'a girdiğin şirket kullanıcı adın ve parolanla
+gir" yazar; kullanıcı `ad`, `ad@sirket.com.tr` ya da `SIRKET\ad` yazabilir.
+
+**Denendiği kadarıyla:** kurgusal bir dizinle (sahte LDAP bağlantısı) API testleri ve https geliştirme sunucusunda
+uçtan uca akış; gerçek bir Active Directory ile **henüz denenmedi** — ilk deneme şirket ortamında. Kapsam dışı: parola
+sormadan Windows oturumuyla otomatik giriş (Kerberos), iç içe grup üyeliği, gruplardan rol eşleme.
+
 ## 7. Şirket modelini ekleme
 
 1. **Model laboratuvarı → Sağlayıcı ekle**: temel adres (ör. `https://llm.sirket.local/v1`), anahtar, model kimlikleri.

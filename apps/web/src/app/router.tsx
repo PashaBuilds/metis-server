@@ -7,6 +7,7 @@ import { Shell } from './Shell';
 import { useSession } from './session';
 import { HomePage } from '@/features/home/HomePage';
 import { LoginPage } from '@/features/auth/LoginPage';
+import { PendingRolePage } from '@/features/auth/PendingRolePage';
 import { SetupPage } from '@/features/auth/SetupPage';
 import { PasswordPage } from '@/features/auth/PasswordPage';
 import { LibraryPage } from '@/features/library/LibraryPage';
@@ -41,6 +42,8 @@ function AuthGate() {
   if (session.loading || (!session.me && setup.isLoading)) return <div style={{ padding: 32 }}><SkeletonRows rows={4} /></div>;
   if (!session.me) return <Navigate to={setup.data?.needs_setup ? '/kurulum' : '/giris'} />;
   if (session.me.user.must_change_password) return <Navigate to="/parola" />;
+  // Şirket hesabıyla ilk kez giren, henüz hiçbir projede rolü olmayan kullanıcı: yöneticinin rol vermesini bekler.
+  if (!session.isAdmin && session.me.memberships.length === 0) return <PendingRolePage />;
   return <Shell />;
 }
 

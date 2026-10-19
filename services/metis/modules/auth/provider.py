@@ -1,7 +1,7 @@
-"""Kimlik doğrulama sağlayıcı arayüzü.
+"""Kimlik doğrulama sağlayıcıları.
 
-v2 ilk sürüm yalnız yerel hesap kullanır. Şirket AD/LDAP entegrasyonu ileride bu
-arayüzün yeni bir uygulamasıyla eklenir; çağıran kod değişmez.
+Yerel hesap (METIS parolası) ve şirket dizini (Active Directory / LDAPS; 2026-10-19). Yerel hesap her zaman yerel
+parolayla doğrulanır; diğer kullanıcı adları dizin açıksa dizine sorulur (modules/directory).
 """
 
 from __future__ import annotations
@@ -38,5 +38,20 @@ class LocalAuthProvider:
         return user
 
 
+class CompanyAuthProvider:
+    """Yerel hesap önce; yoksa (ve dizin açıksa) şirket dizini. Dizin kapalıyken dizin kullanıcıları giremez
+    (password_hash boş olduğu için yerel doğrulama da başarısız olur)."""
+
+    name = "company"
+
+    def authenticate(self, db: Session, username: str, password: str) -> User | None:
+        from metis.modules.directory import service as directory
+
+        local = db.scalar(select(User).where(func.lower(User.username) == username.strip().lower()))
+        if (local is not None and local.auth_source == "local") or not directory.enabled(db):
+            return LocalAuthProvider().authenticate(db, username, password)
+        return directory.authenticate(db, username, password)
+
+
 def get_provider() -> AuthProvider:
-    return LocalAuthProvider()
+    return CompanyAuthProvider()
