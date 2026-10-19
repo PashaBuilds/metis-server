@@ -18,10 +18,11 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
 - Düzeltme: geri yükleme tatbikatı geçici veritabanını silerken o anda bağlı bir arka plan süreci varsa ara sıra
   başarısız oluyor ve geçici veritabanı kalıyordu; silme artık yeniden denenir.
 - Gerçek bir Active Directory ile **henüz denenmedi** (kurgusal dizinle testler ve https geliştirme sunucusunda uçtan uca
-  akış). Şema 0007. Bu ZIP yerel Windows 10 bilgisayarda derlendi; çift tıklamada yükseltme sorusu denendi; yükseltmenin
-  kendisi o bilgisayarda **denenmedi** (ajan Windows yönetici iznini onaylayamaz; ürün sahibinin "beklemeden yayımla"
-  kararıyla istisna). Temiz Windows Server 2022'de kurulum, yükseltme ve kaldırma bu sürümün kodu için CI'da denendi
-  (1049c10; sonraki commit yalnız API sözleşme dosyasını günceller). Bundan sonra otomatik CI yok: doğrulama yerel derlemede.
+  akış). Şema 0007. Bu ZIP yerel Windows 10 bilgisayarda derlendi. **Yükseltme gerçek bilgisayarda denendi:** kurulu METIS
+  2.0.8 → 2.0.15 (yönetici izni onaylandı; yedek → şema 0007 → sağlık kontrolü → eski sürüm temizliği), aynı sürümün
+  bir önceki derlemesiyle (yalnız API sözleşme dosyası ve belgeler farklı); son derlemede çift tıklama kurulu aynı sürümü
+  açtı. Temiz Windows Server 2022'de kurulum, yükseltme ve kaldırma bu sürümün kodu için CI'da denendi (1049c10). Bundan
+  sonra otomatik CI yok: doğrulama yerel derlemede.
 
 **2.0.14 — Model laboratuvarı herkese salt okunur:**
 - Yönetici olmayan kullanıcılar da sol menüde **Model laboratuvarı**'nı görür: eklenen modeller, uygunluk durumu,
