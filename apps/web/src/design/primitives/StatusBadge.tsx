@@ -1,4 +1,4 @@
-import { AlertTriangle, Ban, Eye, GitFork, Loader2, MessageCircleQuestion, PencilLine, SearchX, ShieldCheck, XCircle, Clock, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, Ban, Eye, GitFork, Loader2, Lock, MessageCircleQuestion, PencilLine, SearchX, ShieldCheck, XCircle, Clock, type LucideIcon } from 'lucide-react';
 import s from './StatusBadge.module.css';
 
 export type Tone = 'onay' | 'inceleme' | 'taslak' | 'dikkat' | 'celiski';
@@ -15,6 +15,7 @@ const ICONS: Record<string, LucideIcon> = {
   searchx: SearchX,
   ban: Ban,
   question: MessageCircleQuestion,
+  lock: Lock,
 };
 
 interface Props {

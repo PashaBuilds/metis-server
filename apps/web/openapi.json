@@ -1,6 +1,81 @@
 {
   "components": {
     "schemas": {
+      "AllowedEndpointIn": {
+        "properties": {
+          "url": {
+            "maxLength": 500,
+            "minLength": 8,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "AllowedEndpointIn",
+        "type": "object"
+      },
+      "AllowedEndpointRow": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "providers": {
+            "title": "Providers",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "source",
+          "created_at",
+          "created_by",
+          "providers"
+        ],
+        "title": "AllowedEndpointRow",
+        "type": "object"
+      },
       "AnswerIn": {
         "properties": {
           "scope": {
@@ -5451,6 +5526,106 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/allowed-endpoints": {
+      "get": {
+        "operationId": "allowed_endpoints_api_v1_allowed_endpoints_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AllowedEndpointRow"
+                  },
+                  "title": "Response Allowed Endpoints Api V1 Allowed Endpoints Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Allowed Endpoints",
+        "tags": [
+          "lab"
+        ]
+      },
+      "post": {
+        "operationId": "allow_endpoint_api_v1_allowed_endpoints_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllowedEndpointIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllowedEndpointRow"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Allow Endpoint",
+        "tags": [
+          "lab"
+        ]
+      }
+    },
+    "/api/v1/allowed-endpoints/{endpoint_id}": {
+      "delete": {
+        "operationId": "disallow_endpoint_api_v1_allowed_endpoints__endpoint_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "endpoint_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Endpoint Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Disallow Endpoint",
+        "tags": [
+          "lab"
+        ]
+      }
+    },
     "/api/v1/answers/{answer_id}": {
       "delete": {
         "operationId": "delete_answer_api_v1_answers__answer_id__delete",

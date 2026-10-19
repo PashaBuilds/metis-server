@@ -23,6 +23,7 @@ from metis.core.audit import audit
 from metis.core.db import transaction, utcnow
 from metis.core.errors import AppError
 from metis.core.models import (
+    AllowedEndpoint,
     BenchmarkCase,
     BenchmarkDataset,
     BenchmarkResult,
@@ -34,7 +35,7 @@ from metis.core.models import (
     Provider,
     User,
 )
-from metis.core.security import encrypt_secret, validate_endpoint
+from metis.core.security import configured_endpoints, encrypt_secret, validate_endpoint
 from metis.core.util import hash_json
 from metis.llm import contracts, prompts
 from metis.llm.client import ModelClient, profile_of
@@ -238,6 +239,52 @@ def delete_provider(db: Session, user: User, provider_id: uuid.UUID) -> None:
     p.secret_enc = ""
     db.execute(update(Model).where(Model.provider_id == p.id).values(deleted_at=utcnow(), enabled=False))
     audit(db, user.id, "provider.delete", "provider", p.id)
+
+
+# ---------------------------------------------------------------- izinli model adresleri
+
+
+def _providers_using(db: Session, url: str) -> int:
+    return len(list(db.scalars(select(Provider.id).where(Provider.base_url == url, Provider.deleted_at.is_(None)))))
+
+
+def list_allowed_endpoints(db: Session, user: User) -> list[dict]:
+    """Sunucu ayarındakiler (yalnız metis.env'den değişir) ve arayüzden eklenenler (kaldırılabilir)."""
+    require_admin(user)
+    out = [{"id": None, "url": url, "source": "config", "created_at": None, "created_by": None, "providers": _providers_using(db, url)} for url in configured_endpoints()]
+    for row in db.scalars(select(AllowedEndpoint).order_by(AllowedEndpoint.created_at)):
+        by = db.get(User, row.created_by)
+        out.append({"id": str(row.id), "url": row.url, "source": "ui", "created_at": row.created_at.isoformat(), "created_by": by.display_name if by else None, "providers": _providers_using(db, row.url)})
+    return out
+
+
+def allow_endpoint(db: Session, user: User, url: str) -> AllowedEndpoint:
+    """Yönetici bir model adresine izin verir. Biçim, ağ aralığı (METIS_ENDPOINT_NETWORKS) ve üretimde https denetimleri
+    sağlayıcı eklemedeki gibi yapılır; yalnız izin listesi şartı aranmaz. Zaten izinliyse var olan kayıt döner."""
+    require_admin(user)
+    clean = validate_endpoint(url, check_allowlist=False)
+    if clean in configured_endpoints():
+        raise AppError("ENDPOINT_CONFIGURED", "endpoint is already allowed by server configuration", url=clean)
+    existing = db.scalar(select(AllowedEndpoint).where(AllowedEndpoint.url == clean))
+    if existing:
+        return existing
+    row = AllowedEndpoint(url=clean, created_by=user.id)
+    db.add(row)
+    db.flush()
+    audit(db, user.id, "endpoint.allow", "allowed_endpoint", row.id, url=clean)
+    return row
+
+
+def disallow_endpoint(db: Session, user: User, endpoint_id: uuid.UUID) -> None:
+    require_admin(user)
+    row = db.get(AllowedEndpoint, endpoint_id)
+    if not row:
+        raise AppError("NOT_FOUND", "allowed endpoint not found")
+    if _providers_using(db, row.url):
+        # Kaldırılırsa o sağlayıcının modelleri her çağrıda ENDPOINT_NOT_ALLOWED ile düşer: önce sağlayıcı silinmeli.
+        raise AppError("ENDPOINT_IN_USE", "endpoint is used by a provider", url=row.url)
+    db.delete(row)
+    audit(db, user.id, "endpoint.disallow", "allowed_endpoint", row.id, url=row.url)
 
 
 # ---------------------------------------------------------------- probe

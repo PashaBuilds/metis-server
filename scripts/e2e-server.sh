@@ -19,7 +19,8 @@ export METIS_MASTER_KEY
 METIS_MASTER_KEY=$(.venv/bin/python -c "import base64,os;print(base64.b64encode(os.urandom(32)).decode())")
 export METIS_PUBLIC_URL=http://localhost:8001
 export METIS_STATIC_DIR=apps/web/dist
-export METIS_ENDPOINT_ALLOWLIST=http://127.0.0.1:9102/v1
+# Kurgusal model (:9102) bilerek sunucu ayarında yok: e2e, yöneticinin adrese arayüzden izin vermesini de sınar.
+export METIS_ENDPOINT_ALLOWLIST=http://127.0.0.1:9100/v1
 
 ENV_FILE=${METIS_E2E_ENV_FILE:-/tmp/metis-e2e.env}
 umask 077

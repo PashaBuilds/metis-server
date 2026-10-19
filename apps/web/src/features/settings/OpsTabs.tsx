@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Download, DatabaseBackup, FileArchive } from 'lucide-react';
+import { ChevronDown, Download, DatabaseBackup, FileArchive, Trash2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button, Checkbox, EmptyState, Field, Input, SkeletonRows, StatusBadge, useToast } from '@/design/primitives';
+import { Button, Checkbox, ConfirmDialog, EmptyState, Field, Input, SkeletonRows, StatusBadge, useToast } from '@/design/primitives';
 import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { api, ApiError, type Schemas } from '@/lib/api/client';
@@ -198,6 +198,7 @@ export function SystemTab() {
           </ul>
         )}
       </section>
+      <AllowedEndpoints />
       <section className={s.block} aria-labelledby="sys-bk">
         <h2 id="sys-bk" className={s.blockTitle}>
           <DatabaseBackup size={16} aria-hidden className={s.titleIcon} />
@@ -216,6 +217,78 @@ export function SystemTab() {
         </dl>
       </section>
     </div>
+  );
+}
+
+/** İzinli model adresleri: sunucu ayarındakiler (metis.env) salt okunur; arayüzden izin verilenler kaldırılabilir. */
+function AllowedEndpoints() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const x = tr.settingsExtra;
+  const list = useQuery({ queryKey: ['allowed-endpoints'], queryFn: () => api.get<Schemas['AllowedEndpointRow'][]>('/allowed-endpoints'), retry: false });
+  const [remove, setRemove] = useState<Schemas['AllowedEndpointRow'] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <section className={s.block} aria-labelledby="sys-allow">
+      <h2 id="sys-allow" className={s.blockTitle}>
+        {x.allowed}
+      </h2>
+      <p className={s.hint}>{x.allowedLead}</p>
+      {list.isLoading ? (
+        <SkeletonRows rows={2} />
+      ) : !list.data ? (
+        <LoadError error={list.error} />
+      ) : list.data.length === 0 ? (
+        <p className={s.hint}>{x.allowedEmpty}</p>
+      ) : (
+        <ul className={s.opsRows}>
+          {list.data.map((e) => (
+            <li key={e.url} className={s.opsRow}>
+              <span className={`${s.opsName} mono`}>{e.url}</span>
+              {e.source === 'config' ? (
+                <span title={x.allowedConfigHint}>
+                  <StatusBadge tone="taslak" icon="lock" size="sm" label={x.allowedConfig} />
+                </span>
+              ) : (
+                e.created_by && e.created_at && <span className={s.hintInline}>{x.allowedBy(e.created_by, formatDateTime(e.created_at))}</span>
+              )}
+              <span className={s.hintInline}>{x.allowedProviders(e.providers)}</span>
+              {/* Kullanımdaki adresin izni kaldırılamaz (sunucu da reddeder): önce sağlayıcı silinir. */}
+              {e.source === 'ui' && e.providers === 0 && (
+                <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => setRemove(e)} aria-label={`${x.disallow}: ${e.url}`}>
+                  {x.disallow}
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && (
+        <p className={s.error} role="alert">
+          {error}
+        </p>
+      )}
+      <ConfirmDialog
+        open={!!remove}
+        onOpenChange={(o) => !o && setRemove(null)}
+        title={remove ? x.disallowTitle(remove.url) : ''}
+        description={x.disallowDesc}
+        confirmLabel={x.disallow}
+        danger
+        onConfirm={async () => {
+          try {
+            await api.del(`/allowed-endpoints/${remove!.id}`);
+            toast.show(x.disallowed);
+            setError(null);
+          } catch (err) {
+            setError(messageOf(err));
+          } finally {
+            setRemove(null);
+            void qc.invalidateQueries({ queryKey: ['allowed-endpoints'] });
+          }
+        }}
+      />
+    </section>
   );
 }
 

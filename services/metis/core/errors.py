@@ -50,6 +50,8 @@ CATALOG: dict[str, tuple[int, bool]] = {
     "FIGURE_MISSING": (422, False),
     "INVALID_ENDPOINT": (422, False),
     "ENDPOINT_NOT_ALLOWED": (422, False),
+    "ENDPOINT_IN_USE": (409, False),
+    "ENDPOINT_CONFIGURED": (409, False),
     "ADDRESS_NOT_ALLOWED": (422, False),
     "TLS_REQUIRED": (422, False),
     "MODEL_NOT_ELIGIBLE": (422, False),

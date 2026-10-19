@@ -262,8 +262,8 @@ Canlı model benchmark'ı sonrası sabit hattın kaçırdığı vakalar çıkars
    - `master.key`'i kasaya koy.
    - Rehber: KURULUM.md bölüm 1–6.
 3. **Şirket model endpoint'i.**
-   - `METIS_ENDPOINT_ALLOWLIST`'e ekle.
-   - Model laboratuvarında sağlayıcıyı ekle, **Test et**, **Benchmark çalıştır**.
+   - Model laboratuvarında sağlayıcıyı ekle; adrese izin verilmemişse **İzin ver ve ekle** (2026-10-19'dan beri
+     `metis.env`'e elle eklemek gerekmez). Sonra **Test et**, **Benchmark çalıştır**.
    - Canlı değerlendirme: `python evals/run.py --mode live …`. Sonucu mock'tan ayrı oku.
 
 ## 7. Bilinen sınırlar ve önerilen sonraki adımlar

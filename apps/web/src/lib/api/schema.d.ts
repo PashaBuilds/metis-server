@@ -4,6 +4,41 @@
  */
 
 export interface paths {
+    "/api/v1/allowed-endpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Allowed Endpoints */
+        get: operations["allowed_endpoints_api_v1_allowed_endpoints_get"];
+        put?: never;
+        /** Allow Endpoint */
+        post: operations["allow_endpoint_api_v1_allowed_endpoints_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/allowed-endpoints/{endpoint_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Disallow Endpoint */
+        delete: operations["disallow_endpoint_api_v1_allowed_endpoints__endpoint_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/answers/{answer_id}": {
         parameters: {
             query?: never;
@@ -1397,6 +1432,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AllowedEndpointIn */
+        AllowedEndpointIn: {
+            /** Url */
+            url: string;
+        };
+        /** AllowedEndpointRow */
+        AllowedEndpointRow: {
+            /** Created At */
+            created_at: string | null;
+            /** Created By */
+            created_by: string | null;
+            /** Id */
+            id: string | null;
+            /** Providers */
+            providers: number;
+            /** Source */
+            source: string;
+            /** Url */
+            url: string;
+        };
         /** AnswerIn */
         AnswerIn: {
             /** Scope */
@@ -3606,6 +3661,88 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    allowed_endpoints_api_v1_allowed_endpoints_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllowedEndpointRow"][];
+                };
+            };
+        };
+    };
+    allow_endpoint_api_v1_allowed_endpoints_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllowedEndpointIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllowedEndpointRow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disallow_endpoint_api_v1_allowed_endpoints__endpoint_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_answer_api_v1_answers__answer_id__get: {
         parameters: {
             query?: never;

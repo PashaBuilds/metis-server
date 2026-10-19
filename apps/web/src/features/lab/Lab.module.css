@@ -438,6 +438,27 @@ details[open] > summary .chev {
   gap: var(--s4);
 }
 
+/* İzinli olmayan model adresi: yönetici bilerek izin verir (turuncu = dikkat; altın yalnız kanıt için). */
+.allowBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s3);
+  border: 1px solid var(--dikkat);
+  border-radius: var(--r-panel);
+  background: var(--dikkat-zemin);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+}
+
+.allowBox strong {
+  color: var(--dikkat);
+}
+
+.allowBox .mono {
+  color: inherit;
+}
+
 .monoInput {
   font-family: var(--font-mono);
   font-size: var(--fs-13);

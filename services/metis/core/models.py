@@ -694,6 +694,17 @@ class Provider(Base):
     deleted_at: Mapped[datetime | None] = ts(nullable=True)
 
 
+class AllowedEndpoint(Base):
+    """Yöneticinin arayüzden izin verdiği model adresi. Geçerli liste = METIS_ENDPOINT_ALLOWLIST (sunucu ayarı) + bunlar.
+    Ağ aralığı (METIS_ENDPOINT_NETWORKS) ve üretimde https şartı yine geçerlidir (ürün sahibinin kararı 2026-10-19)."""
+
+    __tablename__ = "allowed_endpoints"
+    id: Mapped[uuid.UUID] = pk()
+    url: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    created_by: Mapped[uuid.UUID] = fk("users.id")
+    created_at: Mapped[datetime] = ts()
+
+
 class Model(Base):
     __tablename__ = "models"
     id: Mapped[uuid.UUID] = pk()

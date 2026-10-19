@@ -116,6 +116,36 @@ def delete_provider(provider_id: uuid.UUID, user: User = Depends(current_user), 
     return Response(status_code=204)
 
 
+class AllowedEndpointIn(BaseModel):
+    url: str = Field(min_length=8, max_length=500)
+
+
+class AllowedEndpointRow(BaseModel):
+    id: str | None  # sunucu ayarındakiler için None (yalnız metis.env'den kaldırılır)
+    url: str
+    source: str  # "config" | "ui"
+    created_at: datetime | None
+    created_by: str | None
+    providers: int
+
+
+@router.get("/allowed-endpoints", response_model=list[AllowedEndpointRow])
+def allowed_endpoints(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> list[AllowedEndpointRow]:
+    return [AllowedEndpointRow(**row) for row in service.list_allowed_endpoints(db, user)]
+
+
+@router.post("/allowed-endpoints", status_code=201, response_model=AllowedEndpointRow)
+def allow_endpoint(data: AllowedEndpointIn, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> AllowedEndpointRow:
+    row = service.allow_endpoint(db, user, data.url)
+    return AllowedEndpointRow(id=str(row.id), url=row.url, source="ui", created_at=row.created_at, created_by=user.display_name, providers=0)
+
+
+@router.delete("/allowed-endpoints/{endpoint_id}", status_code=204)
+def disallow_endpoint(endpoint_id: uuid.UUID, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> Response:
+    service.disallow_endpoint(db, user, endpoint_id)
+    return Response(status_code=204)
+
+
 def _model_row(db: Session, m: Model) -> ModelRow:
     p = db.get(Provider, m.provider_id)
     assert p is not None

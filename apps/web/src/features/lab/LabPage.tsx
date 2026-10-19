@@ -513,35 +513,58 @@ function AddProviderDialog({ open, onOpenChange, onDone }: { open: boolean; onOp
   const [key, setKey] = useState('');
   const [ids, setIds] = useState('');
   const [errors, setErrors] = useState<{ url?: string; ids?: string; form?: string }>({});
+  // Sunucu izin listesinde olmayan adres: yönetici açık bir onayla izin verir (metis.env'e dokunmadan; 2026-10-19).
+  const [notAllowed, setNotAllowed] = useState<string | null>(null);
   const parsed = [...new Set(ids.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean))];
   const m = useMutation({
-    mutationFn: () => api.post<Provider>('/providers', { base_url: url.trim(), api_key: key, model_ids: parsed }),
+    mutationFn: async (allow: boolean) => {
+      if (allow) {
+        await api.post('/allowed-endpoints', { url: url.trim() });
+        toast.show(tr.lab.endpointAllowed);
+        void qc.invalidateQueries({ queryKey: ['allowed-endpoints'] });
+      }
+      return api.post<Provider>('/providers', { base_url: url.trim(), api_key: key, model_ids: parsed });
+    },
     onSuccess: () => {
       toast.show(tr.lab.providerAdded);
       void qc.invalidateQueries({ queryKey: ['providers'] });
+      void qc.invalidateQueries({ queryKey: ['allowed-endpoints'] });
       onDone();
       setUrl('');
       setKey('');
       setIds('');
+      setNotAllowed(null);
       onOpenChange(false);
     },
     onError: (e) => {
+      if (e instanceof ApiError && e.code === 'ENDPOINT_NOT_ALLOWED') {
+        setErrors({});
+        setNotAllowed(url.trim().replace(/\/+$/, ''));
+        return;
+      }
+      setNotAllowed(null);
       const f = fieldErr(e);
       setErrors({ url: f.base_url ? messageOf(e) : undefined, ids: f.model_ids ? messageOf(e) : undefined, form: f.base_url || f.model_ids ? undefined : messageOf(e) });
     },
   });
-  function submit() {
+  function submit(allow: boolean) {
     const next: typeof errors = {};
     if (!url.trim()) next.url = tr.lab.baseUrlRequired;
     if (!parsed.length) next.ids = tr.lab.modelIdsRequired;
     setErrors(next);
-    if (!Object.keys(next).length) m.mutate();
+    if (!Object.keys(next).length) m.mutate(allow);
   }
+  const askAllow = notAllowed !== null && notAllowed === url.trim().replace(/\/+$/, '');
+  const allowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (askAllow) allowRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [askAllow]);
   return (
     <Dialog
       open={open}
       onOpenChange={(o) => {
         setErrors({});
+        setNotAllowed(null);
         onOpenChange(o);
       }}
       title={tr.lab.addProvider}
@@ -550,8 +573,8 @@ function AddProviderDialog({ open, onOpenChange, onDone }: { open: boolean; onOp
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             {tr.common.cancel}
           </Button>
-          <Button variant="primary" loading={m.isPending} onClick={submit}>
-            {tr.lab.addProvider}
+          <Button variant="primary" loading={m.isPending} onClick={() => submit(askAllow)}>
+            {askAllow ? tr.lab.allowAndAdd : tr.lab.addProvider}
           </Button>
         </>
       }
@@ -566,6 +589,12 @@ function AddProviderDialog({ open, onOpenChange, onDone }: { open: boolean; onOp
         <Field label={tr.lab.modelIds} hint={tr.lab.modelIdsHint} error={errors.ids}>
           {({ id, describedBy }) => <Textarea id={id} aria-describedby={describedBy} value={ids} onChange={(e) => setIds(e.target.value)} rows={4} invalid={!!errors.ids} spellCheck={false} className={s.monoInput} />}
         </Field>
+        {askAllow && (
+          <div ref={allowRef} className={s.allowBox} role="alert">
+            <strong>{tr.lab.allowTitle}</strong>
+            <span>{tr.lab.allowBody(notAllowed)}</span>
+          </div>
+        )}
         {errors.form && (
           <p className={s.error} role="alert">
             {errors.form}

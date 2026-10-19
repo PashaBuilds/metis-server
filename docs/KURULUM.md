@@ -115,10 +115,16 @@ Adres değişirse `metis.env` içinde düzelt ve servisleri yeniden başlat (`Re
 
 ## 7. Şirket modelini ekleme
 
-1. `metis.env` içinde `METIS_ENDPOINT_ALLOWLIST=https://llm.sirket.local/v1` (virgülle birden fazla) ve servisleri
-   yeniden başlat. Şirket iç CA'sı gerekiyorsa `METIS_CA_BUNDLE=C:\METIS\config\sirket-ca.pem`.
-2. **Model laboratuvarı → Sağlayıcı ekle**: temel adres, anahtar, model kimlikleri. Anahtar diskte şifreli tutulur,
-   arayüzde yalnız "tanımlı" görünür.
+1. **Model laboratuvarı → Sağlayıcı ekle**: temel adres (ör. `https://llm.sirket.local/v1`), anahtar, model kimlikleri.
+   Anahtar diskte şifreli tutulur, arayüzde yalnız "tanımlı" görünür.
+2. Adrese daha önce izin verilmediyse pencerede "Bu adrese henüz izin verilmedi" uyarısı çıkar: **İzin ver ve ekle**.
+   METIS yalnız izin verilen adreslere model isteği (anahtar ve kaynak metinleri) gönderir. İzin veritabanında tutulur
+   (`metis.env`'e elle dokunmak gerekmez, servis yeniden başlatılmaz), denetim kaydına yazılır ve yedekle taşınır.
+   Yalnız yöneticiler izin verebilir. İç ağ aralıkları (`METIS_ENDPOINT_NETWORKS`, varsayılan 10.x, 172.16–31.x,
+   192.168.x, 127.x) dışındaki adreslere izin verilemez; üretim profilinde adres `https://` olmalı. İzinli adresler
+   **Ayarlar → Sistem durumu → İzinli model adresleri** altında listelenir; kullanılmayanın izni oradan kaldırılır.
+   `metis.env`'deki `METIS_ENDPOINT_ALLOWLIST` (virgülle birden fazla) eskisi gibi çalışır ve orada "Sunucu ayarı"
+   olarak görünür. Şirket iç CA'sı gerekiyorsa `metis.env`'e `METIS_CA_BUNDLE=C:\METIS\config\sirket-ca.pem`.
 3. Modeli seç → **Test et** (bağlantı, JSON şeması, düşünme modu, kanıt sözleşmesi) → **Benchmark çalıştır**.
    Kritik hatası olmayan ve kalite kapısını geçen model mentor ve görevlerde kullanılabilir hâle gelir.
 4. **Anahtarı değiştirirsen** (veya adres/model ayarı değişirse) model "ayar değişti" nedeniyle kullanım dışı kalır;
@@ -180,7 +186,7 @@ Yalnız **boş** bir kurulumda (ilk yöneticiyi oluşturmadan önce) yapılır:
 | "Şema sürümü" uyarısı | `C:\METIS\bin\metis migrate` |
 | Giriş sonrası 403 / CSRF | `METIS_PUBLIC_URL` tarayıcıdaki adresle aynı mı? |
 | Mentor cevabı parça parça gelmiyor | ARR `responseBufferLimit=0` ve dinamik sıkıştırma kapalı mı? |
-| Model eklenemiyor | `METIS_ENDPOINT_ALLOWLIST`, şirket CA'sı (`METIS_CA_BUNDLE`) |
+| Model eklenemiyor | "izin verilen ağların dışında" → adres iç ağda mı (`METIS_ENDPOINT_NETWORKS`)? https gerekiyor mu? Şirket CA'sı (`METIS_CA_BUNDLE`) |
 | Disk doluyor | `C:\METIS\data\backups` saklama süresi (`--keep-days`), günlük boyutu |
 
 ## 12. Kaldırma

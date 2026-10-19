@@ -135,7 +135,27 @@ def decrypt_legacy_v1_secret(value: str, legacy_key: bytes) -> str:
 # ---------------------------------------------------------------- SSRF
 
 
-def validate_endpoint(url: str, *, resolve: bool = True) -> str:
+def configured_endpoints() -> list[str]:
+    """Sunucu ayarındaki (METIS_ENDPOINT_ALLOWLIST, metis.env) izinli adresler."""
+    return [a.rstrip("/") for a in get_settings().endpoint_allowlist]
+
+
+def allowed_endpoints() -> list[str]:
+    """Geçerli izin listesi: sunucu ayarı + yöneticinin arayüzden izin verdikleri (allowed_endpoints tablosu).
+    Her çağrıda veritabanından okunur: API ve worker süreçleri eklemeyi yeniden başlatma olmadan görür."""
+    from sqlalchemy import select
+
+    from metis.core.db import transaction
+    from metis.core.models import AllowedEndpoint
+
+    with transaction() as db:
+        added = list(db.scalars(select(AllowedEndpoint.url)))
+    return configured_endpoints() + added
+
+
+def validate_endpoint(url: str, *, resolve: bool = True, check_allowlist: bool = True) -> str:
+    """Model adresini denetler: biçim, izin listesi, üretimde https, çözülen adreslerin METIS_ENDPOINT_NETWORKS içinde
+    olması. `check_allowlist=False` yalnız adres izin listesine eklenirken kullanılır (diğer denetimler aynen geçerli)."""
     settings = get_settings()
     url = url.strip().rstrip("/")
     parts = urlsplit(url)
@@ -145,9 +165,8 @@ def validate_endpoint(url: str, *, resolve: bool = True) -> str:
         raise AppError("INVALID_ENDPOINT", "base URL must not include query or fragment")
     if url.endswith("/chat/completions"):
         raise AppError("INVALID_ENDPOINT", "give the base URL, not the completions path")
-    allowed = [a.rstrip("/") for a in settings.endpoint_allowlist]
-    if url not in allowed:
-        raise AppError("ENDPOINT_NOT_ALLOWED", "endpoint is not in METIS_ENDPOINT_ALLOWLIST", url=url)
+    if check_allowlist and url not in allowed_endpoints():
+        raise AppError("ENDPOINT_NOT_ALLOWED", "endpoint is not allowed", url=url)
     if settings.is_production and parts.scheme != "https":
         raise AppError("TLS_REQUIRED", "production requires https endpoints")
     if resolve:

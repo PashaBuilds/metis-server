@@ -34,8 +34,7 @@ def run_doctor() -> dict[str, Any]:  # noqa: C901
         problems = []
         if settings.is_production and not settings.public_url.startswith("https://"):
             problems.append("METIS_PUBLIC_URL https:// olmalı")
-        if settings.is_production and not settings.endpoint_allowlist:
-            problems.append("METIS_ENDPOINT_ALLOWLIST boş (model eklenemez)")
+        # METIS_ENDPOINT_ALLOWLIST boş olabilir: yönetici model adresine Model laboratuvarından izin verir (2026-10-19).
         return not problems, "; ".join(problems) or f"profil={settings.env}, adres={settings.public_url}"
 
     def master_key() -> tuple[bool, str]:

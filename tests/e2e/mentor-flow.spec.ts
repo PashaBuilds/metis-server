@@ -22,7 +22,8 @@ test('Lab: sağlayıcı ekle, test et, benchmark → mentor kaynaklı cevap ve �
   const demo = await apiCall<{ project_id: string }>(page.request, 'POST', '/demo');
   await apiCall(page.request, 'PUT', '/preferences/active_project_id', { value: demo.project_id });
 
-  // 1) Lab: 3 alanlı ekleme formu (anahtar boş: kurgusal sunucu anahtar istemez).
+  // 1) Lab: 3 alanlı ekleme formu (anahtar boş: kurgusal sunucu anahtar istemez). Adres sunucu ayarında yok
+  //    (scripts/e2e-server.sh): yönetici uyarıyı görür ve "İzin ver ve ekle" ile metis.env'e dokunmadan izin verir.
   await page.goto('/lab');
   await expect(page.getByRole('heading', { level: 1, name: 'Model laboratuvarı' })).toBeVisible();
   await page.getByRole('button', { name: 'Sağlayıcı ekle' }).click();
@@ -30,6 +31,10 @@ test('Lab: sağlayıcı ekle, test et, benchmark → mentor kaynaklı cevap ve �
   await dialog.getByLabel('Sunucu adresi').fill(MOCK_URL);
   await dialog.getByLabel('Model kimlikleri').fill('fixture-reference');
   await dialog.getByRole('button', { name: 'Sağlayıcı ekle' }).click();
+  await expect(dialog.getByRole('alert').filter({ hasText: 'Bu adrese henüz izin verilmedi' })).toBeVisible();
+  await expect(page.getByText('Sağlayıcı eklendi')).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'İzin ver ve ekle' }).click();
+  await expect(page.getByText('Adrese izin verildi')).toBeVisible();
   await expect(page.getByText('Sağlayıcı eklendi')).toBeVisible();
   await expect(page.getByText(MOCK_URL).first()).toBeVisible();
   await expect(page.getByText('Anahtar tanımlı değil')).toBeVisible();
