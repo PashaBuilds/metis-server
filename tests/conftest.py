@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import os
+import time
 import uuid
 from collections.abc import Iterator
 from pathlib import Path
@@ -66,8 +67,17 @@ def _database(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
     from metis.core.db import dispose_engine
 
     dispose_engine()
-    with psycopg.connect(ADMIN_DSN, autocommit=True) as conn:
-        conn.execute(f'DROP DATABASE IF EXISTS "{TEST_DB}" WITH (FORCE)')
+    # O anda veritabanında bir arka plan süreci (ör. autovacuum) varsa, süper kullanıcı olmayan test rolü onu
+    # sonlandıramaz ("permission denied to terminate process"); kısa süre sonra kendiliğinden biter.
+    for attempt in range(10):
+        try:
+            with psycopg.connect(ADMIN_DSN, autocommit=True) as conn:
+                conn.execute(f'DROP DATABASE IF EXISTS "{TEST_DB}" WITH (FORCE)')
+            break
+        except psycopg.errors.InsufficientPrivilege:
+            if attempt == 9:
+                raise
+            time.sleep(1)
 
 
 @pytest.fixture(autouse=True)
