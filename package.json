@@ -1,7 +1,7 @@
 {
   "name": "metis",
   "private": true,
-  "version": "2.0.10",
+  "version": "2.0.11",
   "workspaces": ["apps/web"],
   "scripts": {
     "build:web": "npm run build -w @metis/web",
