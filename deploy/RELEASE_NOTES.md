@@ -4,6 +4,17 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.12 — şirket ağından erişim (deneme) ve ek yükleme düzeltmesi:**
+- Yeni `ag-erisimi.ps1`: METIS-Baslat.exe ile kurulmuş METIS'i tek komutla şirket ağına açar. IIS'i açar, 80
+  portundan METIS'e iletir, adresi makinenin tam adına (`http://<ad>.<alan-adı>`) çevirir, güvenlik duvarını ayarlar
+  (KURULUM.md 5a). http şifresizdir; birkaç kişilik deneme içindir, kalıcı kullanımda https'e geçilir. Betik gerçek
+  makinede henüz denenmedi.
+- Ekler artık tek tek yüklenir: birkaç büyük fotoğraf birlikte seçilince sunucu önündeki IIS'in istek sınırına
+  takılıyordu (tek tek yüklemede dosya başına sınır geçerli; biri başarısız olursa öncekiler kalır).
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi; çift tıklamada yükseltme sorusu denendi. Yükseltmenin kendisi o
+  bilgisayarda **denenmedi** (ajan Windows yönetici iznini onaylayamaz; ürün sahibinin "beklemeden yayımla" kararıyla
+  istisna); temiz Windows Server 2022'de kurulum, yükseltme ve kaldırma CI'da denendi.
+
 **2.0.11 — çıkış düzeltmesi:**
 - **Çıkış yap** artık sayfayı yenilemeden giriş ekranına geçer. Önceden aynı sayfa görünümünde kalıyor, giriş ekranı
   ancak F5 ile geliyordu (oturum sunucuda yine kapanıyordu; sorun yalnız arayüzdeydi).

@@ -29,12 +29,18 @@ export function AttachmentsField({ projectId, value, onChange }: Props) {
     const bad = files.find((f) => !ALLOWED.test(f.name));
     if (bad) return setError(tr.attachments.notAllowed(bad.name));
     if (value.length + files.length > MAX) return setError(tr.attachments.tooMany);
-    const fd = new FormData();
-    files.forEach((f) => fd.append('files', f));
     setBusy(true);
+    // Her dosya ayrı istekle yüklenir: sunucu önündeki vekilin (IIS) istek boyutu sınırı dosya başına sınırla aynı
+    // kalır; toplu tek istek birkaç büyük fotoğrafta vekilde reddediliyordu. Biri başarısız olursa öncekiler kalır.
+    let next = value;
     try {
-      const added = await api.upload<AttachmentData[]>(`/projects/${projectId}/attachments`, fd);
-      onChange([...value, ...added]);
+      for (const f of files) {
+        const fd = new FormData();
+        fd.append('files', f);
+        const added = await api.upload<AttachmentData[]>(`/projects/${projectId}/attachments`, fd);
+        next = [...next, ...added];
+        onChange(next);
+      }
     } catch (e) {
       setError(e instanceof ApiError ? errorMessage(e.code) : errorMessage('NETWORK'));
     } finally {

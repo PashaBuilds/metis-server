@@ -34,6 +34,9 @@ KENDİ BİLGİSAYARINDA DENEME (Windows 10/11, IIS olmadan) — KOMUT GEREKMEZ
      'postgres' parolasını yaz. Kurulum bitince tarayıcı kurulum kodu hazır olarak açılır.
   3. Sonraki her açışta METIS-Baslat.exe METIS'i tarayıcıda açar; yeni sürümün exe'si yükseltmeyi önerir.
   Windows "bilgisayarınızı korudu" derse: Ek bilgi → Yine de çalıştır (exe imzasız).
+  4. (İsteğe bağlı) Şirket ağından erişim, sertifikasız deneme: yönetici PowerShell ile
+       powershell -ExecutionPolicy Bypass -File .\ag-erisimi.ps1
+     IIS'i açar ve METIS'i http://<makine-adı>.<alan-adı> adresinde yayınlar (KURULUM.md 5a).
   Komutla kurulum ve ayrıntı: KURULUM.md, sondaki ek.
 
 GÜNLÜK İŞLETİM
