@@ -1617,45 +1617,6 @@
         "title": "DomainRow",
         "type": "object"
       },
-      "DraftPrefill": {
-        "properties": {
-          "body_md": {
-            "title": "Body Md",
-            "type": "string"
-          },
-          "claims": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Claims",
-            "type": "array"
-          },
-          "scope": {
-            "additionalProperties": true,
-            "title": "Scope",
-            "type": "object"
-          },
-          "source_answer_id": {
-            "format": "uuid",
-            "title": "Source Answer Id",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "title",
-          "scope",
-          "body_md",
-          "claims",
-          "source_answer_id"
-        ],
-        "title": "DraftPrefill",
-        "type": "object"
-      },
       "EvidenceCreateIn": {
         "properties": {
           "char_end": {
@@ -2736,125 +2697,6 @@
           }
         },
         "title": "KeyIn",
-        "type": "object"
-      },
-      "LegacyRunDetail": {
-        "properties": {
-          "finished_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "mode": {
-            "title": "Mode",
-            "type": "string"
-          },
-          "report": {
-            "additionalProperties": true,
-            "title": "Report",
-            "type": "object"
-          },
-          "report_md": {
-            "title": "Report Md",
-            "type": "string"
-          },
-          "source_sha256": {
-            "title": "Source Sha256",
-            "type": "string"
-          },
-          "started_at": {
-            "format": "date-time",
-            "title": "Started At",
-            "type": "string"
-          },
-          "state": {
-            "title": "State",
-            "type": "string"
-          },
-          "summary": {
-            "additionalProperties": true,
-            "title": "Summary",
-            "type": "object"
-          }
-        },
-        "required": [
-          "id",
-          "started_at",
-          "finished_at",
-          "mode",
-          "state",
-          "source_sha256",
-          "summary",
-          "report_md",
-          "report"
-        ],
-        "title": "LegacyRunDetail",
-        "type": "object"
-      },
-      "LegacyRunRow": {
-        "properties": {
-          "finished_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "mode": {
-            "title": "Mode",
-            "type": "string"
-          },
-          "source_sha256": {
-            "title": "Source Sha256",
-            "type": "string"
-          },
-          "started_at": {
-            "format": "date-time",
-            "title": "Started At",
-            "type": "string"
-          },
-          "state": {
-            "title": "State",
-            "type": "string"
-          },
-          "summary": {
-            "additionalProperties": true,
-            "title": "Summary",
-            "type": "object"
-          }
-        },
-        "required": [
-          "id",
-          "started_at",
-          "finished_at",
-          "mode",
-          "state",
-          "source_sha256",
-          "summary"
-        ],
-        "title": "LegacyRunRow",
         "type": "object"
       },
       "LoginInput": {
@@ -4946,11 +4788,8 @@
             "type": "string"
           },
           "mode": {
+            "const": "empty",
             "default": "empty",
-            "enum": [
-              "empty",
-              "import"
-            ],
             "title": "Mode",
             "type": "string"
           },
@@ -5621,7 +5460,7 @@
   },
   "info": {
     "title": "METIS API",
-    "version": "2.0.9"
+    "version": "2.0.10"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5797,49 +5636,6 @@
           }
         },
         "summary": "Get Answer",
-        "tags": [
-          "mentor"
-        ]
-      }
-    },
-    "/api/v1/answers/{answer_id}/draft-prefill": {
-      "get": {
-        "operationId": "draft_prefill_api_v1_answers__answer_id__draft_prefill_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "answer_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Answer Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DraftPrefill"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Draft Prefill",
         "tags": [
           "mentor"
         ]
@@ -7202,74 +6998,6 @@
         "summary": "Retry",
         "tags": [
           "jobs"
-        ]
-      }
-    },
-    "/api/v1/legacy-import/runs": {
-      "get": {
-        "operationId": "legacy_runs_api_v1_legacy_import_runs_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/LegacyRunRow"
-                  },
-                  "title": "Response Legacy Runs Api V1 Legacy Import Runs Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Legacy Runs",
-        "tags": [
-          "system"
-        ]
-      }
-    },
-    "/api/v1/legacy-import/runs/{run_id}": {
-      "get": {
-        "operationId": "legacy_run_api_v1_legacy_import_runs__run_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "run_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Run Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LegacyRunDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Legacy Run",
-        "tags": [
-          "system"
         ]
       }
     },

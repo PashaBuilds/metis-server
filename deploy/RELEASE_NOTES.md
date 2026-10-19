@@ -4,6 +4,25 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.10 — tek adımda taslak: not + ekler:**
+- **Yeni katkı → Taslak hazırla:** ayrı "önce kaynak ekle" adımı yok. Başlık, kapsam ve notu yaz; istersen birden çok
+  görsel (PNG, JPEG) ya da PDF ekle (çoklu seçim ya da sürükle-bırak). Taslağı kaydet, Kayıtlar'dan açıp geliştir;
+  hazır olduğunda **Yayımla** (yayın öncesi çelişki/tekrar kontrolü aynen çalışır).
+- Not bilginin dayanağıdır (uzman beyanı): METIS notu paragraflarına ayırır, her paragraf bir bilgi parçası olur;
+  alıntı seçmen ya da bağlaman gerekmez. Metis (Mentor, kontrol) yalnız notu okur; **ekler okunmaz, aranmaz, yapay
+  zekâya gönderilmez** — yalnız bilgiyle birlikte saklanır ve açılır/indirilir.
+- Bilgi sayfasında **Ekler** bölümü: görseller küçük önizlemeyle (tıklayınca büyür), PDF'ler adıyla. İz paneli bu tür
+  bilgide "Uzman notu · yazan · tarih" ve ekleri gösterir; "Bilgiyi düzenle" ile yeni sürüm yazılır.
+- **Kalkanlar:** kaynaktan alıntı seçerek yazma, "Metis hazırlasın" (kaynaktan taslak) ve "Taslağı düzenle" görevleri,
+  Mentor'da "Bu cevaptan bilgi taslağı öner", v0.5.5 aktarımı (komut, Ayarlar sekmesi, kurulum seçeneği) ve
+  başlatıcıdaki "kurgusal örnek içerik eklensin mi?" sorusu.
+- **Yükseltmede verin korunur:** yayımlanmış bilgiler aynen kalır. Hiçbir bilgiye bağlanmamış eski kaynaklar (ör. bir
+  görselle eklenmiş uzman notu) kendiliğinden taslağa dönüşür: metin → not, dosya → ek; Kayıtlar'da görünür.
+- Şema 0006 (not tabanlı bilgi ve ekler); yükseltme geçişi kendiliğinden uygular.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi; çift tıklamada yükseltme sorusu denendi. Yükseltmenin kendisi o
+  bilgisayarda **denenmedi** (ürün sahibinin kararıyla istisna; onaylayacak kimse yoktu); temiz Windows Server 2022'de
+  kurulum, yükseltme ve kaldırma CI'da denendi.
+
 **2.0.9 — şirket modelini arayüzden ekleme:**
 - Model laboratuvarında **Sağlayıcı ekle** dediğinde adrese henüz izin verilmemişse METIS bunu söyler ve
   **İzin ver ve ekle** ile izin verirsin. `metis.env`'e elle adres eklemek ve servisleri yeniden başlatmak gerekmez.
