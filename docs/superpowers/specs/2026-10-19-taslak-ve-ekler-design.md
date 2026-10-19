@@ -176,7 +176,7 @@ Durum: taslak tasarım, ürün sahibinin onayını bekliyor. Kurgusal örneklerl
 - **Kendi notunun yeni revizyonu "kaynak değişti" sayılmaz:**
   - not tabanlı sayfanın kendi not kaynağına yayın sırasında eklenen revizyon, o sayfa için `dependency_changed` ya da `source_changed` bulgusu üretmez;
   - `sources/service.py:mark_dependents` ve `health/maintenance.py` bu durumu dışarıda bırakır.
-- **Yayımlanmamış taslağın erişimi:** taslağın not kaynağı ve yüklenen ekleri yalnız taslağın yazarı ve proje yöneticileri (steward) tarafından görülebilir. İddiasız taslak revizyonu bugün her üyeye açık; bu da kapatılır.
+- **Yayımlanmamış taslağın erişimi:** taslağın not kaynağı ve yüklenen ekleri yalnız şu kişilerce görülebilir: taslağın yazarı, proje yöneticileri (steward) ve inceleyiciler (reviewer). İnceleyiciler listede, çünkü "Bağımsız inceleme" politikasında taslağı açabilmeleri gerekiyor. İddiasız taslak revizyonu bugün her üyeye açık; bu da kapatılır.
 - **İddialar listesi gizlenir:** not tabanlı sayfada "İddialar" listesi gösterilmez, çünkü gövdeyle aynı metni tekrarlardı. Paragraf işaretleri ve İz kalır.
 
 - **Kaldırma kapsamı (§8):** Mentor'dan taslak, demo yerine kurgusal geliştirme tohumu, veritabanında silme yerine gizleme, bağımsız kaynakların taslağa dönüştürülmesi.
