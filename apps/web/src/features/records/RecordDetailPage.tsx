@@ -11,6 +11,7 @@ import { useReducedMotion } from '@/lib/hooks';
 import { Banner } from '@/features/shared/Banner';
 import { BodyDiff, ClaimDiffTable } from '@/features/shared/Diff';
 import { Figure } from '@/features/shared/Figure';
+import { Attachments } from '@/features/shared/Attachments';
 import { ChangeStateBadge, OriginBadge } from '@/features/shared/kinds';
 import { messageOf } from '@/features/shared/hooks';
 import { DecisionPanel } from './DecisionPanel';
@@ -233,6 +234,7 @@ function ItemDiff({ item }: { item: Item }) {
           </div>
         </section>
       )}
+      <Attachments items={item.proposed?.attachments ?? []} headingLevel={3} />
       {bodyChanged && (
         <details className={s.bodyDetails}>
           <summary>

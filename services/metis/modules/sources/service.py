@@ -482,7 +482,17 @@ def evidence_view(
             highlight = {"start": pos, "end": pos + len(ev.excerpt)}
     names = _author_names(db, {rev.author_id})
     loc = {k: v for k, v in ev.locator.items() if k != "auto"}
+    note_page = db.scalar(select(Page).where(Page.note_source_id == source.id))
+    attachments: list = []
+    if note_page is not None:
+        from metis.modules.knowledge.views import attachment_views
+
+        claim = db.get(Claim, claim_id) if claim_id else None
+        rev_id = claim.page_revision_id if claim else note_page.published_revision_id
+        attachments = attachment_views(db, [rev_id]).get(rev_id, []) if rev_id else []
     return schemas.EvidenceViewOut(
+        note_page_id=note_page.id if note_page else None,
+        attachments=attachments,
         evidence_id=ev.id,
         source={"id": str(source.id), "title": source.title, "kind": source.kind},
         revision={

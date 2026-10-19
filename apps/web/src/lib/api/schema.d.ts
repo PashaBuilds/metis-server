@@ -2139,6 +2139,11 @@ export interface components {
         };
         /** EvidenceViewOut */
         EvidenceViewOut: {
+            /**
+             * Attachments
+             * @default []
+             */
+            attachments: components["schemas"]["AttachmentOut"][];
             /** Can Download */
             can_download: boolean;
             /**
@@ -2158,6 +2163,8 @@ export interface components {
             };
             /** Locator Label */
             locator_label: string;
+            /** Note Page Id */
+            note_page_id?: string | null;
             /**
              * Project Id
              * Format: uuid
@@ -2817,6 +2824,11 @@ export interface components {
             is_published_revision: boolean;
             /** Lifecycle */
             lifecycle: string;
+            /**
+             * Note Based
+             * @default false
+             */
+            note_based: boolean;
             /** Open Change Ids */
             open_change_ids: string[];
             /**

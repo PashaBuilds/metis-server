@@ -136,3 +136,27 @@ def test_note_page_readable_with_paragraph_claims(sp):
     page = sp["reader"].get(f"/api/v1/pages/{out['published_page_ids'][0]}").json()
     assert [c_["statement"] for c_ in page["revision"]["claims"]] == [B1, B2]
     assert all(p["claim_ords"] for p in page["paragraphs"])
+
+
+def test_page_detail_marks_note_based(sp):
+    from tests.api.test_attachments import PNG_A, uploaded
+
+    c, pid = sp["contributor"], sp["pid"]
+    aid = uploaded(c, pid, [("a.png", PNG_A)])[0]["id"]
+    out = publish_direct(c, create(c, pid, note_item("UART ayarları", BODY, attachments=[aid])))
+    page = sp["reader"].get(f"/api/v1/pages/{out['published_page_ids'][0]}").json()
+    assert page["note_based"] is True
+    assert [a["id"] for a in page["revision"]["attachments"]] == [aid]
+
+
+def test_evidence_view_note_source_has_page_and_attachments(sp):
+    from tests.api.test_attachments import PDF, uploaded
+
+    c, pid = sp["contributor"], sp["pid"]
+    aid = uploaded(c, pid, [("rapor.pdf", PDF)])[0]["id"]
+    out = publish_direct(c, create(c, pid, note_item("UART ayarları", BODY, attachments=[aid])))
+    page_id = out["published_page_ids"][0]
+    claim = sp["reader"].get(f"/api/v1/pages/{page_id}").json()["revision"]["claims"][0]
+    ev = sp["reader"].get(f"/api/v1/evidence/{claim['evidence'][0]['evidence_id']}", params={"claim_id": claim["id"]}).json()
+    assert ev["note_page_id"] == page_id
+    assert [a["id"] for a in ev["attachments"]] == [aid]

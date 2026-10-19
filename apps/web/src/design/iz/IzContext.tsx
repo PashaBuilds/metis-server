@@ -31,6 +31,9 @@ export interface EvidenceView {
   highlight: { start: number; end: number } | null;
   can_download: boolean;
   project_id: string;
+  /** Not tabanlı bilginin dayanağıysa o bilgi; ekleri İz'de listelenir. */
+  note_page_id?: string | null;
+  attachments?: { id: string; filename: string; media_type: string; size_bytes: number; is_image: boolean }[];
 }
 
 export type EvidenceResolver = (target: IzTarget) => Promise<EvidenceView>;

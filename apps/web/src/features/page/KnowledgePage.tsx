@@ -17,6 +17,7 @@ import { RowMenu } from '@/features/shared/RowMenu';
 import { messageOf, useUndoableDelete } from '@/features/shared/hooks';
 import { asScope } from '@/features/shared/scope';
 import { HistoryDrawer } from './HistoryDrawer';
+import { Attachments } from '@/features/shared/Attachments';
 import s from './Knowledge.module.css';
 
 const route = getRouteApi('/app/bilgi/$pageId');
@@ -26,6 +27,7 @@ type ClaimView = Schemas['ClaimView'];
 const SECTIONS = [
   { id: 'aciklama', label: tr.page.body },
   { id: 'iddialar', label: tr.page.claims },
+  { id: 'ekler', label: tr.attachments.title },
   { id: 'sinirlar', label: tr.page.unknowns },
   { id: 'ilgili', label: tr.page.relations },
 ] as const;
@@ -79,7 +81,7 @@ function PageView({ page }: { page: PageDetail }) {
   };
   const unknowns = r.unknowns.filter((u): u is string => typeof u === 'string');
   const tocSections = SECTIONS.filter(
-    (x) => x.id === 'aciklama' || (x.id === 'iddialar' && r.claims.length > 0) || (x.id === 'sinirlar' && unknowns.length > 0) || (x.id === 'ilgili' && page.relations.length > 0),
+    (x) => x.id === 'aciklama' || (x.id === 'iddialar' && r.claims.length > 0 && !page.note_based) || (x.id === 'ekler' && (r.attachments ?? []).length > 0) || (x.id === 'sinirlar' && unknowns.length > 0) || (x.id === 'ilgili' && page.relations.length > 0),
   );
 
   return (
@@ -192,7 +194,12 @@ function PageView({ page }: { page: PageDetail }) {
           </div>
         </section>
 
-        {r.claims.length > 0 && (
+        <div id="ekler">
+          <Attachments items={r.attachments ?? []} />
+        </div>
+
+        {/* Not tabanlı bilgide iddialar notun paragraflarıdır: ayrı liste gövdeyi tekrarlardı. */}
+        {r.claims.length > 0 && !page.note_based && (
         <section id="iddialar" className={s.section} aria-labelledby="iddialar-h">
           <h2 id="iddialar-h" className={s.sectionTitle}>
             {tr.page.claims}
@@ -288,7 +295,7 @@ function PageView({ page }: { page: PageDetail }) {
 
       <aside className={s.aside} aria-label={tr.page.toc}>
         {tocSections.length > 1 && <Toc sections={tocSections} />}
-        {page.sources.length > 0 && <SourceList sources={page.sources} />}
+        {page.sources.length > 0 && !page.note_based && <SourceList sources={page.sources} />}
       </aside>
 
       <HistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} pageId={page.page_id} />

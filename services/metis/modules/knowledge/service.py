@@ -338,6 +338,7 @@ def page_detail(db: Session, user: User, page_id: uuid.UUID, rev_id: uuid.UUID |
         change_set_id=change.id if change else None,
         review_policy_badge=badge,
         open_change_ids=list(open_changes),
+        note_based=page.note_source_id is not None,
     )
 
 

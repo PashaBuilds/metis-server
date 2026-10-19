@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from metis.modules.attachments.schemas import AttachmentOut
 from metis.modules.scopes.schemas import ScopeIn
 
 SourceKind = Literal["note", "code", "document", "image", "table", "test"]
@@ -109,3 +110,6 @@ class EvidenceViewOut(BaseModel):
     highlight: dict | None
     can_download: bool
     project_id: uuid.UUID
+    # Not tabanlı bilginin dayanağıysa: o bilgi ve okunan revizyonun ekleri (İz'de "Uzman notu · ekler").
+    note_page_id: uuid.UUID | None = None
+    attachments: list[AttachmentOut] = []

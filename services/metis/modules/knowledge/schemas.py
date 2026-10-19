@@ -95,6 +95,8 @@ class PageDetailOut(BaseModel):
     change_set_id: uuid.UUID | None
     review_policy_badge: str | None
     open_change_ids: list[uuid.UUID]
+    # Not tabanlı bilgi: dayanağı yazarın notu (iddialar notun paragraflarıdır; ayrı iddia listesi gösterilmez).
+    note_based: bool = False
 
 
 class CompareOut(BaseModel):

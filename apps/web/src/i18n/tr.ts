@@ -335,7 +335,7 @@ export const tr = {
     rowMenu: (title: string) => `İşlemler: ${title}`,
     evidenceCount: (n: number) => `${n} kanıt`,
     askMentor: 'Mentora sor',
-    suggestEdit: 'Düzeltme öner',
+    suggestEdit: 'Bilgiyi düzenle',
     loadError: 'Yüklenemedi.',
     you: 'Sen',
     deletePageTitle: 'Bu bilgi silinsin mi?',

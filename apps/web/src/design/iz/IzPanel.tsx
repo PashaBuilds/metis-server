@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Download, FilePlus2, LocateFixed, X } from 'lucide-react';
+import { ChevronRight, Download, FilePlus2, LocateFixed, PencilLine, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Button, IconButton } from '../primitives';
 import { tr, sourceKindLabel } from '@/i18n/tr';
 import { formatDateTime } from '@/lib/format';
+import { Attachments } from '@/features/shared/Attachments';
 import { useIz } from './IzContext';
 import { SourceKindIcon } from './SourceKindIcon';
 import s from './Iz.module.css';
@@ -103,20 +104,31 @@ export function IzPanel({ mode }: { mode: 'docked' | 'overlay' }) {
               <Button size="sm" variant="secondary" icon={<LocateFixed size={15} aria-hidden />} onClick={scrollToMark} disabled={!data.highlight}>
                 {tr.iz.goToHighlight}
               </Button>
-              {data.can_download && (
-                <a className={s.linkButton} href={`/api/v1/source-revisions/${data.revision.id}/download`} download>
-                  <Download size={15} aria-hidden />
-                  {tr.iz.download}
-                </a>
+              {data.note_page_id ? (
+                // Not tabanlı bilgi: dayanak yazarın notudur; değişiklik bilginin düzenlenmesidir.
+                <Link className={s.linkButton} to="/katki" search={{ page: data.note_page_id }}>
+                  <PencilLine size={15} aria-hidden />
+                  {tr.shared.suggestEdit}
+                </Link>
+              ) : (
+                <>
+                  {data.can_download && (
+                    <a className={s.linkButton} href={`/api/v1/source-revisions/${data.revision.id}/download`} download>
+                      <Download size={15} aria-hidden />
+                      {tr.iz.download}
+                    </a>
+                  )}
+                  <Link className={s.linkButton} to="/katki" search={{ source: data.source.id }}>
+                    <FilePlus2 size={15} aria-hidden />
+                    {tr.iz.newRevision}
+                  </Link>
+                </>
               )}
-              <Link className={s.linkButton} to="/katki" search={{ source: data.source.id }}>
-                <FilePlus2 size={15} aria-hidden />
-                {tr.iz.newRevision}
-              </Link>
             </div>
-            {data.can_download && data.revision.media_type.startsWith('image/') && (
+            {!data.note_page_id && data.can_download && data.revision.media_type.startsWith('image/') && (
               <img className={s.sourceImage} src={`/api/v1/source-revisions/${data.revision.id}/download`} alt={data.source.title} />
             )}
+            {(data.attachments ?? []).length > 0 && <Attachments items={data.attachments ?? []} headingLevel={3} />}
             <div ref={bodyRef} className={s.sourceText} tabIndex={0} aria-label={tr.iz.fullText}>
               <SourceText text={data.text} highlight={data.highlight} />
             </div>

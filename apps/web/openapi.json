@@ -1788,6 +1788,14 @@
       },
       "EvidenceViewOut": {
         "properties": {
+          "attachments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AttachmentOut"
+            },
+            "title": "Attachments",
+            "type": "array"
+          },
           "can_download": {
             "title": "Can Download",
             "type": "boolean"
@@ -1821,6 +1829,18 @@
           "locator_label": {
             "title": "Locator Label",
             "type": "string"
+          },
+          "note_page_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note Page Id"
           },
           "project_id": {
             "format": "uuid",
@@ -3428,6 +3448,11 @@
           "lifecycle": {
             "title": "Lifecycle",
             "type": "string"
+          },
+          "note_based": {
+            "default": false,
+            "title": "Note Based",
+            "type": "boolean"
           },
           "open_change_ids": {
             "items": {
