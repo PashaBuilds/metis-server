@@ -27,6 +27,8 @@ export default defineConfig({
     // Görevler ve bilgi sağlığı: mentor projesinin uygun modelini kullanır.
     { name: 'gorev-saglik', testMatch: ['e2e/tasks-health.spec.ts'], dependencies: ['mentor'], use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     { name: 'gorsel', testMatch: ['e2e/figures.spec.ts'], dependencies: ['gorev-saglik'], use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
+    // Şirket içi http (güvenli olmayan bağlam): crypto.randomUUID yok.
+    { name: 'http', testMatch: ['e2e/http-intranet.spec.ts'], dependencies: ['gorsel'], use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     // Çıkış en sonda: yalnız kendi bağlamındaki oturumu kapatır.
     { name: 'cikis', testMatch: ['e2e/logout.spec.ts'], dependencies: ['gorsel'], use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
   ],

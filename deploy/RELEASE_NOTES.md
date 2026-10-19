@@ -4,7 +4,10 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
-**2.0.13 — METIS bir alt yolda: http://<makine>/metis:**
+**2.0.13 — METIS bir alt yolda: http://<makine>/metis; http'de Taslak hazırla düzeltmesi:**
+- **Düzeltme:** şirket içi http adresinden (https değil, localhost değil) açınca "İlk bilgiyi ekle" / "Taslak hazırla"
+  "Something went wrong!" ile çöküyordu: sayfa, tarayıcının yalnız https ve localhost'ta verdiği `crypto.randomUUID`'i
+  çağırıyordu. Artık her bağlamda çalışan yöntemle üretiliyor. (2.0.10–2.0.12'yi http ile ağa açanları etkiler.)
 - METIS artık bir alt yolda yayınlanabilir; sunucu makinesi başka işler için de kullanılabilir. Alt yol
   `METIS_PUBLIC_URL`'ün yolundan gelir (ör. `http://<ad>.<alan-adı>/metis`); API, arayüz ve oturum çerezi o yolun
   altındadır. Aynı paket kökte de çalışır.
