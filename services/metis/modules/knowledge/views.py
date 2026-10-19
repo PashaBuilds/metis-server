@@ -10,16 +10,25 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from metis.core.models import (
+    Attachment,
     Claim,
     ClaimEvidence,
     Evidence,
     PageRevision,
+    PageRevisionAttachment,
     PageRevisionFigure,
     Source,
     SourceRevision,
     User,
 )
+from metis.modules.attachments.schemas import AttachmentOut
 from metis.modules.sources.locator import locator_label
+
+
+def attachment_out(a: Attachment) -> AttachmentOut:
+    return AttachmentOut(
+        id=a.id, filename=a.filename, media_type=a.media_type, size_bytes=a.size_bytes, is_image=a.media_type.startswith("image/")
+    )
 
 
 class ClaimEvidenceView(BaseModel):
@@ -71,6 +80,7 @@ class RevisionView(BaseModel):
     aliases: list
     claims: list[ClaimView]
     figures: list[FigureView] = []
+    attachments: list[AttachmentOut] = []
     author_id: uuid.UUID
     author_name: str
     created_at: datetime
@@ -149,9 +159,25 @@ def figure_views(db: Session, revision_ids: list[uuid.UUID]) -> dict[uuid.UUID, 
     return out
 
 
+def attachment_views(db: Session, revision_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[AttachmentOut]]:
+    if not revision_ids:
+        return {}
+    rows = db.execute(
+        select(PageRevisionAttachment.page_revision_id, Attachment)
+        .join(Attachment, Attachment.id == PageRevisionAttachment.attachment_id)
+        .where(PageRevisionAttachment.page_revision_id.in_(revision_ids))
+        .order_by(PageRevisionAttachment.ord)
+    ).all()
+    out: dict[uuid.UUID, list[AttachmentOut]] = {}
+    for rid, a in rows:
+        out.setdefault(rid, []).append(attachment_out(a))
+    return out
+
+
 def revision_views(db: Session, revisions: list[PageRevision]) -> dict[uuid.UUID, RevisionView]:
     claims = claim_views(db, [r.id for r in revisions])
     figures = figure_views(db, [r.id for r in revisions])
+    attachments = attachment_views(db, [r.id for r in revisions])
     names = {
         u.id: u.display_name
         for u in db.scalars(select(User).where(User.id.in_({r.author_id for r in revisions} or {uuid.uuid4()})))
@@ -170,6 +196,7 @@ def revision_views(db: Session, revisions: list[PageRevision]) -> dict[uuid.UUID
             aliases=r.aliases or [],
             claims=claims.get(r.id, []),
             figures=figures.get(r.id, []),
+            attachments=attachments.get(r.id, []),
             author_id=r.author_id,
             author_name="Metis" if names.get(r.author_id) == "Metis" else names.get(r.author_id, ""),
             created_at=r.created_at,

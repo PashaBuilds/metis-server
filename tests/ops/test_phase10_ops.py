@@ -132,3 +132,22 @@ def test_doctor_reports_checks_without_secrets(populated, tmp_path: Path) -> Non
     assert not {c["name"]: c for c in report["checks"]}["Kaynak dosyaları bütünlüğü"]["ok"]
     for p in get_settings().blob_dir.glob("??/*.moved"):
         p.rename(p.with_suffix(""))
+
+
+def test_backup_restore_includes_attachment_blobs(team, empty_db, tmp_path: Path) -> None:  # noqa: ANN001
+    from metis.core.blobs import blob_path
+    from tests.api.test_attachments import PDF, uploaded
+    from tests.api.test_note_drafts import create, note_item, publish_direct
+
+    assert team["admin"].patch(f"/api/v1/projects/{team['pid']}", json={"review_policy": "self_publish"}).status_code == 200
+    c, pid = team["contributor"], team["pid"]
+    aid = uploaded(c, pid, [("rapor.pdf", PDF)])[0]["id"]
+    publish_direct(c, create(c, pid, note_item("Ekli bilgi", "Kurgusal ölçüm 3,3 V.", attachments=[aid])))
+    ops.create_backup(tmp_path / "y.zip")
+    data_dir = tmp_path / "restored-data"
+    out = ops.restore_backup(tmp_path / "y.zip", database_url=empty_db, data_dir=data_dir)
+    assert out["ok"], out
+    assert out["attachment_files"] == 1
+    import hashlib
+
+    assert blob_path(hashlib.sha256(PDF).hexdigest(), data_dir / "blobs").read_bytes() == PDF

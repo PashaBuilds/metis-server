@@ -217,12 +217,18 @@ def _check_restored(url: str, manifest: dict[str, Any], blob_root: Path | None, 
     try:
         with engine.connect() as conn:
             needed = {r[0] for r in conn.execute(text("SELECT DISTINCT sha256 FROM source_revisions"))}
+            attached = {r[0] for r in conn.execute(text("SELECT DISTINCT sha256 FROM attachments"))}
     finally:
         engine.dispose()
-    missing = sorted(d for d in needed if f"blobs/{d[:2]}/{d}" not in names and not (blob_root and blob_path(d, blob_root).is_file()))
-    if missing:
+
+    def absent(digests: set[str]) -> list[str]:
+        return sorted(d for d in digests if f"blobs/{d[:2]}/{d}" not in names and not (blob_root and blob_path(d, blob_root).is_file()))
+
+    if missing := absent(needed):
         raise RestoreRefused("VERIFY_FAILED", f"{len(missing)} kaynak revizyonunun dosyası yedekte yok.")
-    return {"rows": sum(counts.values()), "tables": len(counts), "source_files": len(needed)}
+    if missing := absent(attached):
+        raise RestoreRefused("VERIFY_FAILED", f"{len(missing)} ekin dosyası yedekte yok.")
+    return {"rows": sum(counts.values()), "tables": len(counts), "source_files": len(needed), "attachment_files": len(attached)}
 
 
 def restore_backup(archive: Path, database_url: str | None = None, data_dir: Path | None = None) -> dict[str, Any]:

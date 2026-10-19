@@ -377,6 +377,41 @@
         "title": "AskIn",
         "type": "object"
       },
+      "AttachmentOut": {
+        "description": "Ek: dosya /attachments/{id}/download ile açılır. Yalnız ulaşılabilir; okunmaz, aranmaz, modele gitmez.",
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_image": {
+            "title": "Is Image",
+            "type": "boolean"
+          },
+          "media_type": {
+            "title": "Media Type",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "media_type",
+          "size_bytes",
+          "is_image"
+        ],
+        "title": "AttachmentOut",
+        "type": "object"
+      },
       "AvailableModel": {
         "properties": {
           "display_name": {
@@ -477,6 +512,23 @@
           "meta"
         ],
         "title": "Body_create_source_api_v1_projects__project_id__sources_post",
+        "type": "object"
+      },
+      "Body_upload_api_v1_projects__project_id__attachments_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Files",
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "Body_upload_api_v1_projects__project_id__attachments_post",
         "type": "object"
       },
       "CaseOut": {
@@ -2181,6 +2233,15 @@
             "title": "Aliases",
             "type": "array"
           },
+          "attachments": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Attachments",
+            "type": "array"
+          },
           "base_revision_id": {
             "anyOf": [
               {
@@ -2229,6 +2290,11 @@
             ],
             "title": "Kind",
             "type": "string"
+          },
+          "note": {
+            "default": false,
+            "title": "Note",
+            "type": "boolean"
           },
           "page_id": {
             "anyOf": [
@@ -4392,6 +4458,14 @@
             "title": "Aliases",
             "type": "array"
           },
+          "attachments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AttachmentOut"
+            },
+            "title": "Attachments",
+            "type": "array"
+          },
           "author_id": {
             "format": "uuid",
             "title": "Author Id",
@@ -5789,6 +5863,47 @@
         "summary": "Feedback",
         "tags": [
           "mentor"
+        ]
+      }
+    },
+    "/api/v1/attachments/{attachment_id}/download": {
+      "get": {
+        "operationId": "download_api_v1_attachments__attachment_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attachment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download",
+        "tags": [
+          "attachments"
         ]
       }
     },
@@ -8075,6 +8190,63 @@
         "summary": "List Answers",
         "tags": [
           "mentor"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/attachments": {
+      "post": {
+        "operationId": "upload_api_v1_projects__project_id__attachments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_api_v1_projects__project_id__attachments_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AttachmentOut"
+                  },
+                  "title": "Response Upload Api V1 Projects  Project Id  Attachments Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload",
+        "tags": [
+          "attachments"
         ]
       }
     },

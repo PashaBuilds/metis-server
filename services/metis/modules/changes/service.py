@@ -26,6 +26,7 @@ from metis.core.models import (
     IdempotencyKey,
     Page,
     PageRevision,
+    PageRevisionAttachment,
     PageRevisionFigure,
     Project,
     Relation,
@@ -37,6 +38,7 @@ from metis.core.models import (
     User,
 )
 from metis.core.util import hash_json
+from metis.modules.attachments.service import resolve_for_draft as resolve_attachments
 from metis.modules.changes import schemas
 from metis.modules.knowledge import publish as publisher
 from metis.modules.knowledge.figures import figure_refs
@@ -192,6 +194,7 @@ def _validate_item(db: Session, actor: User, project_id: uuid.UUID, item: schema
             )
         _validate_evidence(db, actor, project_id, claim.evidence, scope)
     _validate_figures(db, actor, project_id, item)
+    resolve_attachments(db, actor, project_id, item.page_id, item.attachments)
     return page, scope
 
 
@@ -229,18 +232,7 @@ def _write_revision(
         }
         for c in item.claims
     ]
-    content = {
-        "title": item.title.strip(),
-        "summary": item.summary.strip(),
-        "body_md": item.body_md,
-        "kind": item.kind,
-        "scope": normalize_scope(scope),
-        "unknowns": [u.strip() for u in item.unknowns if u.strip()],
-        "aliases": [a.strip() for a in item.aliases if a.strip()],
-        "claims": claims_payload,
-    }
-    if item.figures:  # görselsiz revizyonların hash'i değişmesin (eski onaylar geçerli kalır)
-        content["figures"] = [{"source_revision_id": str(f.source_revision_id), "caption": f.caption.strip()} for f in item.figures]
+    content = revision_content(item, scope, claims_payload)
     rev = PageRevision(
         page_id=page.id,
         number=page.current_revision_no,
@@ -274,8 +266,29 @@ def _write_revision(
                 page_revision_id=rev.id, ord=ord_, source_revision_id=fig.source_revision_id, caption=fig.caption.strip()
             )
         )
+    for ord_, aid in enumerate(item.attachments, start=1):
+        db.add(PageRevisionAttachment(page_revision_id=rev.id, ord=ord_, attachment_id=aid))
     db.flush()
     return page, rev
+
+
+def revision_content(item: schemas.ItemIn, scope: dict, claims_payload: list[dict]) -> dict:
+    """Revizyon hash'inin içeriği. Görsel ya da ek yoksa o anahtar hiç girmez: eski revizyonların hash'i (ve onaylar) geçerli kalır."""
+    content = {
+        "title": item.title.strip(),
+        "summary": item.summary.strip(),
+        "body_md": item.body_md,
+        "kind": item.kind,
+        "scope": normalize_scope(scope),
+        "unknowns": [u.strip() for u in item.unknowns if u.strip()],
+        "aliases": [a.strip() for a in item.aliases if a.strip()],
+        "claims": claims_payload,
+    }
+    if item.figures:
+        content["figures"] = [{"source_revision_id": str(f.source_revision_id), "caption": f.caption.strip()} for f in item.figures]
+    if item.attachments:
+        content["attachments"] = [str(a) for a in item.attachments]
+    return content
 
 
 def _write_relation(db: Session, author: User, actor: User, change: ChangeSet, rel: schemas.RelationIn) -> None:
@@ -809,9 +822,13 @@ def rebase(db: Session, user: User, change_id: uuid.UUID) -> ChangeSet:
             )
             continue
         v = views[item.proposed_revision_id]
+        note = page.note_source_id is not None  # not tabanlı: iddialar nottan yeniden üretilir
         items.append(
             schemas.ItemIn(
-                page_id=page.id if page.published_revision_id or item.base_revision_id else None,
+                note=note,
+                attachments=[a.id for a in v.attachments],
+                figures=[schemas.FigureIn(source_revision_id=f.source_revision_id, caption=f.caption) for f in v.figures],
+                page_id=page.id if note or page.published_revision_id or item.base_revision_id else None,
                 base_revision_id=page.published_revision_id
                 if (page.published_revision_id or item.base_revision_id)
                 else None,
@@ -822,7 +839,9 @@ def rebase(db: Session, user: User, change_id: uuid.UUID) -> ChangeSet:
                 scope=v.scope,  # type: ignore[arg-type]
                 unknowns=v.unknowns,
                 aliases=v.aliases,
-                claims=[
+                claims=[]
+                if note
+                else [
                     schemas.ClaimIn(
                         statement=c.statement,
                         kind=c.kind,  # type: ignore[arg-type]

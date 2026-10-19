@@ -91,6 +91,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attachments/{attachment_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download */
+        get: operations["download_api_v1_attachments__attachment_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -889,6 +906,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload */
+        post: operations["upload_api_v1_projects__project_id__attachments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/changes": {
         parameters: {
             query?: never;
@@ -1568,6 +1602,25 @@ export interface components {
             question: string;
             scope?: components["schemas"]["ScopeIn"] | null;
         };
+        /**
+         * AttachmentOut
+         * @description Ek: dosya /attachments/{id}/download ile açılır. Yalnız ulaşılabilir; okunmaz, aranmaz, modele gitmez.
+         */
+        AttachmentOut: {
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Image */
+            is_image: boolean;
+            /** Media Type */
+            media_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
         /** AvailableModel */
         AvailableModel: {
             /** Display Name */
@@ -1599,6 +1652,11 @@ export interface components {
             file?: string | null;
             /** Meta */
             meta: string;
+        };
+        /** Body_upload_api_v1_projects__project_id__attachments_post */
+        Body_upload_api_v1_projects__project_id__attachments_post: {
+            /** Files */
+            files: string[];
         };
         /** CaseOut */
         CaseOut: {
@@ -2297,6 +2355,8 @@ export interface components {
             action: "upsert" | "withdraw";
             /** Aliases */
             aliases?: string[];
+            /** Attachments */
+            attachments?: string[];
             /** Base Revision Id */
             base_revision_id?: string | null;
             /**
@@ -2314,6 +2374,11 @@ export interface components {
              * @enum {string}
              */
             kind: "concept" | "component" | "procedure" | "decision" | "incident" | "validation" | "table" | "learning_path";
+            /**
+             * Note
+             * @default false
+             */
+            note: boolean;
             /** Page Id */
             page_id?: string | null;
             scope?: components["schemas"]["ScopeIn"];
@@ -3208,6 +3273,11 @@ export interface components {
             /** Aliases */
             aliases: unknown[];
             /**
+             * Attachments
+             * @default []
+             */
+            attachments: components["schemas"]["AttachmentOut"][];
+            /**
              * Author Id
              * Format: uuid
              */
@@ -3855,6 +3925,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_api_v1_attachments__attachment_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {
@@ -5481,6 +5582,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnswerListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_api_v1_projects__project_id__attachments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_api_v1_projects__project_id__attachments_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentOut"][];
                 };
             };
             /** @description Validation Error */

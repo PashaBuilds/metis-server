@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from metis.core.access import require_member
 from metis.core.blobs import read_blob
-from metis.core.models import Project, SourceRevision, User
+from metis.core.models import Attachment, Project, SourceRevision, User
 from metis.modules.knowledge.figures import FIGURE_LINE
 from metis.modules.knowledge.service import _active_rows
 from metis.modules.knowledge.views import revision_views
@@ -105,6 +105,16 @@ def export_zip(db: Session, user: User, project_id: uuid.UUID) -> tuple[str, byt
             ]
             if view.unknowns:
                 md += ["", "## Bilinmeyenler", "", *[f"- {u}" for u in view.unknowns]]
+            if view.attachments:
+                folder = "ekler/" + names[page.id].removeprefix("sayfalar/").removesuffix(".md")
+                links = []
+                for n, att in enumerate(view.attachments, start=1):
+                    row = db.get(Attachment, att.id)
+                    assert row is not None
+                    path = f"{folder}/{n}-{att.filename}"
+                    z.writestr(path, read_blob(row.sha256))
+                    links.append(f"- [{att.filename}](../{path})")
+                md += ["", "## Ekler", "", *links]
             if notes:
                 md += ["", *notes]
             z.writestr(names[page.id], "\n".join(md).strip() + "\n")

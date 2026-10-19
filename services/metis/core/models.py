@@ -312,6 +312,30 @@ class PageRevisionFigure(Base):
     __table_args__ = (UniqueConstraint("page_revision_id", "ord", name="uq_figure_ord"),)
 
 
+class Attachment(Base):
+    """Bilgiye eklenen dosya (görsel ya da PDF). Yalnız açılır/indirilir: okunmaz, aranmaz, modele gitmez (değişmez)."""
+
+    __tablename__ = "attachments"
+    id: Mapped[uuid.UUID] = pk()
+    project_id: Mapped[uuid.UUID] = fk("projects.id")
+    uploader_id: Mapped[uuid.UUID] = fk("users.id")
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    media_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    created_at: Mapped[datetime] = ts()
+
+
+class PageRevisionAttachment(Base):
+    """Bilgi revizyonunun ekleri (sıralı, değişmez; revizyon hash'ine girer)."""
+
+    __tablename__ = "page_revision_attachments"
+    page_revision_id: Mapped[uuid.UUID] = fk("page_revisions.id")
+    ord: Mapped[int] = mapped_column(Integer, nullable=False)
+    attachment_id: Mapped[uuid.UUID] = fk("attachments.id")
+    __table_args__ = (PrimaryKeyConstraint("page_revision_id", "ord"),)
+
+
 class Relation(Base):
     __tablename__ = "relations"
     id: Mapped[uuid.UUID] = pk()

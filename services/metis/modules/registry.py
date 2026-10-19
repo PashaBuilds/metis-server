@@ -14,6 +14,7 @@ MODULES = [
     "sources",
     "knowledge",
     "changes",
+    "attachments",
     "search",
     "mentor",
     "jobs",

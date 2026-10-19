@@ -51,6 +51,8 @@ class ItemIn(BaseModel):
     aliases: list[str] = Field(default_factory=list, max_length=50)
     claims: list[ClaimIn] = Field(default_factory=list, max_length=200)
     figures: list[FigureIn] = Field(default_factory=list, max_length=20)
+    # Ekler (görsel/PDF) — POST /projects/{pid}/attachments ile yüklenen kimlikler, sıralı; en çok 30.
+    attachments: list[uuid.UUID] = Field(default_factory=list, max_length=30)
 
 
 class RelationIn(BaseModel):
