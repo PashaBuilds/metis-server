@@ -125,8 +125,8 @@ METIS alt yolu `METIS_PUBLIC_URL`'ün yolundan öğrenir: API, arayüz ve oturum
 yalnız `127.0.0.1:8000`'de dinler ve kökten de yanıt verir (başlatıcı ve kurulum betiklerinin sağlık denetimleri).
 http şifresizdir (parolalar ağda açık gider): birkaç kişilik deneme içindir; kalıcı kullanımda şirket sertifikasıyla
 https'e geçilir (aynı `/metis` uygulaması, 443 bağlaması). Kökte yayın (2.0.12) ürün sahibinin şirket içi Windows 10
-sanal makinesinde denendi (2026-10-19); `/metis` alt yolu yerelde (geliştirme sunucusu, tarayıcı) denendi, IIS ile
-gerçek makinede ilk deneme 2.0.13'te. CI yalnız betiğin sözdizimini denetler.
+sanal makinesinde denendi (2026-10-19); `/metis` alt yolu da aynı makinede
+denendi (2.0.13: 2.0.12'den yükseltme, betiğin yeniden çalıştırılması, başka kullanıcıdan erişim). CI yalnız betiğin sözdizimini denetler.
 `METIS_PUBLIC_URL` tarayıcıda yazılan adresle **birebir** aynı olmalı (Origin ve CSRF denetimi buna göre yapılır).
 Adres değişirse `metis.env` içinde düzelt ve servisleri yeniden başlat (`Restart-Service metis-api`).
 
