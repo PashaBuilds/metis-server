@@ -290,8 +290,10 @@ function AccountMenu({ collapsed }: { collapsed: boolean }) {
             className={s.menuItem}
             onSelect={async () => {
               await api.post('/auth/logout').catch(() => undefined);
-              qc.clear();
+              // Önce oturum boşalır: qc.clear() 'me' sorgusunu açık gözlemcisinden koparıyordu, giriş sayfası eski
+              // oturumu görüp ana sayfaya geri yönlendiriyordu. Diğer önbellekler (önceki kullanıcının verisi) silinir.
               qc.setQueryData(['me'], null);
+              qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' });
               navigate({ to: '/giris' });
             }}
           >
