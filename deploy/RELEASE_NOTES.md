@@ -16,8 +16,12 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
 - **Kalkanlar:** kaynaktan alıntı seçerek yazma, "Metis hazırlasın" (kaynaktan taslak) ve "Taslağı düzenle" görevleri,
   Mentor'da "Bu cevaptan bilgi taslağı öner", v0.5.5 aktarımı (komut, Ayarlar sekmesi, kurulum seçeneği) ve
   başlatıcıdaki "kurgusal örnek içerik eklensin mi?" sorusu.
+- Yayımlanmış bir bilgiyi düzenlerken kaydedilen taslak, yayımlanana kadar yayındaki bilgiyi değiştirmez ve yalnız
+  yazarı, sorumlular ve inceleyiciler görür (ekleri dahil; boş notlu taslak da).
 - **Yükseltmede verin korunur:** yayımlanmış bilgiler aynen kalır. Hiçbir bilgiye bağlanmamış eski kaynaklar (ör. bir
-  görselle eklenmiş uzman notu) kendiliğinden taslağa dönüşür: metin → not, dosya → ek; Kayıtlar'da görünür.
+  görselle eklenmiş uzman notu) kendiliğinden taslağa dönüşür: yazdığın metin → not, görsel/PDF → ek; Kayıtlar'da
+  görünür. PDF'ten çıkarılmış metin nota konmaz (PDF yalnız ek olur). Dönüştürülemeyen bir kaynak olursa silinmez;
+  yükseltme çıktısında (`skipped_sources`) adı ve nedeniyle listelenir.
 - Şema 0006 (not tabanlı bilgi ve ekler); yükseltme geçişi kendiliğinden uygular.
 - Bu ZIP yerel Windows 10 bilgisayarda derlendi; çift tıklamada yükseltme sorusu denendi. Yükseltmenin kendisi o
   bilgisayarda **denenmedi** (ürün sahibinin kararıyla istisna; onaylayacak kimse yoktu); temiz Windows Server 2022'de

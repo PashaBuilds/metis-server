@@ -32,7 +32,10 @@ def cmd_migrate(args: argparse.Namespace) -> int:
         from metis.modules.notes.service import convert_standalone_sources
 
         with transaction() as db:
-            out["converted_sources"] = convert_standalone_sources(db)
+            report = convert_standalone_sources(db)
+        out["converted_sources"] = report.created
+        if report.skipped:  # dönüştürülemeyen kaynak silinmez; yönetici görsün diye raporlanır
+            out["skipped_sources"] = report.skipped
     print(json.dumps(out))
     return 0
 

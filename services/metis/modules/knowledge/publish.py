@@ -11,7 +11,16 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from metis.core.db import utcnow
-from metis.core.models import Page, Project, Publication, PublicationPage, PublicationRelation, Relation
+from metis.core.models import (
+    Page,
+    PageRevision,
+    Project,
+    Publication,
+    PublicationPage,
+    PublicationRelation,
+    Relation,
+    Source,
+)
 from metis.modules.search import index as search_index
 
 
@@ -87,6 +96,10 @@ def publish(
         assert page is not None
         page.published_revision_id = rid
         page.lifecycle = "active"
+        if page.note_source_id is not None:  # bilginin notu yayımlanan başlığı taşır
+            note, prev = db.get(Source, page.note_source_id), db.get(PageRevision, rid)
+            if note is not None and prev is not None:
+                note.title = prev.title
         page.freshness = "current"
         page.published_at = now
         page.reviewed_at = now

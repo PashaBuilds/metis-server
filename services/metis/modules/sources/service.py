@@ -8,7 +8,14 @@ from datetime import datetime
 from sqlalchemy import func, select, tuple_
 from sqlalchemy.orm import Session
 
-from metis.core.access import can_read_source, evidence_access, readable_source_ids, require_human, require_member
+from metis.core.access import (
+    can_read_source,
+    can_read_source_revision,
+    evidence_access,
+    readable_source_ids,
+    require_human,
+    require_member,
+)
 from metis.core.audit import audit
 from metis.core.blobs import put_blob, read_blob
 from metis.core.config import get_settings
@@ -389,9 +396,10 @@ def source_detail(db: Session, user: User, source_id: uuid.UUID) -> schemas.Sour
     revs = db.scalars(
         select(SourceRevision).where(SourceRevision.source_id == source.id).order_by(SourceRevision.number.desc())
     ).all()
+    revs = [r for r in revs if can_read_source_revision(db, user, source, r)]  # not taslağı revizyonları gizli
     names = _author_names(db, {source.owner_id, *(r.author_id for r in revs)})
     base = source_out(db, source, names)
-    current = next((r for r in revs if r.number == source.current_revision_no), None)
+    current = revs[0] if revs else None
     acl = list(db.scalars(select(SourceAcl.user_id).where(SourceAcl.source_id == source.id)))
     return schemas.SourceDetailOut(
         **base.model_dump(),
@@ -404,7 +412,7 @@ def source_detail(db: Session, user: User, source_id: uuid.UUID) -> schemas.Sour
 def get_revision(db: Session, user: User, revision_id: uuid.UUID) -> tuple[SourceRevision, Source]:
     rev = db.get(SourceRevision, revision_id)
     source = db.get(Source, rev.source_id) if rev else None
-    if not rev or not can_read_source(db, user, source):
+    if not can_read_source_revision(db, user, source, rev):
         raise AppError("NOT_FOUND", "revision not found")
     assert source is not None
     return rev, source

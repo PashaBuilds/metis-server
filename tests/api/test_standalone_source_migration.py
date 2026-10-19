@@ -17,6 +17,10 @@ TEXT = "Kurgusal kartta ön seçici geçiş bölgesine göre eşik 3 dB düzelti
 
 
 def convert() -> int:
+    return convert_report().created
+
+
+def convert_report():  # noqa: ANN201
     from metis.modules.notes.service import convert_standalone_sources
 
     with transaction() as db:
@@ -56,3 +60,44 @@ def test_text_only_and_pdf_sources_convert_used_sources_do_not(team):
     with transaction() as db:
         drafts = db.scalars(select(ChangeSet).where(ChangeSet.state == "draft")).all()
         assert sorted(d.detail["converted_from_source"] is not None for d in drafts) == [True, True]
+
+
+def _draft_item(client, src_id: str) -> dict:  # noqa: ANN001
+    with transaction() as db:
+        change = next(c for c in db.scalars(select(ChangeSet)) if c.detail.get("converted_from_source") == src_id)
+        change_id = change.id
+    return client.get(f"/api/v1/changes/{change_id}").json()["items"][0]["proposed"]
+
+
+def test_pdf_extracted_text_is_not_turned_into_note(team):
+    """Metis yalnız yazılı notu okur: PDF'ten çıkarılmış metin uzman notu olamaz; PDF ek olur, not boş kalır."""
+    from tests.pdfgen import make_pdf
+
+    c, pid = team["contributor"], team["pid"]
+    r = upload(c, pid, "rapor.pdf", make_pdf(["Kurgusal rapor ZEBRAMETIN içerir."]), title="Ölçüm raporu")
+    assert r.status_code == 201, r.text
+    assert convert() == 1
+    proposed = _draft_item(c, r.json()["source"]["id"])
+    assert proposed["title"] == "Ölçüm raporu" and proposed["body_md"] == "" and proposed["claims"] == []
+    assert [a["filename"] for a in proposed["attachments"]] == ["rapor.pdf"]
+
+
+def test_long_text_source_converts_within_claim_limit(team):
+    c, pid = team["contributor"], team["pid"]
+    long = ("Kurgusal kartta referans saat 25 MHz olarak ölçüldü ve kayıt altına alındı. " * 70).strip()
+    src = add_note(c, pid, "Uzun eski not", long)
+    assert convert() == 1
+    claims = _draft_item(c, src["source"]["id"])["claims"]
+    assert len(claims) >= 2 and all(len(cl["statement"]) <= 4000 for cl in claims)
+
+
+def test_unconvertible_source_is_reported_not_silently_dropped(team):
+    c, admin, pid = team["contributor"], team["admin"], team["pid"]
+    src = add_note(c, pid, "Rolü düşen yazarın notu", "Kurgusal besleme 1,8 V.")
+    me = c.get("/api/v1/auth/me").json()
+    r = admin.put(f"/api/v1/projects/{pid}/members", json={"user_id": me["user"]["id"], "roles": ["reader"]})
+    assert r.status_code in (200, 204), r.text
+    report = convert_report()
+    assert report.created == 0
+    assert [s["source_id"] for s in report.skipped] == [src["source"]["id"]]
+    assert report.skipped[0]["title"] == "Rolü düşen yazarın notu" and report.skipped[0]["reason"]

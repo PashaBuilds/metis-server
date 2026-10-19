@@ -14,6 +14,7 @@ from metis.core.models import (
     Claim,
     ClaimEvidence,
     Evidence,
+    Page,
     PageRevision,
     PageRevisionAttachment,
     PageRevisionFigure,
@@ -87,6 +88,12 @@ class RevisionView(BaseModel):
     hash: str
 
 
+def note_source_ids(db: Session, source_ids: set[uuid.UUID]) -> set[uuid.UUID]:
+    if not source_ids:
+        return set()
+    return set(db.scalars(select(Page.note_source_id).where(Page.note_source_id.in_(source_ids))))
+
+
 def claim_views(db: Session, revision_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[ClaimView]]:
     if not revision_ids:
         return {}
@@ -98,6 +105,9 @@ def claim_views(db: Session, revision_ids: list[uuid.UUID]) -> dict[uuid.UUID, l
         .join(Source, Source.id == SourceRevision.source_id)
         .where(ClaimEvidence.claim_id.in_([c.id for c in claims] or [uuid.uuid4()]))
     ).all()
+    # Bilginin kendi notu (pages.note_source_id) için sürüm, sayfa revizyonunun kendisidir: başka bir düzenleme
+    # taslağının nota yazdığı yeni revizyon yayındaki iddiaları "güncel değil" yapmaz.
+    note_ids = note_source_ids(db, {src.id for *_, src in links})
     by_claim: dict[uuid.UUID, list[ClaimEvidenceView]] = {}
     for ce, ev, sr, src in links:
         loc = {k: v for k, v in ev.locator.items() if k != "auto"}
@@ -110,7 +120,7 @@ def claim_views(db: Session, revision_ids: list[uuid.UUID]) -> dict[uuid.UUID, l
                 source_kind=src.kind,
                 source_revision_id=sr.id,
                 source_revision_number=sr.number,
-                source_is_current=sr.number == src.current_revision_no,
+                source_is_current=src.id in note_ids or sr.number == src.current_revision_no,
                 locator_label=locator_label(loc),
                 verbatim=bool(ce.quote) and ce.quote in ev.excerpt,
             )

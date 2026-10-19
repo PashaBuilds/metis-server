@@ -23,6 +23,7 @@ from metis.core.models import (
     PageRevisionFigure,
     Project,
     ProjectMember,
+    PublicationPage,
     Source,
     SourceAcl,
     SourceRevision,
@@ -106,6 +107,35 @@ def _note_draft_visible(db: Session, user: User, source_id: uuid.UUID, owner_id:
     return bool(effective_roles(db, user, project_id) & NOTE_DRAFT_READERS)
 
 
+def _is_draft_reader(db: Session, user: User, project_id: uuid.UUID, *owners: uuid.UUID | None) -> bool:
+    return user.id in owners or bool(effective_roles(db, user, project_id) & NOTE_DRAFT_READERS)
+
+
+def _page_revision_published(db: Session, revision_id: uuid.UUID) -> bool:
+    return db.scalar(select(PublicationPage.revision_id).where(PublicationPage.revision_id == revision_id).limit(1)) is not None
+
+
+def can_read_source_revision(db: Session, user: User, source: Source | None, rev: SourceRevision | None) -> bool:
+    """Bir bilginin not kaynağında, hiç yayımlanmamış sayfa revizyonunun dayandığı not revizyonu (düzenleme taslağı)
+    yalnız taslak okuyucularına görünür; yayındaki bilgi taslak kaydedildi diye değişmez."""
+    if rev is None or not can_read_source(db, user, source):
+        return False
+    assert source is not None
+    if db.scalar(select(Page.id).where(Page.note_source_id == source.id).limit(1)) is None:
+        return True
+    if _is_draft_reader(db, user, source.project_id, source.owner_id, rev.author_id):
+        return True
+    published = (
+        select(Evidence.id)
+        .join(ClaimEvidence, ClaimEvidence.evidence_id == Evidence.id)
+        .join(Claim, Claim.id == ClaimEvidence.claim_id)
+        .join(PublicationPage, PublicationPage.revision_id == Claim.page_revision_id)
+        .where(Evidence.source_revision_id == rev.id)
+        .limit(1)
+    )
+    return db.scalar(published) is not None
+
+
 def source_for_revision(db: Session, revision_id: uuid.UUID) -> tuple[SourceRevision | None, Source | None]:
     rev = db.get(SourceRevision, revision_id)
     return rev, (db.get(Source, rev.source_id) if rev else None)
@@ -114,7 +144,7 @@ def source_for_revision(db: Session, revision_id: uuid.UUID) -> tuple[SourceRevi
 def evidence_access(db: Session, user: User, evidence_id: uuid.UUID) -> tuple[Evidence, SourceRevision, Source]:
     ev = db.get(Evidence, evidence_id)
     rev, src = source_for_revision(db, ev.source_revision_id) if ev else (None, None)
-    if not ev or not rev or not can_read_source(db, user, src):
+    if not ev or not can_read_source_revision(db, user, src, rev):
         raise AppError("NOT_FOUND", "evidence not found")
     assert src is not None
     return ev, rev, src
@@ -142,6 +172,13 @@ def can_read_page_revision(db: Session, user: User, revision: PageRevision | Non
         return False
     page = db.get(Page, revision.page_id)
     if page is None or page.deleted_at is not None or not effective_roles(db, user, page.project_id):
+        return False
+    # Not tabanlı bilginin hiç yayımlanmamış revizyonu (iddiasız boş not dahil) taslaktır.
+    if (
+        page.note_source_id is not None
+        and not _page_revision_published(db, revision.id)
+        and not _is_draft_reader(db, user, page.project_id, page.owner_id, revision.author_id)
+    ):
         return False
     for source_id in revision_source_ids(db, revision.id):
         if not can_read_source(db, user, db.get(Source, source_id)):

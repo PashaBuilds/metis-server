@@ -7,7 +7,9 @@ revizyonu "kaynak değişti" sayılmaz (`mark_dependents` çağrılmaz; bakım t
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass, field
 
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -45,12 +47,19 @@ def _span_evidence(db: Session, rev: SourceRevision, start: int, end: int) -> Ev
     return ev
 
 
-def convert_standalone_sources(db: Session) -> int:
+@dataclass
+class ConversionReport:
+    created: int = 0
+    skipped: list[dict] = field(default_factory=list)  # [{source_id, title, reason}]
+
+
+def convert_standalone_sources(db: Session) -> ConversionReport:
     """Eski yöntemden kalan bağımsız kaynakları (hiçbir bilgiye dayanak olmamış) yazarı adına not taslağına çevirir.
 
-    Metin → not; görsel/PDF dosyası → ek. Kaynak silinmez. İdempotent: dönüştürülen kaynak taslağın
+    Yazarın kendi metni (not ya da görsel/PDF açıklaması) → not; görsel/PDF dosyası → ek. PDF'ten çıkarılmış metin
+    nota konmaz (Metis yalnız yazılı notu okur). Kaynak silinmez. İdempotent: dönüştürülen kaynak taslağın
     `detail.converted_from_source` alanında işaretlenir. Dönüştürülemeyen kaynak (ör. yazarın artık katkı rolü yok)
-    atlanır ve olduğu gibi kalır. Dönen: oluşturulan taslak sayısı.
+    olduğu gibi kalır ve nedeniyle raporlanır.
     """
     from metis.core.errors import AppError
     from metis.core.models import Attachment, ChangeSet, Claim, ClaimEvidence, PageRevisionFigure
@@ -70,14 +79,17 @@ def convert_standalone_sources(db: Session) -> int:
         | set(db.scalars(select(SourceRevision.source_id).join(PageRevisionFigure, PageRevisionFigure.source_revision_id == SourceRevision.id)))
     )
     done = {c.detail.get("converted_from_source") for c in db.scalars(select(ChangeSet)) if c.detail.get("converted_from_source")}
-    created = 0
+    report = ConversionReport()
     for source in db.scalars(select(Source).where(Source.deleted_at.is_(None)).order_by(Source.created_at)).all():
         if source.id in used or str(source.id) in done:
             continue
         rev = current_revision(db, source)
         author = db.get(User, source.owner_id)
         if rev is None or author is None:
+            report.skipped.append({"source_id": str(source.id), "title": source.title, "reason": "revision or author missing"})
             continue
+        pdf_text = rev.media_type == "application/pdf" and rev.extraction != "annotation_only"
+        note = "" if pdf_text else rev.text  # PDF'ten çıkarılmış metin yazarın notu değildir
         try:
             with db.begin_nested():  # başarısızlıkta ek satırı da geri alınır
                 attachments = []
@@ -93,13 +105,15 @@ def convert_standalone_sources(db: Session) -> int:
                     db.add(att)
                     db.flush()
                     attachments.append(att.id)
-                item = schemas.ItemIn(note=True, title=source.title, body_md=rev.text, scope=ScopeIn(**rev.scope), attachments=attachments)
+                item = schemas.ItemIn(note=True, title=source.title, body_md=note, scope=ScopeIn(**rev.scope), attachments=attachments)
                 change = create_change(db, author, source.project_id, schemas.ChangeCreateIn(summary=source.title, items=[item]))
-        except AppError:
+        except (AppError, ValidationError) as exc:
+            reason = exc.code if isinstance(exc, AppError) else "validation_error"
+            report.skipped.append({"source_id": str(source.id), "title": source.title, "reason": reason})
             continue
         change.detail = {**change.detail, "converted_from_source": str(source.id)}
-        created += 1
-    return created
+        report.created += 1
+    return report
 
 
 def materialize_note(
@@ -116,8 +130,8 @@ def materialize_note(
         db.add(source)
         db.flush()
         page.note_source_id = source.id
-    elif source.title != item.title.strip():
-        source.title = item.title.strip()
+    elif page.published_revision_id is None and source.title != item.title.strip():
+        source.title = item.title.strip()  # yayındaki bilginin başlığı ancak yayımlanınca değişir (knowledge.publish)
     text = item.body_md.replace("\r\n", "\n")
     rev = _note_revision(db, author, source, text, scope)
     claims = []

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 
-MAX_BLOCK = 8000  # kanıt alıntısı üst sınırı (sources.create_evidence ile aynı)
+MAX_BLOCK = 4000  # iddia cümlesi üst sınırı (changes.schemas.ClaimIn.statement); kanıt alıntısı sınırı daha geniş
 _SEPARATOR = re.compile(r"\n[ \t]*\n")
 _SENTENCE_END = re.compile(r"[.!?…](?=\s)|\n")
 
