@@ -7,11 +7,12 @@
 
     1. powershell -ExecutionPolicy Bypass -File scripts\release.ps1 -Derle
          main temiz ve origin/main ile aynı mı, sürüm daha önce yayımlanmış mı denetlenir; ruff, eslint, OpenAPI
-         sözleşmesi ve tam pytest (yerel PostgreSQL, masaüstü testi dahil) çalışır — CI yok, tek doğrulama budur;
-         paket dist\ altına derlenir (tsc + vite dahil); ZIP'in SHA-256'sı dist\aday.json'a yazılır.
+         sözleşmesi ve tam pytest (yerel PostgreSQL, masaüstü testi dahil) çalışır; paket dist\ altına derlenir (tsc +
+         vite dahil); ZIP'in SHA-256'sı dist\aday.json'a yazılır. Başta aynı commit için GitHub'da CI başlatılır (uçtan uca
+         Playwright + temiz Windows Server'da çevrimdışı kurulum/yükseltme; yerelde yapılamayanlar) ve paralel koşar.
     2. ZIP'i ayrı bir klasöre aç, METIS-Baslat.exe'ye çift tıkla (kurulum/yükseltme, Chrome, sol menüde sürüm).
     3. powershell -ExecutionPolicy Bypass -File scripts\release.ps1 -Yayimla
-         Aday ZIP değişmemiş mi, commit hâlâ origin/main mi denetlenir; gh release create ile
+         Aday ZIP değişmemiş mi, commit hâlâ origin/main mi, o commit'te CI yeşil mi denetlenir; gh release create ile
          etiket (sunucu tarafında) ve release oluşturulur, yüklenen dosyanın özeti karşılaştırılır.
 
   Önkoşul: gh auth login, .venv, npm install, PostgreSQL 16 (METIS_TEST_ADMIN_DSN; CLAUDE.md "Windows'ta").
@@ -67,6 +68,9 @@ if ($Derle) {
   $commit = Assert-PushedMain
   $tag = Get-ReleaseTag
   $version = $tag.Substring(1)
+  # CI push'ta çalışmaz (ürün sahibinin kararı 2026-10-19); sürüm adayı başına bir kez, yerel derlemeyle paralel.
+  Write-Host "==> CI başlatılıyor ($commit): uçtan uca + temiz Windows Server; -Yayimla yeşilini bekler" -ForegroundColor Cyan
+  Invoke-Native gh @("workflow", "run", "CI", "--ref", "main") | Out-Null
   Write-Host "==> $tag ($commit) denetimler" -ForegroundColor Cyan
   Invoke-Native $Py @("-m", "ruff", "check", "services", "tests", "evals", "deploy")
   Invoke-Native npm @("run", "lint", "--workspace", "apps/web")
@@ -102,6 +106,12 @@ $tag = Get-ReleaseTag
 if ($tag -ne $info.tag) { throw "Aday $($info.tag), deploy/RELEASE $tag." }
 $zip = Join-Path $Root "dist\$($info.zip)"
 if ((Get-Sha256 $zip) -ne $info.sha256) { throw "ZIP denendikten sonra değişmiş; yeniden -Derle." }
+$green = (gh run list --workflow CI --commit $commit --json conclusion --jq '[.[] | select(.conclusion == \"success\")] | length').Trim()
+if ($green -eq "0") {
+  $active = (gh run list --workflow CI --commit $commit --json status,databaseId --jq '[.[] | select(.status != \"completed\")][0].databaseId // \"\"').Trim()
+  if ($active) { throw "Bu commit'in CI koşusu sürüyor; bitmesini bekle: gh run watch $active" }
+  throw "Bu commit'te yeşil CI koşusu yok (uçtan uca + temiz Windows Server). Kırmızıysa düzelt; hiç yoksa: gh workflow run CI --ref main"
+}
 $notes = Join-Path $Root "deploy\RELEASE_NOTES.md"
 $ghArgs = @("release", "create", $tag, $zip, "$zip.sha256", "--target", $commit, "--title", "METIS $tag", "--notes-file", $notes)
 Write-Host "==> gh $($ghArgs -join ' ')" -ForegroundColor Cyan
