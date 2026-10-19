@@ -119,7 +119,7 @@ Betik IIS'i açar (Windows 10/11'de Windows özelliği olarak), URL Rewrite 2.1 
 güvenlik duvarında 80'i etki alanı/özel ağ için açar ve adresi dener. Farklı bir ad için `-Adres <ad>`. Tekrar
 çalıştırılabilir. Adres her zaman bu tam adla yazılmalı (kısa ad ya da IP ile giriş reddedilir).
 http şifresizdir (parolalar ağda açık gider): birkaç kişilik deneme içindir; kalıcı kullanımda şirket sertifikasıyla
-yukarıdaki https düzenine geçilir. **Gerçek makinede henüz denenmedi** (CI yalnız betiğin sözdizimini denetler).
+yukarıdaki https düzenine geçilir. Ürün sahibinin şirket içi Windows 10 sanal makinesinde denendi (2026-10-19): IIS ilk açılışta yeniden başlatma istedi, sonra betik tamamlandı ve METIS başka bir bilgisayardan tam adla açılıp giriş yapıldı. CI yalnız betiğin sözdizimini denetler.
 
 `METIS_PUBLIC_URL` tarayıcıda yazılan adresle **birebir** aynı olmalı (Origin ve CSRF denetimi buna göre yapılır).
 Adres değişirse `metis.env` içinde düzelt ve servisleri yeniden başlat (`Restart-Service metis-api`).
