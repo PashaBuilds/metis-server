@@ -836,3 +836,53 @@ button.stepBtn:hover {
   gap: var(--s3);
   min-width: 0;
 }
+
+/* Tek adımlı not editörü (2026-10-19): kaynak sütunu yok, tek sütun. */
+.noteEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+  max-width: 920px;
+}
+
+span.figThumb {
+  display: grid;
+  place-items: center;
+  color: var(--soluk);
+}
+
+.dropZone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 1px dashed var(--cizgi-guclu);
+  border-radius: var(--r-panel);
+}
+
+.dropOver {
+  border-color: var(--vurgu);
+  background: var(--yuzey-gomuk);
+}
+
+.attName {
+  display: block;
+  font-size: var(--fs-14);
+  overflow-wrap: anywhere;
+}
+
+.moreFields > summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: var(--s2) 0;
+}
+
+.moreFields[open] > summary {
+  margin-bottom: var(--s3);
+}
+
+.moreBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}

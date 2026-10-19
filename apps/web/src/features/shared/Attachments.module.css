@@ -1,0 +1,88 @@
+/* Ekler: kanıt değildir — altın kullanılmaz. */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  margin-top: var(--s5, 24px);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin: 0;
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: var(--s3);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-width: 0;
+  padding: var(--s2);
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-panel);
+  background: var(--yuzey);
+}
+
+.thumbBtn {
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-chip);
+  background: var(--yuzey-gomuk);
+  cursor: zoom-in;
+  line-height: 0;
+}
+
+.thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--r-chip);
+}
+
+.fileIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-chip);
+  background: var(--yuzey-gomuk);
+  color: var(--soluk);
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--fs-13);
+  overflow-wrap: anywhere;
+}
+
+.size {
+  color: var(--soluk);
+  font-size: var(--fs-12);
+}
+
+.large {
+  display: block;
+  max-width: 100%;
+  max-height: 75vh;
+  margin: 0 auto;
+  object-fit: contain;
+}

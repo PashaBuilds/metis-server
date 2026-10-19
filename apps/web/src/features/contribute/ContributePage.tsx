@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getRouteApi, Link, useBlocker, useNavigate } from '@tanstack/react-router';
-import { PenLine } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button, Dialog, EmptyState, SkeletonRows } from '@/design/primitives';
 import { PageHeader } from '@/app/Shell';
 import { EMPTY_SCOPE } from '@/app/session';
@@ -11,17 +10,15 @@ import { useUnsavedWarning } from '@/lib/hooks';
 import { Banner } from '@/features/shared/Banner';
 import { messageOf } from '@/features/shared/hooks';
 import { asScope } from '@/features/shared/scope';
-import { claimKey, DraftEditor, type DraftTarget, type DraftValues } from './DraftEditor';
-import { MetisOption } from './MetisOption';
-import { SourceStep } from './SourceStep';
-import type { SourceDetail } from './types';
+import { NoteEditor, type NoteTarget, type NoteValues } from './NoteEditor';
 import s from './Contribute.module.css';
 
 const route = getRouteApi('/app/katki');
 
 type RevisionView = Schemas['RevisionView'];
 
-function valuesFromRevision(r: RevisionView): DraftValues {
+/** Yayımlanmış ya da taslak revizyondan editör değerleri. Not = gövde; ekler korunur. */
+function valuesFromRevision(r: RevisionView): NoteValues {
   return {
     title: r.title,
     kind: r.kind,
@@ -30,49 +27,17 @@ function valuesFromRevision(r: RevisionView): DraftValues {
     scope: asScope(r.scope),
     unknowns: r.unknowns.filter((u): u is string => typeof u === 'string'),
     aliases: r.aliases.filter((u): u is string => typeof u === 'string'),
-    claims: r.claims.map((c) => ({
-      key: claimKey(),
-      statement: c.statement,
-      kind: c.kind,
-      evidence: c.evidence.map((e) => ({ evidence_id: e.evidence_id, quote: e.quote, label: e.source_title })),
-    })),
-    figures: (r.figures ?? []).map((f) => ({ source_revision_id: f.source_revision_id, caption: f.caption, source_title: f.source_title })),
+    attachments: r.attachments ?? [],
   };
 }
 
-type PrefillClaim = {
-  statement: string;
-  evidence_id: string;
-  quote: string;
-  page_title?: string;
-};
-const isPrefillClaim = (x: unknown): x is PrefillClaim =>
-  !!x && typeof x === 'object' && typeof (x as PrefillClaim).statement === 'string' && typeof (x as PrefillClaim).evidence_id === 'string' && typeof (x as PrefillClaim).quote === 'string';
+const EMPTY_VALUES: NoteValues = { title: '', kind: 'concept', summary: '', body_md: '', scope: EMPTY_SCOPE, unknowns: [], aliases: [], attachments: [] };
 
-/** Mentor cevabından taslak: iddialar cevabın kaynak alıntılarıdır, kanıt bağları önceden seçilidir. */
-function valuesFromPrefill(p: Schemas['DraftPrefill']): DraftValues {
-  return {
-    ...EMPTY_VALUES,
-    title: p.title,
-    body_md: p.body_md,
-    scope: asScope(p.scope),
-    claims: p.claims.filter(isPrefillClaim).map((c) => ({
-      key: claimKey(),
-      statement: c.statement,
-      kind: 'expert_statement',
-      evidence: [{ evidence_id: c.evidence_id, quote: c.quote, label: c.page_title }],
-    })),
-  };
-}
-
-const EMPTY_VALUES: DraftValues = { title: '', kind: 'concept', summary: '', body_md: '', scope: EMPTY_SCOPE, unknowns: [], aliases: [], claims: [], figures: [] };
-
+/** Tek adımda taslak hazırla (2026-10-19): ayrı kaynak adımı yok; taslağın notu bilginin dayanağıdır. */
 export function ContributePage() {
   const search = route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const answerMode = !!search.answer && !search.change && !search.page;
-  const editMode = !!search.change || !!search.page || answerMode;
 
   const change = useQuery({
     queryKey: ['change', search.change],
@@ -86,57 +51,22 @@ export function ContributePage() {
     enabled: !!search.page && !search.change,
   });
 
-  const prefill = useQuery({
-    queryKey: ['draft-prefill', search.answer],
-    queryFn: () => api.get<Schemas['DraftPrefill']>(`/answers/${search.answer}/draft-prefill`),
-    enabled: answerMode,
-    staleTime: Infinity,
-  });
-
-  const [step, setStep] = useState<'source' | 'draft'>(editMode ? 'draft' : 'source');
-  const [path, setPath] = useState<'choose' | 'self'>(editMode ? 'self' : 'choose');
-  const [source, setSource] = useState<SourceDetail | null>(null);
-  const [sourceError, setSourceError] = useState<string | null>(null);
-  const [revisionMode, setRevisionMode] = useState(false);
-
-  const dirtyRef = useRef({ source: false, editor: false });
+  const dirtyRef = useRef(false);
   const allowNav = useRef(false);
   const [dirty, setDirtyState] = useState(false);
-  const setDirty = (part: 'source' | 'editor', d: boolean) => {
-    dirtyRef.current[part] = d;
-    setDirtyState(dirtyRef.current.source || dirtyRef.current.editor);
+  const setDirty = (d: boolean) => {
+    dirtyRef.current = d;
+    setDirtyState(d);
   };
   useUnsavedWarning(dirty);
-  const blocker = useBlocker({
-    shouldBlockFn: () => !allowNav.current && (dirtyRef.current.source || dirtyRef.current.editor),
-    withResolver: true,
-  });
-
-  async function selectSource(id: string) {
-    setSourceError(null);
-    try {
-      const detail = await api.get<SourceDetail>(`/sources/${id}`);
-      setSource(detail);
-    } catch (e) {
-      setSourceError(messageOf(e));
-    }
-  }
-
-  const preselected = useRef(false);
-  useEffect(() => {
-    if (search.source && !preselected.current) {
-      preselected.current = true;
-      void selectSource(search.source);
-    }
-  }, [search.source]);
-
+  const blocker = useBlocker({ shouldBlockFn: () => !allowNav.current && dirtyRef.current, withResolver: true });
   const go = (fn: () => void) => {
     allowNav.current = true;
     fn();
   };
 
-  let initial: DraftValues | null = EMPTY_VALUES;
-  let target: DraftTarget = { pageId: null, baseRevisionId: null, changeId: null, changeHash: null, changeSummary: '' };
+  let initial: NoteValues | null = EMPTY_VALUES;
+  let target: NoteTarget = { pageId: null, baseRevisionId: null, changeId: null, changeHash: null, changeSummary: '' };
   let notice: string | null = null;
   let blocked: string | null = null;
   if (search.change) {
@@ -157,18 +87,8 @@ export function ContributePage() {
       target = { pageId: page.data.page_id, baseRevisionId: page.data.published_revision_id, changeId: null, changeHash: null, changeSummary: '' };
       notice = tr.contribute.fromPage;
     }
-  } else if (answerMode) {
-    initial = null;
-    if (prefill.data) {
-      initial = valuesFromPrefill(prefill.data);
-      target = { ...target, sourceAnswerId: prefill.data.source_answer_id };
-      notice = tr.contribute.fromAnswer;
-    }
-  } else if (source?.current_revision) {
-    initial = { ...EMPTY_VALUES, scope: asScope(source.current_revision.scope) };
   }
-  const loadError =
-    (search.change && change.isError && change.error) || (search.page && !search.change && page.isError && page.error) || (answerMode && prefill.isError && prefill.error);
+  const loadError = (search.change && change.isError && change.error) || (search.page && !search.change && page.isError && page.error);
   const title = search.change ? tr.contribute.titleDraft : search.page ? tr.contribute.titleEdit : tr.contribute.title;
 
   return (
@@ -189,104 +109,29 @@ export function ContributePage() {
         />
       ) : (
         <>
-          <ol className={s.steps} aria-label={title}>
-            <li className={[s.stepItem, step === 'source' ? s.stepCurrent : s.stepDone].join(' ')} aria-current={step === 'source' ? 'step' : undefined}>
-              {step === 'draft' ? (
-                <button type="button" className={s.stepBtn} onClick={() => setStep('source')}>
-                  <span className={s.stepNo}>1</span>
-                  {tr.contribute.stepSource}
-                  {source && <span className={s.stepValue}>{source.title}</span>}
-                </button>
-              ) : (
-                <span className={s.stepBtn}>
-                  <span className={s.stepNo}>1</span>
-                  {tr.contribute.stepSource}
-                </span>
-              )}
-            </li>
-            <li className={[s.stepItem, step === 'draft' ? s.stepCurrent : ''].join(' ')} aria-current={step === 'draft' ? 'step' : undefined}>
-              <span className={s.stepBtn}>
-                <span className={s.stepNo}>2</span>
-                {tr.contribute.stepDraft}
-              </span>
-            </li>
-          </ol>
-
           {notice && <Banner tone="bilgi">{notice}</Banner>}
-
-          {step === 'source' && (
-            <section className={s.panel} aria-label={tr.contribute.stepSource}>
-              {sourceError && <Banner tone="celiski">{sourceError}</Banner>}
-              <SourceStep
-                selected={source}
-                onSelect={selectSource}
-                onClear={() => setSource(null)}
-                onContinue={path === 'self' ? () => setStep('draft') : undefined}
-                onDirty={(d) => setDirty('source', d)}
-                offerRevision={!!search.source}
-                onRevisionMode={setRevisionMode}
-              />
-              {source && path === 'choose' && !revisionMode && (
-                // Kaynak seçilince iki yol doğrudan sunulur; ayrı bir "Taslağa geç" adımı yok.
-                <div className={s.options}>
-                  <MetisOption source={source} onStarted={(id) => go(() => navigate({ to: '/gorevler/$jobId', params: { jobId: id } }))} />
-                  <div className={s.option}>
-                    <div className={s.optionHead}>
-                      <PenLine size={20} aria-hidden />
-                      <h3 className={s.optionTitle}>{tr.contribute.selfTitle}</h3>
-                    </div>
-                    <p className={s.optionText}>{tr.contribute.selfText}</p>
-                    <div className={s.optionAction}>
-                      <Button
-                        variant="primary"
-                        onClick={() => {
-                          setPath('self');
-                          setStep('draft');
-                        }}
-                      >
-                        {tr.contribute.openEditor}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {!source && editMode && (
-                <div>
-                  <Button variant="ghost" onClick={() => setStep('draft')}>
-                    {tr.contribute.skipSource}
-                  </Button>
-                </div>
-              )}
-            </section>
-          )}
-          {path === 'self' && (
-            <div hidden={step !== 'draft'}>
-              {initial ? (
-                <DraftEditor
-                  key={target.changeId ?? target.pageId ?? target.sourceAnswerId ?? 'new'}
-                  initial={initial}
-                  target={target}
-                  source={source}
-                  onPickSource={() => setStep('source')}
-                  onDirty={(d) => setDirty('editor', d)}
-                  onSaved={(id) => go(() => navigate({ to: '/kayitlar/$changeId', params: { changeId: id } }))}
-                  onPublished={(d) => {
-                    const pageId = d.published_page_ids[0];
-                    go(() => (pageId ? navigate({ to: '/bilgi/$pageId', params: { pageId }, search: {} }) : navigate({ to: '/kayitlar/$changeId', params: { changeId: d.id } })));
-                  }}
-                  onReopen={(id) => {
-                    // Aynı sayfada kalınır: kaydedilmiş taslak (güncel hash ile) editörde yeniden açılır.
-                    void qc.invalidateQueries({ queryKey: ['change', id] });
-                    allowNav.current = true;
-                    void navigate({ to: '/katki', search: { change: id } }).finally(() => {
-                      allowNav.current = false;
-                    });
-                  }}
-                />
-              ) : (
-                <SkeletonRows rows={5} />
-              )}
-            </div>
+          {initial ? (
+            <NoteEditor
+              key={target.changeId ?? target.pageId ?? 'new'}
+              initial={initial}
+              target={target}
+              onDirty={setDirty}
+              onSaved={(id) => go(() => navigate({ to: '/kayitlar/$changeId', params: { changeId: id } }))}
+              onPublished={(d) => {
+                const pageId = d.published_page_ids[0];
+                go(() => (pageId ? navigate({ to: '/bilgi/$pageId', params: { pageId }, search: {} }) : navigate({ to: '/kayitlar/$changeId', params: { changeId: d.id } })));
+              }}
+              onReopen={(id) => {
+                // Aynı sayfada kalınır: kaydedilmiş taslak (güncel hash ile) editörde yeniden açılır.
+                void qc.invalidateQueries({ queryKey: ['change', id] });
+                allowNav.current = true;
+                void navigate({ to: '/katki', search: { change: id } }).finally(() => {
+                  allowNav.current = false;
+                });
+              }}
+            />
+          ) : (
+            <SkeletonRows rows={5} />
           )}
         </>
       )}
