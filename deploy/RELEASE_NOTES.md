@@ -4,6 +4,16 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.9 — şirket modelini arayüzden ekleme:**
+- Model laboratuvarında **Sağlayıcı ekle** dediğinde adrese henüz izin verilmemişse METIS bunu söyler ve
+  **İzin ver ve ekle** ile izin verirsin. `metis.env`'e elle adres eklemek ve servisleri yeniden başlatmak gerekmez.
+- İzinli adresler **Ayarlar → Sistem durumu → İzinli model adresleri** altında: `metis.env`'dekiler "Sunucu ayarı"
+  olarak, arayüzden eklenenler kimin eklediği ve kullanan sağlayıcı sayısıyla. Kullanılmayan adresin izni kaldırılabilir.
+- Güvenlik kuralları aynı: yalnız yöneticiler izin verir; yalnız iç ağ adreslerine izin verilir; sunucu kurulumunda
+  adres `https://` olmalı; her izin denetim kaydına yazılır ve yedekle taşınır.
+- Şema 0005 (izinli adresler tablosu); yükseltme geçişi kendiliğinden uygular.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi ve çift tıklamayla 2.0.8 → 2.0.9 yükseltmesiyle denendi.
+
 **2.0.8 — başlatıcı düzeltmesi (çift tıklayınca "hiçbir şey olmuyordu"):**
 - Düzeltme: 2.0.7'de `METIS-Baslat.exe` çalışıyordu ama soruları ("yükseltilsin mi?", "kurulsun mu?") açık
   pencerelerin **arkasında** ve görev çubuğunda düğmesi olmadan açıyordu; ekranda bir şey görünmüyordu. İleti kutuları
