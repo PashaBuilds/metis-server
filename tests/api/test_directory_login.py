@@ -157,7 +157,7 @@ def enable(admin: Client, **over) -> dict:  # noqa: ANN003
 def test_first_login_creates_pending_user_and_stores_no_password(https_app, admin, directory):  # noqa: ANN001
     directory.add("ayse.k", PW, "Ayşe Kurgu")
     enable(admin)
-    assert Client(https_app).get("/api/v1/auth/methods").json() == {"directory": True}
+    assert Client(https_app).get("/api/v1/auth/methods").json()["directory"] is True
     u = Client(https_app)
     r = u.login("ayse.k", PW)
     assert r.status_code == 200, r.text
@@ -266,7 +266,7 @@ def test_http_installation_refuses_directory_login(client, directory):  # noqa: 
     assert r.status_code == 409 and r.json()["error"]["code"] == "HTTPS_REQUIRED"
     assert client.put("/api/v1/directory", json={**SETTINGS, "enabled": False}).status_code == 200  # ayar kaydedilebilir
     assert client.post("/api/v1/directory/test", json={"settings": SETTINGS, "username": "x", "password": "y"}).json()["error"] == "HTTPS_REQUIRED"
-    assert client.get("/api/v1/auth/methods").json() == {"directory": False}
+    assert client.get("/api/v1/auth/methods").json()["directory"] is False
     assert directory.binds == []
 
 

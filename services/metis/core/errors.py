@@ -13,6 +13,7 @@ from typing import Any
 CATALOG: dict[str, tuple[int, bool]] = {
     "UNAUTHENTICATED": (401, False),
     "INVALID_CREDENTIALS": (401, False),
+    "PASSWORD_REQUIRED": (401, False),  # parolasız girişte yönetici hesabı parola ister
     "PASSWORD_CHANGE_REQUIRED": (403, False),
     "CSRF_REJECTED": (403, False),
     "ORIGIN_REJECTED": (403, False),
@@ -54,6 +55,7 @@ CATALOG: dict[str, tuple[int, bool]] = {
     "ENDPOINT_CONFIGURED": (409, False),
     "HTTPS_REQUIRED": (409, False),  # şirket hesabıyla giriş: parola tarayıcıdan geldiği için yalnız https
     "PASSWORD_MANAGED_BY_DIRECTORY": (409, False),
+    "ADMIN_NEEDS_PASSWORD": (409, False),
     "ADDRESS_NOT_ALLOWED": (422, False),
     "TLS_REQUIRED": (422, False),
     "MODEL_NOT_ELIGIBLE": (422, False),

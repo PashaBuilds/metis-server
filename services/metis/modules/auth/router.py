@@ -121,3 +121,18 @@ def update_user(
     user_id: uuid.UUID, data: schemas.UserUpdateInput, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")
 ) -> schemas.UserOut:
     return service.to_out(service.update_user(db, user, user_id, data))
+
+@router.get("/auth/login-settings", response_model=schemas.LoginSettingsIO)
+def get_login_settings(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> schemas.LoginSettingsIO:
+    from metis.modules.auth import passwordless
+
+    return schemas.LoginSettingsIO(**passwordless.settings(db, user))
+
+
+@router.put("/auth/login-settings", response_model=schemas.LoginSettingsIO)
+def put_login_settings(
+    data: schemas.LoginSettingsIO, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")
+) -> schemas.LoginSettingsIO:
+    from metis.modules.auth import passwordless
+
+    return schemas.LoginSettingsIO(**passwordless.save(db, user, data.passwordless))

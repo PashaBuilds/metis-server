@@ -90,6 +90,22 @@
   line-height: 1.6;
 }
 
+/* Parolasız girişte 'Parolayla gir' (yönetici). */
+.linkButton {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--soluk);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  color: var(--murekkep);
+}
+
 .error {
   padding: var(--s3);
   border-radius: var(--r-panel);

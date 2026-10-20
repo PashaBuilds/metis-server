@@ -256,6 +256,9 @@ def update_user(db: Session, actor: User, user_id: uuid.UUID, data: schemas.User
         raise AppError("NOT_FOUND", "user not found")
     if user.id == actor.id and (data.active is False or data.is_admin is False):
         raise AppError("INVALID_STATE", "cannot remove your own administrator access")
+    if data.is_admin and not user.is_admin and user.auth_source == "local" and not user.password_hash and data.temporary_password is None:
+        # Parolasız girişle açılmış hesap: yönetici yapılırken parola şart (yönetici hesabı parolasız girilemez).
+        raise AppError("ADMIN_NEEDS_PASSWORD", "set a temporary password when granting administrator access")
     if data.display_name is not None:
         user.display_name = data.display_name
     if data.active is not None:

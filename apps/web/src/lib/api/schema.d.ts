@@ -108,6 +108,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/login-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Login Settings */
+        get: operations["get_login_settings_api_v1_auth_login_settings_get"];
+        /** Put Login Settings */
+        put: operations["put_login_settings_api_v1_auth_login_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -151,7 +169,7 @@ export interface paths {
         };
         /**
          * Methods
-         * @description Giriş ekranı için (oturum gerekmez): şirket hesabıyla giriş açık mı.
+         * @description Giriş ekranı için (oturum gerekmez): şirket hesabıyla giriş ve parolasız giriş açık mı.
          */
         get: operations["methods_api_v1_auth_methods_get"];
         put?: never;
@@ -1629,6 +1647,11 @@ export interface components {
         AuthMethodsOut: {
             /** Directory */
             directory: boolean;
+            /**
+             * Passwordless
+             * @default false
+             */
+            passwordless: boolean;
         };
         /** AvailableModel */
         AvailableModel: {
@@ -2632,10 +2655,18 @@ export interface components {
         };
         /** LoginInput */
         LoginInput: {
-            /** Password */
+            /**
+             * Password
+             * @default
+             */
             password: string;
             /** Username */
             username: string;
+        };
+        /** LoginSettingsIO */
+        LoginSettingsIO: {
+            /** Passwordless */
+            passwordless: boolean;
         };
         /** MapEdge */
         MapEdge: {
@@ -4010,6 +4041,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_login_settings_api_v1_auth_login_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginSettingsIO"];
+                };
+            };
+        };
+    };
+    put_login_settings_api_v1_auth_login_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginSettingsIO"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginSettingsIO"];
                 };
             };
             /** @description Validation Error */

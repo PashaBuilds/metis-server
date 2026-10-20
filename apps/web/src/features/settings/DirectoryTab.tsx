@@ -60,6 +60,7 @@ export function DirectoryTab() {
 
   return (
     <div className={s.stack}>
+      <PasswordlessSection />
       <section className={s.block} aria-labelledby="dir-h">
         <h2 id="dir-h" className={s.blockTitle}>
           {tr.directory.title}
@@ -148,5 +149,35 @@ export function DirectoryTab() {
         )}
       </section>
     </div>
+  );
+}
+
+/** Parolasız giriş (ekip içi): yönetici olmayanlar yalnız kullanıcı adıyla girer; yönetici hesapları parolalı kalır. */
+function PasswordlessSection() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const current = useQuery({ queryKey: ['login-settings'], queryFn: () => api.get<Schemas['LoginSettingsIO']>('/auth/login-settings') });
+  const save = useMutation({
+    mutationFn: (on: boolean) => api.put<Schemas['LoginSettingsIO']>('/auth/login-settings', { passwordless: on }),
+    onSuccess: (d) => {
+      qc.setQueryData(['login-settings'], d);
+      void qc.invalidateQueries({ queryKey: ['auth-methods'] });
+      toast.show(tr.passwordless.saved(d.passwordless));
+    },
+    onError: (e) => toast.show(messageOf(e), { tone: 'error' }),
+  });
+  if (current.isLoading) return <SkeletonRows rows={2} />;
+  const on = save.isPending ? !!save.variables : !!current.data?.passwordless;
+  return (
+    <section className={s.block} aria-labelledby="pwless-h">
+      <h2 id="pwless-h" className={s.blockTitle}>
+        {tr.passwordless.title}
+      </h2>
+      <p className={s.hint}>{tr.passwordless.lead}</p>
+      <p className={s.error} role="note">
+        {tr.passwordless.risk}
+      </p>
+      <Checkbox label={tr.passwordless.enabled} checked={on} disabled={save.isPending} onChange={(v) => save.mutate(v)} />
+    </section>
   );
 }

@@ -137,6 +137,16 @@ Adres değişirse `metis.env` içinde düzelt ve servisleri yeniden başlat (`Re
 2. Yönetici hesabını oluştur; **Ayarlar → Ekip ve izinler**'den kullanıcıları ve rollerini ekle.
 3. Komut satırından yönetici gerekirse: `C:\METIS\bin\metis admin create --username ayse`.
 
+### 6a′. Parolasız giriş (ekip içi, 2.0.16'dan beri)
+
+**Ayarlar → Giriş yöntemi → Parolasız girişi aç** (yalnız yönetici). Açıkken yönetici olmayan herkes yalnız kullanıcı
+adıyla girer (harf, rakam, nokta, tire; büyük/küçük harf fark etmez); ilk girişte hesap açılır ve **Okur** başlar,
+diğer rolleri yönetici verir. Yönetici hesapları her zaman parolalıdır: giriş ekranı yönetici adını görünce parola
+alanını açar. Parolasız açılmış bir hesap yönetici yapılırken ona geçici parola verilir. **Kabul edilen risk:** METIS'in
+adresine ulaşabilen herkes başka birinin kullanıcı adını yazarak onun yerine girebilir; "kim yazdı" bilgisi beyana
+dayanır. Yalnız güvenilen ekip içi kullanım için (ürün sahibi ve ekip liderinin kararı, 2026-10-19). Kapatınca herkes
+yeniden parolayla (ya da şirket hesabıyla) girer.
+
 ### 6a. Şirket hesabıyla giriş (Active Directory, 2.0.15'ten beri)
 
 Kullanıcılar METIS'e Windows'a girdikleri kullanıcı adı ve parolayla girer; yönetici her kullanıcıyı elle açmaz.

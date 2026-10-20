@@ -37,3 +37,4 @@ class DirectoryTestOut(BaseModel):
 
 class AuthMethodsOut(BaseModel):
     directory: bool
+    passwordless: bool = False

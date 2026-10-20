@@ -16,8 +16,11 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const methods = useQuery({ queryKey: ['auth-methods'], queryFn: () => api.get<{ directory: boolean }>('/auth/methods'), staleTime: 60_000 });
+  const [askPassword, setAskPassword] = useState(false);
+  const methods = useQuery({ queryKey: ['auth-methods'], queryFn: () => api.get<{ directory: boolean; passwordless: boolean }>('/auth/methods'), staleTime: 60_000 });
   const directory = methods.data?.directory ?? false;
+  // Parolasız giriş (ekip içi): yalnız kullanıcı adı; yönetici hesabıysa sunucu PASSWORD_REQUIRED der, parola alanı açılır.
+  const passwordless = (methods.data?.passwordless ?? false) && !askPassword;
 
   if (session.me) return <Navigate to="/" />;
 
@@ -27,12 +30,16 @@ export function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      const me = await api.post<Me>('/auth/login', { username, password });
+      const me = await api.post<Me>('/auth/login', { username, password: passwordless ? '' : password });
       setCsrfToken(me.csrf_token);
       qc.setQueryData(['me'], me);
       navigate({ to: me.user.must_change_password ? '/parola' : '/' });
     } catch (err) {
-      setError(errorMessage(err instanceof ApiError ? err.code : 'NETWORK'));
+      const code = err instanceof ApiError ? err.code : 'NETWORK';
+      if (code === 'PASSWORD_REQUIRED') {
+        setAskPassword(true);
+        setError(tr.auth.passwordlessAdmin);
+      } else setError(errorMessage(code));
     } finally {
       setBusy(false);
     }
@@ -41,7 +48,7 @@ export function LoginPage() {
   return (
     <AuthLayout title={tr.auth.loginTitle}>
       <form className={s.form} onSubmit={submit} noValidate>
-        {directory && <p className={s.lead}>{tr.auth.directoryHint}</p>}
+        {passwordless ? <p className={s.lead}>{tr.auth.passwordlessHint}</p> : directory && <p className={s.lead}>{tr.auth.directoryHint}</p>}
         {error && (
           <p className={s.error} role="alert">
             {error}
@@ -50,13 +57,21 @@ export function LoginPage() {
         <Field label={tr.auth.username}>
           {({ id }) => <Input id={id} autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus />}
         </Field>
-        <Field label={tr.auth.password}>
-          {({ id }) => <Input id={id} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />}
-        </Field>
-        <Button type="submit" variant="primary" loading={busy} disabled={!username || !password}>
+        {!passwordless && (
+          <Field label={tr.auth.password}>
+            {({ id }) => <Input id={id} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required autoFocus={askPassword} />}
+          </Field>
+        )}
+        <Button type="submit" variant="primary" loading={busy} disabled={!username || (!passwordless && !password)}>
           {tr.auth.login}
         </Button>
-        <p className={s.lead}>{directory ? tr.auth.directoryForgot : tr.auth.forgot}</p>
+        {passwordless ? (
+          <button type="button" className={s.linkButton} onClick={() => setAskPassword(true)}>
+            {tr.auth.withPassword}
+          </button>
+        ) : (
+          <p className={s.lead}>{directory ? tr.auth.directoryForgot : tr.auth.forgot}</p>
+        )}
       </form>
     </AuthLayout>
   );

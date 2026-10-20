@@ -22,7 +22,11 @@ class SetupInput(BaseModel):
 
 class LoginInput(BaseModel):
     username: str = Field(min_length=1, max_length=150)
-    password: str = Field(min_length=1, max_length=200)
+    password: str = Field(default="", max_length=200)  # parolasız giriş açıkken boş olabilir
+
+
+class LoginSettingsIO(BaseModel):
+    passwordless: bool  # yönetici olmayanlar yalnız kullanıcı adıyla girer (yönetici hesapları parolalı kalır)
 
 
 class PasswordChangeInput(BaseModel):

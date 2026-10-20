@@ -45,7 +45,12 @@ class CompanyAuthProvider:
     name = "company"
 
     def authenticate(self, db: Session, username: str, password: str) -> User | None:
+        from metis.modules.auth import passwordless
         from metis.modules.directory import service as directory
+
+        if not password:
+            # Parolasız giriş (ekip içi): yalnız yönetici olmayanlar; kapalıyken boş parola hiçbir yere gitmez.
+            return passwordless.authenticate(db, username) if passwordless.enabled(db) else None
 
         local = db.scalar(select(User).where(func.lower(User.username) == username.strip().lower()))
         if (local is not None and local.auth_source == "local") or not directory.enabled(db):

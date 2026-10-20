@@ -746,6 +746,17 @@ class DirectorySettings(Base):
     updated_at: Mapped[datetime] = ts()
 
 
+class LoginSettings(Base):
+    """Giriş ayarı (tek satır, id=1): parolasız giriş (yönetici olmayanlar yalnız kullanıcı adıyla; yönetici parolalı)."""
+
+    __tablename__ = "login_settings"
+    id: Mapped[int] = mapped_column(SmallInteger, primary_key=True, default=1)
+    passwordless: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    updated_at: Mapped[datetime] = ts()
+    __table_args__ = (CheckConstraint("id = 1", name="ck_login_settings_single"),)
+
+
 class AllowedEndpoint(Base):
     """Yöneticinin arayüzden izin verdiği model adresi. Geçerli liste = METIS_ENDPOINT_ALLOWLIST (sunucu ayarı) + bunlar.
     Ağ aralığı (METIS_ENDPOINT_NETWORKS) ve üretimde https şartı yine geçerlidir (ürün sahibinin kararı 2026-10-19)."""

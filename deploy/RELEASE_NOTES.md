@@ -4,6 +4,15 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.16 — parolasız giriş (ekip içi):**
+- **Ayarlar → Giriş yöntemi → Parolasız girişi aç** (yalnız yönetici). Açıkken yönetici olmayan herkes METIS'e yalnız
+  kullanıcı adıyla girer; ilk girişte hesap açılır ve **Okur** başlar, diğer rolleri yönetici verir.
+- Yönetici hesapları her zaman parolalıdır: giriş ekranı yönetici adını görünce parola ister. Parolasız açılmış bir
+  hesabı yönetici yapmak için ona geçici parola verilir.
+- Bilinen ve kabul edilen risk: adrese ulaşabilen biri başka birinin kullanıcı adıyla girebilir (ekip içi kullanım
+  kararı). Varsayılan kapalı; kapatınca herkes yeniden parolayla girer. Şema 0008.
+- Ayarlar sekmesinin adı "Giriş yöntemi" oldu (parolasız giriş + şirket hesabıyla giriş).
+
 **2.0.15 — şirket hesabıyla giriş (Active Directory):**
 - Kullanıcılar METIS'e Windows'a girdikleri kullanıcı adı ve parolayla girebilir; yönetici her kullanıcıyı elle
   açmaz. İlk girişte hesap kendiliğinden oluşur ve kişi **Okur** olarak başlar; diğer rolleri yönetici verir

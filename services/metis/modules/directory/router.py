@@ -12,8 +12,10 @@ router = APIRouter(tags=["directory"])
 
 @router.get("/auth/methods", response_model=schemas.AuthMethodsOut)
 def methods(db: Session = Depends(get_db, scope="function")) -> schemas.AuthMethodsOut:
-    """Giriş ekranı için (oturum gerekmez): şirket hesabıyla giriş açık mı."""
-    return schemas.AuthMethodsOut(directory=service.enabled(db))
+    """Giriş ekranı için (oturum gerekmez): şirket hesabıyla giriş ve parolasız giriş açık mı."""
+    from metis.modules.auth import passwordless
+
+    return schemas.AuthMethodsOut(directory=service.enabled(db), passwordless=passwordless.enabled(db))
 
 
 @router.get("/directory", response_model=schemas.DirectorySettingsOut)

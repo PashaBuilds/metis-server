@@ -417,6 +417,11 @@
           "directory": {
             "title": "Directory",
             "type": "boolean"
+          },
+          "passwordless": {
+            "default": false,
+            "title": "Passwordless",
+            "type": "boolean"
           }
         },
         "required": [
@@ -2915,8 +2920,8 @@
       "LoginInput": {
         "properties": {
           "password": {
+            "default": "",
             "maxLength": 200,
-            "minLength": 1,
             "title": "Password",
             "type": "string"
           },
@@ -2928,10 +2933,22 @@
           }
         },
         "required": [
-          "username",
-          "password"
+          "username"
         ],
         "title": "LoginInput",
+        "type": "object"
+      },
+      "LoginSettingsIO": {
+        "properties": {
+          "passwordless": {
+            "title": "Passwordless",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "passwordless"
+        ],
+        "title": "LoginSettingsIO",
         "type": "object"
       },
       "MapEdge": {
@@ -5683,7 +5700,7 @@
   },
   "info": {
     "title": "METIS API",
-    "version": "2.0.15"
+    "version": "2.0.16"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5992,6 +6009,66 @@
         ]
       }
     },
+    "/api/v1/auth/login-settings": {
+      "get": {
+        "operationId": "get_login_settings_api_v1_auth_login_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginSettingsIO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Login Settings",
+        "tags": [
+          "auth"
+        ]
+      },
+      "put": {
+        "operationId": "put_login_settings_api_v1_auth_login_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginSettingsIO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginSettingsIO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Login Settings",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/logout": {
       "post": {
         "operationId": "logout_api_v1_auth_logout_post",
@@ -6029,7 +6106,7 @@
     },
     "/api/v1/auth/methods": {
       "get": {
-        "description": "Giriş ekranı için (oturum gerekmez): şirket hesabıyla giriş açık mı.",
+        "description": "Giriş ekranı için (oturum gerekmez): şirket hesabıyla giriş ve parolasız giriş açık mı.",
         "operationId": "methods_api_v1_auth_methods_get",
         "responses": {
           "200": {
