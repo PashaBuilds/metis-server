@@ -12,6 +12,9 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
 - Bilinen ve kabul edilen risk: adrese ulaşabilen biri başka birinin kullanıcı adıyla girebilir (ekip içi kullanım
   kararı). Varsayılan kapalı; kapatınca herkes yeniden parolayla girer. Şema 0008.
 - Ayarlar sekmesinin adı "Giriş yöntemi" oldu (parolasız giriş + şirket hesabıyla giriş).
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi (testler dahil); aynı commit'te CI yeşil (uçtan uca + temiz Windows Server'da
+  kurulum/yükseltme). Çift tıklamada yükseltme sorusu denendi; yükseltmenin kendisi bu sürümde o bilgisayarda
+  **denenmedi** (yönetici izni onaylanamadı; ürün sahibinin "beklemeden yayımla" kararıyla istisna).
 
 **2.0.15 — şirket hesabıyla giriş (Active Directory):**
 - Kullanıcılar METIS'e Windows'a girdikleri kullanıcı adı ve parolayla girebilir; yönetici her kullanıcıyı elle
