@@ -18,6 +18,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Identity,
     Index,
     Integer,
     PrimaryKeyConstraint,
@@ -762,6 +763,8 @@ class Feedback(Base):
 
     __tablename__ = "feedback"
     id: Mapped[uuid.UUID] = pk()
+    # Eklenme sırası: "yeniden eskiye" listesi buna göre (zaman damgaları Windows saatinde eşit çıkabiliyor).
+    seq: Mapped[int] = mapped_column(BigInteger, Identity(), nullable=False, unique=True)
     kind: Mapped[str] = mapped_column(String(20), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     author_id: Mapped[uuid.UUID] = fk("users.id")

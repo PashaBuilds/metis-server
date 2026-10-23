@@ -94,7 +94,7 @@ def delete(db: Session, user: User, feedback_id: uuid.UUID) -> None:
 
 
 def list_all(db: Session, user: User) -> list[schemas.FeedbackOut]:
-    rows = list(db.scalars(select(Feedback).where(Feedback.deleted_at.is_(None)).order_by(Feedback.created_at.desc(), Feedback.id)))
+    rows = list(db.scalars(select(Feedback).where(Feedback.deleted_at.is_(None)).order_by(Feedback.seq.desc())))
     return outs(db, user, rows)
 
 

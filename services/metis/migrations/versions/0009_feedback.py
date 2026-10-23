@@ -29,6 +29,7 @@ def upgrade() -> None:
     op.create_table(
         "feedback",
         sa.Column("id", sa.UUID(), nullable=False),
+        sa.Column("seq", sa.BigInteger(), sa.Identity(), nullable=False),
         sa.Column("kind", sa.String(20), nullable=False),
         sa.Column("body", sa.Text(), nullable=False),
         sa.Column("author_id", sa.UUID(), nullable=False),
@@ -45,6 +46,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["reply_by"], ["users.id"]),
         sa.ForeignKeyConstraint(["deleted_by"], ["users.id"]),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("seq", name="uq_feedback_seq"),
     )
     op.create_index(op.f("ix_feedback_author_id"), "feedback", ["author_id"])
     op.create_table(

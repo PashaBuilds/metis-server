@@ -7,7 +7,9 @@ bildirimini, yönetici her bildirimi silebilir. Görseller tek tek yüklenir (ve
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import text
 
+from metis.core.db import transaction
 from tests.factories import create_user, setup_admin
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x03" * 64  # kurgusal: yalnız imza denetlenir
@@ -57,6 +59,14 @@ def test_request_kind_and_newest_first(fb):  # noqa: ANN001
     second = send(fb["other"], "bug").json()
     assert first["kind"] == "request"
     assert [f["id"] for f in fb["reader"].get("/api/v1/feedback").json()] == [second["id"], first["id"]]
+
+
+def test_newest_first_even_with_equal_timestamps(fb):  # noqa: ANN001
+    # Windows saatinin çözünürlüğünde art arda gelen bildirimlerin zamanı eşit olabilir (CI'da görüldü).
+    ids = [send(fb["reader"], body=f"Kurgusal bildirim {n}").json()["id"] for n in range(6)]
+    with transaction() as db:
+        db.execute(text("UPDATE feedback SET created_at = '2026-10-23T12:00:00+00'"))
+    assert [f["id"] for f in fb["reader"].get("/api/v1/feedback").json()] == ids[::-1]
 
 
 @pytest.mark.parametrize(
