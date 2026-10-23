@@ -10,6 +10,9 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
 - Giriş yapmış herkes tüm geri bildirimleri, görselleri ve durumlarını görür; türe ve duruma göre süzülebilir.
 - **Durum ve cevap notu yalnız yöneticide:** Yeni / İnceleniyor / Düzeltildi / Yapılmayacak; cevap notu herkese görünür.
 - Yazan kendi geri bildirimini, yönetici her geri bildirimi silebilir. Şema 0009.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi (testler dahil); aynı commit'te CI yeşil (uçtan uca + temiz Windows Server'da
+  kurulum/yükseltme). Çift tıklamada yükseltme sorusu denendi; yükseltmenin kendisi bu sürümde o bilgisayarda
+  **denenmedi** (yönetici izni onaylanamadı; ürün sahibinin "beklemeden yayımla" kararıyla istisna).
 
 **2.0.16 — parolasız giriş (ekip içi):**
 - **Ayarlar → Giriş yöntemi → Parolasız girişi aç** (yalnız yönetici). Açıkken yönetici olmayan herkes METIS'e yalnız
