@@ -461,6 +461,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Feedback */
+        get: operations["list_feedback_api_v1_feedback_get"];
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feedback/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Images */
+        post: operations["upload_images_api_v1_feedback_images_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feedback/images/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Image */
+        get: operations["image_api_v1_feedback_images__image_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feedback/{feedback_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete */
+        delete: operations["delete_api_v1_feedback__feedback_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update */
+        patch: operations["update_api_v1_feedback__feedback_id__patch"];
+        trace?: never;
+    };
     "/api/v1/findings/{finding_id}": {
         parameters: {
             query?: never;
@@ -1690,6 +1760,11 @@ export interface components {
             /** Files */
             files: string[];
         };
+        /** Body_upload_images_api_v1_feedback_images_post */
+        Body_upload_images_api_v1_feedback_images_post: {
+            /** Files */
+            files: string[];
+        };
         /** CaseOut */
         CaseOut: {
             /**
@@ -2291,18 +2366,67 @@ export interface components {
             /** Text */
             text: string;
         };
-        /** FeedbackIn */
-        FeedbackIn: {
+        /**
+         * FeedbackImageOut
+         * @description Görsel /feedback/images/{id} ile açılır.
+         */
+        FeedbackImageOut: {
+            /** Filename */
+            filename: string;
             /**
-             * Comment
-             * @default
+             * Id
+             * Format: uuid
              */
-            comment: string;
+            id: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /** FeedbackOut */
+        FeedbackOut: {
+            /** Author Name */
+            author_name: string;
+            /** Can Delete */
+            can_delete: boolean;
             /**
-             * Rating
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Images */
+            images: components["schemas"]["FeedbackImageOut"][];
+            /**
+             * Kind
              * @enum {string}
              */
-            rating: "helpful" | "not_helpful";
+            kind: "bug" | "request";
+            /** Reply */
+            reply: string;
+            /** Reply At */
+            reply_at: string | null;
+            /** Reply By Name */
+            reply_by_name: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "in_progress" | "done" | "wontfix";
+            /** Text */
+            text: string;
+        };
+        /**
+         * FeedbackUpdate
+         * @description Yalnız yönetici: durum ve/veya cevap notu.
+         */
+        FeedbackUpdate: {
+            /** Reply */
+            reply?: string | null;
+            /** Status */
+            status?: ("new" | "in_progress" | "done" | "wontfix") | null;
         };
         /**
          * FigureIn
@@ -3806,6 +3930,31 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** FeedbackIn */
+        metis__modules__feedback__schemas__FeedbackIn: {
+            /** Image Ids */
+            image_ids?: string[];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "bug" | "request";
+            /** Text */
+            text: string;
+        };
+        /** FeedbackIn */
+        metis__modules__mentor__schemas__FeedbackIn: {
+            /**
+             * Comment
+             * @default
+             */
+            comment: string;
+            /**
+             * Rating
+             * @enum {string}
+             */
+            rating: "helpful" | "not_helpful";
+        };
     };
     responses: never;
     parameters: never;
@@ -3968,7 +4117,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FeedbackIn"];
+                "application/json": components["schemas"]["metis__modules__mentor__schemas__FeedbackIn"];
             };
         };
         responses: {
@@ -4748,6 +4897,187 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvidenceViewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_feedback_api_v1_feedback_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackOut"][];
+                };
+            };
+        };
+    };
+    create_api_v1_feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["metis__modules__feedback__schemas__FeedbackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_images_api_v1_feedback_images_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_images_api_v1_feedback_images_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackImageOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    image_api_v1_feedback_images__image_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_v1_feedback__feedback_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedback_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_api_v1_feedback__feedback_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedback_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackOut"];
                 };
             };
             /** @description Validation Error */

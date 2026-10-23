@@ -4,6 +4,13 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.17 — Geri bildirim bölümü:**
+- Sol menüde yeni **Geri bildirim**: herkes (Okur dahil) bir **Hata** ya da **İstek** yazar; en çok 5 ekran
+  görüntüsü (PNG/JPEG) ekleyebilir. Görsel seçilebilir, sürüklenip bırakılabilir ya da **Ctrl+V** ile yapıştırılabilir.
+- Giriş yapmış herkes tüm geri bildirimleri, görselleri ve durumlarını görür; türe ve duruma göre süzülebilir.
+- **Durum ve cevap notu yalnız yöneticide:** Yeni / İnceleniyor / Düzeltildi / Yapılmayacak; cevap notu herkese görünür.
+- Yazan kendi geri bildirimini, yönetici her geri bildirimi silebilir. Şema 0009.
+
 **2.0.16 — parolasız giriş (ekip içi):**
 - **Ayarlar → Giriş yöntemi → Parolasız girişi aç** (yalnız yönetici). Açıkken yönetici olmayan herkes METIS'e yalnız
   kullanıcı adıyla girer; ilk girişte hesap açılır ve **Okur** başlar, diğer rolleri yönetici verir.

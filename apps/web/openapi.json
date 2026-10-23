@@ -549,6 +549,23 @@
         "title": "Body_upload_api_v1_projects__project_id__attachments_post",
         "type": "object"
       },
+      "Body_upload_images_api_v1_feedback_images_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Files",
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "Body_upload_images_api_v1_feedback_images_post",
+        "type": "object"
+      },
       "CaseOut": {
         "properties": {
           "finding_id": {
@@ -2056,27 +2073,158 @@
         "title": "EvidenceViewOut",
         "type": "object"
       },
-      "FeedbackIn": {
+      "FeedbackImageOut": {
+        "description": "Görsel /feedback/images/{id} ile açılır.",
         "properties": {
-          "comment": {
-            "default": "",
-            "maxLength": 2000,
-            "title": "Comment",
+          "filename": {
+            "title": "Filename",
             "type": "string"
           },
-          "rating": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "size_bytes"
+        ],
+        "title": "FeedbackImageOut",
+        "type": "object"
+      },
+      "FeedbackOut": {
+        "properties": {
+          "author_name": {
+            "title": "Author Name",
+            "type": "string"
+          },
+          "can_delete": {
+            "title": "Can Delete",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackImageOut"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "kind": {
             "enum": [
-              "helpful",
-              "not_helpful"
+              "bug",
+              "request"
             ],
-            "title": "Rating",
+            "title": "Kind",
+            "type": "string"
+          },
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          },
+          "reply_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply At"
+          },
+          "reply_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply By Name"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "in_progress",
+              "done",
+              "wontfix"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
             "type": "string"
           }
         },
         "required": [
-          "rating"
+          "id",
+          "kind",
+          "text",
+          "status",
+          "reply",
+          "reply_by_name",
+          "reply_at",
+          "author_name",
+          "created_at",
+          "images",
+          "can_delete"
         ],
-        "title": "FeedbackIn",
+        "title": "FeedbackOut",
+        "type": "object"
+      },
+      "FeedbackUpdate": {
+        "description": "Yalnız yönetici: durum ve/veya cevap notu.",
+        "properties": {
+          "reply": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "new",
+                  "in_progress",
+                  "done",
+                  "wontfix"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "FeedbackUpdate",
         "type": "object"
       },
       "FigureIn": {
@@ -5695,12 +5843,66 @@
         ],
         "title": "WithdrawIn",
         "type": "object"
+      },
+      "metis__modules__feedback__schemas__FeedbackIn": {
+        "properties": {
+          "image_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Image Ids",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "bug",
+              "request"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 5000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "FeedbackIn",
+        "type": "object"
+      },
+      "metis__modules__mentor__schemas__FeedbackIn": {
+        "properties": {
+          "comment": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Comment",
+            "type": "string"
+          },
+          "rating": {
+            "enum": [
+              "helpful",
+              "not_helpful"
+            ],
+            "title": "Rating",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rating"
+        ],
+        "title": "FeedbackIn",
+        "type": "object"
       }
     }
   },
   "info": {
     "title": "METIS API",
-    "version": "2.0.16"
+    "version": "2.0.17"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5900,7 +6102,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FeedbackIn"
+                "$ref": "#/components/schemas/metis__modules__mentor__schemas__FeedbackIn"
               }
             }
           },
@@ -6964,6 +7166,243 @@
         "summary": "Evidence View",
         "tags": [
           "sources"
+        ]
+      }
+    },
+    "/api/v1/feedback": {
+      "get": {
+        "operationId": "list_feedback_api_v1_feedback_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FeedbackOut"
+                  },
+                  "title": "Response List Feedback Api V1 Feedback Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Feedback",
+        "tags": [
+          "feedback"
+        ]
+      },
+      "post": {
+        "operationId": "create_api_v1_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/metis__modules__feedback__schemas__FeedbackIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "feedback"
+        ]
+      }
+    },
+    "/api/v1/feedback/images": {
+      "post": {
+        "operationId": "upload_images_api_v1_feedback_images_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_images_api_v1_feedback_images_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FeedbackImageOut"
+                  },
+                  "title": "Response Upload Images Api V1 Feedback Images Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Images",
+        "tags": [
+          "feedback"
+        ]
+      }
+    },
+    "/api/v1/feedback/images/{image_id}": {
+      "get": {
+        "operationId": "image_api_v1_feedback_images__image_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "image_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Image Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Image",
+        "tags": [
+          "feedback"
+        ]
+      }
+    },
+    "/api/v1/feedback/{feedback_id}": {
+      "delete": {
+        "operationId": "delete_api_v1_feedback__feedback_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feedback_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Feedback Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete",
+        "tags": [
+          "feedback"
+        ]
+      },
+      "patch": {
+        "operationId": "update_api_v1_feedback__feedback_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feedback_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Feedback Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update",
+        "tags": [
+          "feedback"
         ]
       }
     },

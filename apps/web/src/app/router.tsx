@@ -20,6 +20,7 @@ import { TasksPage } from '@/features/tasks/TasksPage';
 import { TaskDetailPage } from '@/features/tasks/TaskDetailPage';
 import { HealthPage } from '@/features/health/HealthPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { FeedbackPage } from '@/features/feedback/FeedbackPage';
 import { NotFound } from '@/features/home/NotFound';
 import { BASE_PATH } from '@/lib/api/base';
 
@@ -153,6 +154,7 @@ const healthRoute = createRoute({
   component: HealthPage,
 });
 const labRoute = createRoute({ getParentRoute: () => appRoute, path: '/lab', component: () => <Lazy><LabPage /></Lazy> });
+const feedbackRoute = createRoute({ getParentRoute: () => appRoute, path: '/geri-bildirim', component: FeedbackPage });
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/ayarlar',
@@ -178,6 +180,7 @@ const routeTree = rootRoute.addChildren([
     taskRoute,
     healthRoute,
     labRoute,
+    feedbackRoute,
     settingsRoute,
   ]),
 ]);

@@ -6,7 +6,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 const BASE = process.env.METIS_E2E_URL ?? 'http://localhost:8000';
-const ROUTES = ['/', '/bilgi', '/mentor', '/katki', '/kayitlar', '/gorevler', '/saglik', '/harita', '/lab', '/ayarlar', '/ayarlar?tab=sistem', '/ayarlar?tab=bakim'];
+const ROUTES = ['/', '/bilgi', '/mentor', '/katki', '/kayitlar', '/gorevler', '/saglik', '/harita', '/lab', '/geri-bildirim', '/ayarlar', '/ayarlar?tab=sistem', '/ayarlar?tab=bakim'];
 
 async function smallText(page: Page) {
   return page.evaluate(() => {

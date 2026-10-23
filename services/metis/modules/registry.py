@@ -23,6 +23,7 @@ MODULES = [
     "map",
     "lab",
     "export",
+    "feedback",
 ]
 
 

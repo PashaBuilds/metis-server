@@ -757,6 +757,42 @@ class LoginSettings(Base):
     __table_args__ = (CheckConstraint("id = 1", name="ck_login_settings_single"),)
 
 
+class Feedback(Base):
+    """Kullanıcı geri bildirimi (hata ya da istek). Giriş yapmış herkes görür; durum ve cevabı yönetici verir."""
+
+    __tablename__ = "feedback"
+    id: Mapped[uuid.UUID] = pk()
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    author_id: Mapped[uuid.UUID] = fk("users.id")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="new", server_default="new")
+    reply: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
+    reply_by: Mapped[uuid.UUID | None] = fk("users.id", nullable=True, index=False)
+    reply_at: Mapped[datetime | None] = ts(nullable=True)
+    created_at: Mapped[datetime] = ts()
+    deleted_at: Mapped[datetime | None] = ts(nullable=True)
+    deleted_by: Mapped[uuid.UUID | None] = fk("users.id", nullable=True, index=False)
+    __table_args__ = (
+        CheckConstraint("kind in ('bug','request')", name="ck_feedback_kind"),
+        CheckConstraint("status in ('new','in_progress','done','wontfix')", name="ck_feedback_status"),
+    )
+
+
+class FeedbackImage(Base):
+    """Geri bildirimin görseli (ekran görüntüsü). Önce yüklenir (feedback_id boş), bildirim gönderilince bağlanır."""
+
+    __tablename__ = "feedback_images"
+    id: Mapped[uuid.UUID] = pk()
+    uploader_id: Mapped[uuid.UUID] = fk("users.id")
+    feedback_id: Mapped[uuid.UUID | None] = fk("feedback.id", nullable=True)
+    ord: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    media_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    created_at: Mapped[datetime] = ts()
+
+
 class AllowedEndpoint(Base):
     """Yöneticinin arayüzden izin verdiği model adresi. Geçerli liste = METIS_ENDPOINT_ALLOWLIST (sunucu ayarı) + bunlar.
     Ağ aralığı (METIS_ENDPOINT_NETWORKS) ve üretimde https şartı yine geçerlidir (ürün sahibinin kararı 2026-10-19)."""

@@ -13,6 +13,7 @@ import {
   Home,
   LogOut,
   Menu,
+  MessageSquareWarning,
   MessagesSquare,
   Network,
   Plus,
@@ -80,7 +81,10 @@ export function Shell() {
       { to: '/saglik', label: tr.nav.health, icon: Activity },
     ],
     // Model laboratuvarı herkese açık (salt okunur: modeller, sonuçlar, grafik); yönetim yalnız yöneticide.
-    [{ to: '/lab', label: tr.nav.lab, icon: FlaskConical }],
+    [
+      { to: '/lab', label: tr.nav.lab, icon: FlaskConical },
+      { to: '/geri-bildirim', label: tr.nav.feedback, icon: MessageSquareWarning },
+    ],
   ];
 
   const rail = (inDrawer: boolean) => (
