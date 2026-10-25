@@ -77,10 +77,10 @@ def test_corpus_baseline(team, capsys):  # noqa: ANN001
     m = res.metrics
     assert m["n"] == 44 and set(m) >= {"recall_at_5", "recall_at_10", "mrr", "ndcg_at_10", "quote_at_5", "by_kind"}
     assert m["quote_at_5"] is not None and m["recall_at_5"] >= 0.95  # blok bilgisi var; taban çizgisinden düşmez
-    with capsys.disabled():
-        print("\nARAMA ÖLÇÜMÜ", json.dumps({k: v for k, v in m.items() if k != "by_kind"}, ensure_ascii=False))
-        print("TÜR", json.dumps(m["by_kind"], ensure_ascii=False))
-        print("KAÇAN", [r["question"] for r in res.per_question if not r["rank"] or r["rank"] > 5])
+    with capsys.disabled():  # CI konsolu cp1252 olabilir: yalnız ASCII yazılır
+        print("\nSEARCH-EVAL", json.dumps({k: v for k, v in m.items() if k != "by_kind"}))
+        print("BY-KIND", json.dumps(m["by_kind"]))
+        print("MISSED", json.dumps([r["question"] for r in res.per_question if not r["rank"] or r["rank"] > 5]))
 
 
 def test_quote_miss_counts_when_blocks_supported():

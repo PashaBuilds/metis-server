@@ -122,7 +122,9 @@ test('Uygun olmayan model seçilince sessiz geçiş yok: neden yazılır, altern
     await expect(answer.getByText(/Şu an kullanılabilir başka model yok/)).toBeVisible();
     await expect(answer.getByRole('button', { name: 'Tekrar sor' })).toBeVisible();
     // Kaynaklar yine görünür; teknik iddia yok.
-    await expect(answer.getByRole('link', { name: 'SPI saat bölücü ayarı' })).toBeVisible();
+    // Model yokken ilgili bilgi listesi ve ilgili yayımlanmış bölümler (cevap değil) aynı sayfaya bağlanabilir.
+    await expect(answer.getByRole('link', { name: 'SPI saat bölücü ayarı' }).first()).toBeVisible();
+    await expect(answer.getByRole('heading', { name: 'Sorunla ilgili yayımlanmış bölümler' })).toBeVisible();
     await expect(answer.locator('[data-iz-marker]')).toHaveCount(0);
   } finally {
     await apiCall(page.request, 'PATCH', `/models/${fixture.id}`, { enabled: true });
