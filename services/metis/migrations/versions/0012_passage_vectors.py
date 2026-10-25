@@ -47,6 +47,7 @@ def upgrade() -> None:
         "search_state",
         sa.Column("project_id", sa.UUID(), nullable=False),
         sa.Column("version", sa.BigInteger(), nullable=False, server_default="0"),
+        sa.Column("vectors_version", sa.BigInteger(), nullable=False, server_default="0"),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"]),
         sa.PrimaryKeyConstraint("project_id"),
     )

@@ -81,16 +81,17 @@ def _vector_status(db: Session) -> dict:
 
     st = embedder_status()
     total = db.scalar(text("SELECT count(*) FROM search_passages")) or 0
-    done = 0
+    done = failed = 0
     if st["state"] == "ready":
-        done = db.scalar(
+        row = db.execute(
             text(
-                "SELECT count(*) FROM search_passages sp WHERE EXISTS "
-                "(SELECT 1 FROM passage_vectors pv WHERE pv.model_id = :m AND pv.text_sha256 = sp.embed_sha256)"
+                "SELECT count(*) FILTER (WHERE length(pv.vector) > 0), count(*) FILTER (WHERE length(pv.vector) = 0) "
+                "FROM search_passages sp JOIN passage_vectors pv ON pv.model_id = :m AND pv.text_sha256 = sp.embed_sha256"
             ),
             {"m": st["model_id"]},
-        ) or 0
-    return {**st, "blocks_total": int(total), "blocks_embedded": int(done)}
+        ).one()
+        done, failed = row[0] or 0, row[1] or 0
+    return {**st, "blocks_total": int(total), "blocks_embedded": int(done), "blocks_failed": int(failed)}
 
 
 def status(db: Session, user: User) -> SystemStatus:

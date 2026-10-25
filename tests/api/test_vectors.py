@@ -28,7 +28,7 @@ def test_embed_missing_once(team, fake):  # noqa: ANN001
     with transaction() as db:
         hashes = db.scalar(select(func.count(func.distinct(SearchPassage.embed_sha256))))
         assert db.scalar(select(func.count()).select_from(SearchPassage).where(SearchPassage.embed_sha256.is_(None))) == 0
-        before = db.scalar(select(SearchState.version))
+        before = db.scalar(select(SearchState.vectors_version))
     done = 0
     while True:
         with transaction() as db:
@@ -39,7 +39,7 @@ def test_embed_missing_once(team, fake):  # noqa: ANN001
     assert done == hashes
     with transaction() as db:
         assert db.scalar(select(func.count()).select_from(PassageVector).where(PassageVector.model_id == fake.model_id)) == hashes
-        assert db.scalar(select(SearchState.version)) > (before or 0)
+        assert db.scalar(select(SearchState.vectors_version)) > (before or 0)
         assert embed_missing(db) == 0
 
 
@@ -62,3 +62,17 @@ def test_system_status_reports_vector_search(team, fake):  # noqa: ANN001
     assert st["blocks_embedded"] == st["blocks_total"]
     embedding.reset()
     assert team["admin"].get("/api/v1/system/status").json()["vector_search"]["state"] == "absent"
+
+
+def test_failing_block_is_marked_not_retried(team, fake):  # noqa: ANN001
+    from tests.api.test_search_blocks import _publish
+
+    pid = team["pid"]
+    assert team["admin"].patch(f"/api/v1/projects/{pid}", json={"review_policy": "self_publish"}).status_code == 200
+    _publish(team["contributor"], pid, "Kurgusal hatalı", "Normal paragraf.\n\nZEHIRLI paragraf.")
+    with transaction() as db:
+        while embed_missing(db):
+            pass
+        assert embed_missing(db) == 0  # takılıp kalmaz
+    st = team["admin"].get("/api/v1/system/status").json()["vector_search"]
+    assert st["blocks_failed"] == 1 and st["blocks_embedded"] == st["blocks_total"] - 1

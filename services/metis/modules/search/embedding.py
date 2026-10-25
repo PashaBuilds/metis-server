@@ -38,6 +38,10 @@ class Embedder:
     dim: int
     query_prefix: str
     passage_prefix: str
+    # Kalibre eşikler (MODEL.json): bu benzerliğin altı yok sayılır; yalnız vektörle bulunan sayfa admit_score'u geçmeli.
+    # Eşik verilmemiş modelde yalnız vektörle sayfa eklenmez (güvenli varsayılan).
+    min_score: float
+    admit_score: float
     _session: object
     _tokenizer: object
     _inputs: set[str]
@@ -65,15 +69,21 @@ def _load(path: Path) -> Embedder:
     tokenizer = Tokenizer.from_file(str(path / "tokenizer.json"))
     tokenizer.enable_truncation(int(meta.get("max_tokens", 512)))
     tokenizer.enable_padding()
-    return Embedder(
+    emb = Embedder(
         model_id=str(meta["id"]),
         dim=int(meta["dim"]),
         query_prefix=str(meta.get("query_prefix", "query: ")),
         passage_prefix=str(meta.get("passage_prefix", "passage: ")),
+        min_score=float(meta.get("min_score", 0.0)),
+        admit_score=float(meta.get("admit_score", 1.01)),
         _session=session,
         _tokenizer=tokenizer,
         _inputs={i.name for i in session.get_inputs()},
     )
+    probe = emb.embed(["kontrol"], "query")  # yanlış çıktı biçimli model "hazır" görünmesin
+    if probe.shape != (1, emb.dim) or not np.isfinite(probe).all():
+        raise ValueError(f"model output shape {probe.shape}, expected (1, {emb.dim})")
+    return emb
 
 
 def _ensure() -> None:

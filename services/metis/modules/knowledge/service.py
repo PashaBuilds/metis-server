@@ -142,7 +142,7 @@ def list_pages(
     if q and q.strip():
         from metis.modules.search.service import search
 
-        hits = search(db, user, project_id, q, None, None, 100).hits
+        hits = search(db, user, project_id, q, None, None, 100, dense=False).hits  # "bu metni içeren" süzgeç
         order = {h.page_id: h.score for h in hits}
         rows = [(p, r) for p, r in rows if p.id in order]
         rows.sort(key=lambda x: -order[x[0].id])

@@ -166,6 +166,7 @@ export function AnswerView({ answer, live, onReask }: Props) {
         </section>
       )}
 
+      {answer.dense_note && <p className={s.hint}>{tr.mentor.denseNote[answer.dense_note] ?? ''}</p>}
       {answered && <RelatedList answer={answer} title={tr.mentor.related} />}
 
       <div className={s.answerFoot}>

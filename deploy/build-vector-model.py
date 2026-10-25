@@ -37,10 +37,34 @@ MODEL_JSON = {
     "passage_prefix": "passage: ",
     "max_tokens": 512,
     "onnx": "onnx/model_quantized.onnx",
+    # Kurgusal sette kalibre (2026-10-25): konu dışı sorularda en yüksek benzerlik 0,802; ilgili bloklarda en düşük 0,775,
+    # %10'luk dilim 0,817. min_score altı yok sayılır; yalnız vektörle bulunan sayfa admit_score'u geçmelidir.
+    "min_score": 0.78,
+    "admit_score": 0.82,
 }
+UPSTREAM = "intfloat/multilingual-e5-base"
+UPSTREAM_REVISION = "d128750597153bb5987e10b1c3493a34e5a4502a"
+UPSTREAM_FILES = {"README.md": "9d129cb0b912b55c7b5378f976a9c35ae4796c80466b659ad63930d8ca090fca"}  # model kartı: license: mit
+MIT = """MIT License
+
+Copyright (c) the authors of intfloat/multilingual-e5-base (Wang et al.; see MODEL-CARD.md)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
+modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""
 NOTICE = f"""METIS vektör arama modeli
 
-Model: intfloat/multilingual-e5-base — MIT lisansı (Hugging Face model kartı: https://huggingface.co/intfloat/multilingual-e5-base)
+Model: intfloat/multilingual-e5-base — MIT lisansı (LICENSE.txt; model kartı MODEL-CARD.md, revizyon {UPSTREAM_REVISION})
 ONNX int8 dönüşümü: {REPO}, revizyon {REVISION}
 Dosyalar değiştirilmeden alınmıştır; özetler SHA256SUMS'ta. METIS bu modeli yalnız yerel CPU'da, internetsiz kullanır.
 """
@@ -54,16 +78,16 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def fetch(rel: str, cache: Path) -> Path:
-    target = cache / rel
-    if target.is_file() and sha256(target) == FILES[rel]:
+def fetch(rel: str, cache: Path, repo: str = REPO, revision: str = REVISION, files: dict[str, str] = FILES) -> Path:
+    target = cache / repo.replace("/", "_") / rel if repo != REPO else cache / rel
+    if target.is_file() and sha256(target) == files[rel]:
         return target
     target.parent.mkdir(parents=True, exist_ok=True)
-    url = f"https://huggingface.co/{REPO}/resolve/{REVISION}/{rel}"
+    url = f"https://huggingface.co/{repo}/resolve/{revision}/{rel}"
     print(f"indiriliyor: {url}")
     with urllib.request.urlopen(url, timeout=600) as resp, target.open("wb") as out:  # noqa: S310 — sabit https adresi
         shutil.copyfileobj(resp, out)
-    if sha256(target) != FILES[rel]:
+    if sha256(target) != files[rel]:
         target.unlink()
         raise SystemExit(f"özet tutmadı: {rel}")
     return target
@@ -87,6 +111,8 @@ def main() -> int:
         shutil.copy2(fetch(rel, cache), dest)
     (model / "MODEL.json").write_text(json.dumps(MODEL_JSON, indent=2) + "\n", encoding="utf-8")
     (model / "NOTICE.txt").write_text(NOTICE, encoding="utf-8")
+    (model / "LICENSE.txt").write_text(MIT, encoding="utf-8")
+    shutil.copy2(fetch("README.md", cache, UPSTREAM, UPSTREAM_REVISION, UPSTREAM_FILES), model / "MODEL-CARD.md")
     script = ROOT / "deploy" / "windows" / "vektor-modeli-kur.ps1"
     (stage / script.name).write_bytes(b"\xef\xbb\xbf" + script.read_bytes().removeprefix(b"\xef\xbb\xbf"))
     rows = [f"{sha256(p)}  {p.relative_to(stage).as_posix()}" for p in sorted(stage.rglob("*")) if p.is_file()]

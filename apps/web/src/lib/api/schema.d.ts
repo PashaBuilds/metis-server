@@ -1783,6 +1783,8 @@ export interface components {
              * @enum {string}
              */
             decision: "SUPPORTED" | "PARTIAL" | "NEEDS_SCOPE" | "CONFLICTING" | "NO_EVIDENCE" | "RETRIEVAL_UNAVAILABLE" | "MODEL_UNAVAILABLE" | "VALIDATION_FAILED";
+            /** Dense Note */
+            dense_note?: string | null;
             /** Dropped Sentences */
             dropped_sentences: {
                 [key: string]: unknown;
@@ -3893,6 +3895,11 @@ export interface components {
         };
         /** RunIn */
         RunIn: {
+            /**
+             * Dense
+             * @default true
+             */
+            dense: boolean;
             /**
              * Note
              * @default

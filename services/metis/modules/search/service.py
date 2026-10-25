@@ -105,7 +105,8 @@ def _fuse(db: Session, project_id: uuid.UUID, rows: list[dict], dense: DenseResu
     lex_rank = {r["page_id"]: i + 1 for i, r in enumerate(rows)}
     dense_rank = {p.page_id: i + 1 for i, p in enumerate(dense.pages)}
     by_page = {r["page_id"]: r for r in rows}
-    missing = [p.page_id for p in dense.pages if p.page_id not in by_page]
+    # Yalnız vektörle bulunan sayfa ancak benzerliği admit_score'u geçerse girer (konu dışı soruda "kanıt yok" korunur).
+    missing = [p.page_id for p in dense.pages if p.page_id not in by_page and p.admit]
     if missing:
         extra = db.execute(
             text(
@@ -153,7 +154,9 @@ def search(
     scope: dict | None = None,
     kind: str | None = None,
     limit: int = 20,
+    dense: bool = True,
 ) -> SearchOut:
+    """`dense=False`: yalnız kelime kanalı (liste süzgeci gibi "bu metni içeren" aramalar; ölçümde karşılaştırma)."""
     require_member(db, user, project_id)
     parsed = parse_query(q)
     fuzzy = _trgm(db)
@@ -229,8 +232,8 @@ def search(
     if kind:
         params["kind"] = kind
     rows = [dict(r) for r in db.execute(sql, params).mappings().all()]
-    dense = dense_search(db, project_id, q)
-    rows = _fuse(db, project_id, rows, dense, kind)
+    dense_res = dense_search(db, project_id, q) if dense else DenseResult("unavailable", [])
+    rows = _fuse(db, project_id, rows, dense_res, kind)
     hidden = unreadable_revisions(db, user, project_id, [r["revision_id"] for r in rows])
     hits = []
     for r in rows:
@@ -255,4 +258,4 @@ def search(
         )
         if len(hits) >= limit:
             break
-    return SearchOut(hits=hits, fuzzy_available=fuzzy, query_terms=parsed.expanded + parsed.symbols, dense=dense.state)
+    return SearchOut(hits=hits, fuzzy_available=fuzzy, query_terms=parsed.expanded + parsed.symbols, dense=dense_res.state)

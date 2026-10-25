@@ -190,6 +190,17 @@
             "title": "Decision",
             "type": "string"
           },
+          "dense_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dense Note"
+          },
           "dropped_sentences": {
             "items": {
               "additionalProperties": true,
@@ -5335,6 +5346,11 @@
       },
       "RunIn": {
         "properties": {
+          "dense": {
+            "default": true,
+            "title": "Dense",
+            "type": "boolean"
+          },
           "note": {
             "default": "",
             "maxLength": 500,

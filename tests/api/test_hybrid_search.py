@@ -86,3 +86,49 @@ def test_no_model_is_unavailable(team):  # noqa: ANN001
     reset_cache()
     r = team["reader"].get(f"/api/v1/projects/{team['pid']}/search", params={"q": "PCIe"})
     assert r.status_code == 200 and r.json()["dense"] == "unavailable"
+
+
+def test_unrelated_query_gets_no_dense_only_hits(hybrid):  # noqa: ANN001
+    out = _search(hybrid["reader"], hybrid["pid"], "zürafa kahvaltı tatili")
+    assert out["dense"] == "available" and out["hits"] == []
+    r = hybrid["reader"].post(f"/api/v1/projects/{hybrid['pid']}/mentor/answers", json={"question": "zürafa kahvaltı tatili"})
+    assert r.status_code == 200 and r.json()["decision"] == "NO_EVIDENCE"
+
+
+def test_dense_only_page_respects_scope(hybrid):  # noqa: ANN001
+    r = hybrid["reader"].get(f"/api/v1/projects/{hybrid['pid']}/search", params={"q": "meşgul bekleme döngüsü kuralı", "kart": ["K2"]})
+    assert r.status_code == 200 and hybrid["pages"]["coding-std"] not in [h["page_id"] for h in r.json()["hits"]]
+
+
+def test_republished_page_uses_new_blocks(hybrid):  # noqa: ANN001
+    from tests.kb import DEFAULT_SCOPE
+
+    c, pid, page_id = hybrid["contributor"], hybrid["pid"], hybrid["pages"]["coding-std"]
+    detail = c.get(f"/api/v1/pages/{page_id}").json()
+    item = {
+        "note": True, "page_id": page_id, "base_revision_id": detail["published_revision_id"], "title": "Driver coding guidelines",
+        "summary": "", "body_md": "Busy-wait loops are forbidden in drivers.", "scope": DEFAULT_SCOPE,
+    }  # fmt: skip
+    ch = c.post(f"/api/v1/projects/{pid}/changes", json={"summary": "yeni", "items": [item]}).json()
+    assert c.post(f"/api/v1/changes/{ch['id']}/check").status_code == 200
+    ch = c.get(f"/api/v1/changes/{ch['id']}").json()
+    assert c.post(f"/api/v1/changes/{ch['id']}/publish-direct", json={"hash": ch["hash"], "acknowledge_issues": True}).status_code == 200
+    _embed_all()
+    hit = next(h for h in _search(hybrid["reader"], pid, "meşgul bekleme döngüsü kuralı")["hits"] if h["page_id"] == page_id)
+    assert "forbidden" in hit["passage_text"]
+
+
+def test_mentor_says_when_vectors_partial(hybrid):  # noqa: ANN001
+    _publish(hybrid["contributor"], hybrid["pid"], "Kurgusal yeni not", "Yeni kurgusal bilgi.")
+    r = hybrid["reader"].post(f"/api/v1/projects/{hybrid['pid']}/mentor/answers", json={"question": "PERST# ne kadar süre tutulur?"})
+    assert r.status_code == 200 and r.json()["dense_note"] == "partial"
+
+
+def test_eval_can_compare_channels(hybrid):  # noqa: ANN001
+    a, pid = hybrid["admin"], hybrid["pid"]
+    q = {"question": "meşgul bekleme döngüsü kuralı", "expected_page_ids": [hybrid["pages"]["coding-std"]], "expected_quote": "", "kind": "karisik"}
+    assert a.post(f"/api/v1/projects/{pid}/search-eval/questions", json=q).status_code == 201
+    on = a.post(f"/api/v1/projects/{pid}/search-eval/runs", json={"note": "açık"}).json()["metrics"]
+    off = a.post(f"/api/v1/projects/{pid}/search-eval/runs", json={"note": "kapalı", "dense": False}).json()["metrics"]
+    assert on["dense"] is True and off["dense"] is False
+    assert on["recall_at_5"] == 1.0 and off["recall_at_5"] == 0.0

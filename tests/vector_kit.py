@@ -15,11 +15,15 @@ DIM = 64
 class FakeEmbedder:
     model_id = "kurgusal-gomme@1"
     dim = DIM
+    min_score = 0.1
+    admit_score = 0.3
 
     def __init__(self, synonyms: dict[str, str] | None = None) -> None:
         self.synonyms = synonyms or {}  # ör. {"busy": "mesgul"}: diller arası eşleşmeyi taklit eder
 
     def embed(self, texts: list[str], kind: str) -> np.ndarray:
+        if any("ZEHIRLI" in t for t in texts):
+            raise RuntimeError("kurgusal gömme hatası")
         out = np.zeros((len(texts), DIM), dtype=np.float32)
         for i, t in enumerate(texts):
             for w in re.findall(r"\w+", fold(t)):

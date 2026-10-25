@@ -74,6 +74,8 @@ class AnswerOut(BaseModel):
     citations: list[Citation]
     related: list[RelatedPage]
     related_passages: list[RelatedPassage] = []
+    # Vektör araması: partial (bir kısmı henüz hazırlanıyor) | error (model yüklenemedi) | yok
+    dense_note: str | None = None
     unknowns: list[str]
     conflict_sides: list[ConflictSide]
     conflict_finding_id: uuid.UUID | None

@@ -100,6 +100,17 @@ def block_priority(rows: list[dict], best: list[str]) -> list[dict]:
     return out
 
 
+def _dense_note(dense: str) -> str | None:
+    """Vektör kanalı kurulu olduğu hâlde tam kullanılamadıysa cevapta söylenir; hiç kurulmadıysa söylenmez (gürültü)."""
+    if dense == "partial":
+        return "partial"
+    if dense == "unavailable":
+        from metis.modules.search.embedding import embedder_status
+
+        return "error" if embedder_status()["state"] == "error" else None
+    return None
+
+
 def select_blocks(rows: list[dict], best: list[str]) -> list[dict]:
     """Tek sayfanın seçilen blokları, not sırasıyla."""
     return sorted(block_priority(rows, best), key=lambda r: r["ord"])
@@ -216,6 +227,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
         "error": None,
     }
     bundle: list[dict] = []
+    dense_note: str | None = None
     pending: list[tuple[schemas.RelatedPage, list[dict], list[str]]] = []  # pakete aday sayfalar (arama sırasıyla)
     passages: list[dict] = []  # model yokken gösterilecek ilgili yayımlanmış bölümler (cevap değildir)
     candidate_revisions: list[uuid.UUID] = []
@@ -237,7 +249,9 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
             try:
                 from metis.modules.search.service import search
 
-                hits = search(db, user, project_id, req.question, None, None, TOP_K * 2).hits
+                found = search(db, user, project_id, req.question, None, None, TOP_K * 2)
+                hits = found.hits
+                dense_note = _dense_note(found.dense)
             except AppError:
                 raise
             except Exception:  # noqa: BLE001 — arama hatası "bilgi yok" sayılmaz
@@ -444,6 +458,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 "error": state["error"],
                 "explanation_dropped_all": bool(state["dropped"]) and not state["explanation"] and bool(state["citations"]),
                 "related_passages": passages if state["decision"] == "MODEL_UNAVAILABLE" else [],
+                "dense_note": dense_note,
             },
         )
         db.add(answer)
@@ -499,6 +514,7 @@ def answer_out(db: Session, user: User, answer: Answer) -> schemas.AnswerOut:
         citations=citations,
         related=[schemas.RelatedPage(**r) for r in d.get("related", [])],
         related_passages=passages,
+        dense_note=d.get("dense_note"),
         unknowns=d.get("unknowns", []),
         conflict_sides=[schemas.ConflictSide(**c) for c in d.get("conflict_sides", [])],
         conflict_finding_id=uuid.UUID(d["conflict_finding_id"]) if d.get("conflict_finding_id") else None,

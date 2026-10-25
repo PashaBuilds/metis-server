@@ -1160,3 +1160,4 @@ class SearchState(Base):
     __tablename__ = "search_state"
     project_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("projects.id"), primary_key=True)
     version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    vectors_version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)

@@ -118,11 +118,23 @@ def test_corpus_hybrid_real_model(team, capsys, monkeypatch):  # noqa: ANN001
     with transaction() as db:
         user = db.get(User, uuid.UUID(team["reader"].user["id"]))
         res = evaluate(db, user, uuid.UUID(pid), corpus_questions(pages))
+    from evals.retrieval.corpus import NEGATIVE
+
+    from metis.modules.search.service import search
+
+    with transaction() as db:
+        user = db.get(User, uuid.UUID(team["reader"].user["id"]))
+        false_hits = {q: [h.title for h in search(db, user, uuid.UUID(pid), q).hits] for q in NEGATIVE}
+        lexical_hits = {q: [h.title for h in search(db, user, uuid.UUID(pid), q, dense=False).hits] for q in NEGATIVE}
+    with capsys.disabled():
+        print("NEGATIVE-LEXICAL", json.dumps({q: v for q, v in lexical_hits.items() if v}))
     embedding.reset()
     reset_cache()
     m = res.metrics
     with capsys.disabled():
+        print("NEGATIVE-HITS", json.dumps({q: v for q, v in false_hits.items() if v}))
         print("\nHYBRID-EVAL", json.dumps({k: v for k, v in m.items() if k != "by_kind"}))
         print("BY-KIND", json.dumps(m["by_kind"]))
         print("MISSED", json.dumps([r["question"] for r in res.per_question if not r["rank"] or r["rank"] > 5]))
     assert m["recall_at_5"] >= 0.95
+    assert false_hits == lexical_hits  # vektör kanalı konu dışı soruda yanlış isabet eklemez (eşikler)

@@ -332,3 +332,15 @@ QUESTIONS: list[tuple[str, list[str], str, str]] = [
     ("meşgul bekleme döngüsü kuralı", ["coding-std"], "readl_poll_timeout", "karisik"),
     ("kart kaç derecede kapanır", ["thermal"], "100 °C'de kart kapanır", "kavram"),
 ]
+
+# Bilgi havuzunda cevabı olmayan sorular: arama sonuç döndürmemeli, Mentor "kanıt yok" demeli (vektör eşiği kalibrasyonu).
+NEGATIVE: list[str] = [
+    "Kuantum bilgisayarlarda kriyojenik soğutma nasıl yapılır?",
+    "Bugün öğle yemeğinde ne var?",
+    "İzin günlerimi nereden görürüm?",
+    "Futbol maçı kaçta başlıyor?",
+    "Muhasebe faturası nasıl kesilir?",
+    "What is the capital of France?",
+    "Kahve makinesi bozuldu kime söyleyeyim?",
+    "Araba lastiği basıncı kaç olmalı?",
+]

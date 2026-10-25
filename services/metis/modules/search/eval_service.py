@@ -16,6 +16,7 @@ from metis.core.db import utcnow
 from metis.core.errors import AppError
 from metis.core.models import Page, SearchEvalQuestion, SearchEvalRun, User
 from metis.modules.search.evaluate import MAX_QUESTIONS, EvalQuestion, evaluate
+from metis.modules.search.service import search
 
 Kind = Literal["tanimlayici", "kavram", "nasil", "issue", "karisik"]
 
@@ -34,6 +35,8 @@ class QuestionOut(QuestionIn):
 
 class RunIn(BaseModel):
     note: str = Field(default="", max_length=500)
+    # Vektör kanalı açık mı (kapalıyla karşılaştırmak için yalnız kelime kanalıyla da koşulabilir)
+    dense: bool = True
 
 
 class RunOut(BaseModel):
@@ -103,7 +106,8 @@ def run(db: Session, user: User, project_id: uuid.UUID, data: RunIn) -> RunOut:
     """Ölçümü çalıştıran kişinin yetkisiyle arar: okuyamadığı bilgi sonuçta yoktur."""
     _require_curator(db, user, project_id)
     qs = [EvalQuestion(id=str(q.id), question=q.question, expected_page_ids=list(q.expected_page_ids), expected_quote=q.expected_quote, kind=q.kind) for q in _active(db, project_id)]
-    res = evaluate(db, user, project_id, qs)
+    res = evaluate(db, user, project_id, qs, search_fn=lambda *a: search(*a, dense=data.dense))
+    res.metrics["dense"] = data.dense
     r = SearchEvalRun(project_id=project_id, created_by=user.id, metrics=res.metrics, per_question=res.per_question, note=data.note.strip())
     db.add(r)
     db.flush()

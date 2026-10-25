@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Play, Plus, Search, X } from 'lucide-react';
 import { useState } from 'react';
-import { Button, Field, IconButton, Input, Select, SkeletonRows, useToast } from '@/design/primitives';
+import { Button, Checkbox, Field, IconButton, Input, Select, SkeletonRows, useToast } from '@/design/primitives';
 import { tr } from '@/i18n/tr';
 import { api, type Schemas } from '@/lib/api/client';
 import { formatDateTime } from '@/lib/format';
@@ -34,6 +34,7 @@ export function SearchEval({ projectId }: { projectId: string }) {
   const [find, setFind] = useState('');
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [note, setNote] = useState('');
+  const [dense, setDense] = useState(true);
 
   const add = useMutation({
     mutationFn: () => api.post<Question>(`${base}/questions`, { question, expected_page_ids: pages.map((p) => p.id), expected_quote: quote, kind }),
@@ -53,7 +54,7 @@ export function SearchEval({ projectId }: { projectId: string }) {
     onError: (e) => toast.show(messageOf(e), { tone: 'error' }),
   });
   const run = useMutation({
-    mutationFn: () => api.post<Run>(`${base}/runs`, { note }),
+    mutationFn: () => api.post<Run>(`${base}/runs`, { note, dense }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['search-eval-runs', projectId] });
       setNote('');
@@ -188,6 +189,7 @@ export function SearchEval({ projectId }: { projectId: string }) {
 
       <div className={s.toolbar}>
         <Input aria-label={tr.searchEval.note} placeholder={tr.searchEval.note} value={note} onChange={(e) => setNote(e.target.value)} autoComplete="off" />
+        <Checkbox label={tr.searchEval.dense} checked={dense} onChange={setDense} />
         <Button variant="primary" icon={<Play size={15} aria-hidden />} loading={run.isPending} disabled={!qs.length} onClick={() => run.mutate()}>
           {tr.searchEval.run}
         </Button>
@@ -213,6 +215,11 @@ export function SearchEval({ projectId }: { projectId: string }) {
               </tr>
             </thead>
             <tbody>
+              <tr>
+                <th scope="row">{tr.searchEval.channel}</th>
+                <td>{latest.metrics.dense === false ? tr.searchEval.lexicalOnly : tr.searchEval.hybrid}</td>
+                {previous && <td>{previous.metrics.dense === false ? tr.searchEval.lexicalOnly : tr.searchEval.hybrid}</td>}
+              </tr>
               <tr>
                 <th scope="row">{tr.searchEval.metrics.n}</th>
                 <td className={s.mono}>{String(latest.metrics.n ?? 0)}</td>
