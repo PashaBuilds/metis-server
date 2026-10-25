@@ -4,6 +4,16 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.22 — Bağlantılı bilgiler (modelsiz):**
+- Bilgi sayfasının altında **Bağlantılı bilgiler**: notta adresi geçen ve METIS'e daha önce alınmış Confluence sayfası /
+  GitLab issue'su ("Notta adresi geçiyor"; GitLab issue'sundan alınmış bilgide `#123` aynı projenin issue'su sayılır, kod
+  içindekiler hariç) ve aynı nadir tanımlayıcıyı (yazmaç, fonksiyon, hata kodu) paylaşan bilgiler ("Ortak: `…`", en çok 5).
+  Model kullanılmaz; okuyamadığın bilgi listelenmez; Mentor'a kendiliğinden girmez.
+- Notta adresi geçen ama METIS'te olmayan kaynak için **İçe aktar** önerisi (yalnız katkı verebilene; bağlantının izinli
+  alanı/projesi içindekiler, en çok 20). Tıklayınca Yeni katkı → Kaynaktan al adres ve bağlantı dolu açılır.
+- Bağlantı adresinin kök yolu artık bölüm sınırıyla denetlenir (`/confluence` bağlantısı `/confluence2/...` adresini tanımaz).
+- Gerçek Confluence/GitLab ile **denenmedi** (kurgusal sahte sunucuyla testler + tarayıcı).
+
 **2.0.21 — Model zenginleştirmesi (arama için):**
 - Şirket modeli varken yayımlanmış bölümlere kısa bir **bağlam cümlesi** ve **"bu bölüm hangi soruları cevaplar"** yazılır;
   arama (kelime ve vektör) bunları kullanır. Zenginleştirme kanıt değildir: bilgi metnine, alıntıya ve Mentor cevabına
