@@ -23,6 +23,7 @@ from metis.core.models import (
     PageRevision,
     PageRevisionFigure,
     PassageEnrichment,
+    Project,
     SearchDocument,
     SearchPassage,
 )
@@ -128,6 +129,8 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
         .join(PageRevision, PageRevision.id == Page.published_revision_id)
         .where(Page.id.in_(page_ids), Page.lifecycle == "active", Page.deleted_at.is_(None))
     ).all()
+    project = db.get(Project, project_id)
+    enrichment_on = bool(project and project.enrichment_enabled)  # kapalı projede saklanan zenginleştirme kullanılmaz
     for page, rev in rows:
         claim_rows = db.scalars(select(Claim).where(Claim.page_revision_id == rev.id).order_by(Claim.ord)).all()
         claims = [c.statement for c in claim_rows]
@@ -136,10 +139,17 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
         bases = [embed_hash(rev.title, p, c.statement) for c, p in zip(claim_rows, paths, strict=True)]
         enriched = {
             e.base_sha256: e
-            for e in db.scalars(
-                select(PassageEnrichment).where(
-                    PassageEnrichment.base_sha256.in_(bases), PassageEnrichment.prompt_version == ENRICH, PassageEnrichment.status == "ok"
+            for e in (
+                db.scalars(
+                    select(PassageEnrichment).where(
+                        PassageEnrichment.project_id == project_id,
+                        PassageEnrichment.base_sha256.in_(bases),
+                        PassageEnrichment.prompt_version == ENRICH,
+                        PassageEnrichment.status == "ok",
+                    )
                 )
+                if enrichment_on
+                else []
             )
         }
         for c, path, base in zip(claim_rows, paths, bases, strict=True):
@@ -215,12 +225,15 @@ def ensure_passage_index(db: Session) -> int:
 
 
 def fill_embed_hashes(db: Session) -> int:
-    """2.0.19'da kurulan blokların gömme anahtarını doldurur (`metis migrate` sonunda; idempotent). Dönen: satır sayısı."""
+    """Eski sürümlerde kurulan blokların gömme (0012) ve zenginleştirme (0013) anahtarlarını doldurur (`metis migrate`
+    sonunda; idempotent). Zenginleştirme yokken temel anahtar gömme anahtarıyla aynıdır. Dönen: güncellenen satır sayısı."""
     rows = db.execute(
         select(SearchPassage, SearchDocument.title)
         .join(SearchDocument, SearchDocument.page_id == SearchPassage.page_id)
-        .where(SearchPassage.embed_sha256.is_(None))
+        .where((SearchPassage.embed_sha256.is_(None)) | (SearchPassage.base_sha256.is_(None)))
     ).all()
     for p, title in rows:
-        p.embed_sha256 = embed_hash(title, p.heading_path, p.body)
+        base = embed_hash(title, p.heading_path, p.body)
+        p.base_sha256 = p.base_sha256 or base
+        p.embed_sha256 = p.embed_sha256 or base
     return len(rows)

@@ -4,6 +4,18 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.21 — Model zenginleştirmesi (arama için):**
+- Şirket modeli varken yayımlanmış bölümlere kısa bir **bağlam cümlesi** ve **"bu bölüm hangi soruları cevaplar"** yazılır;
+  arama (kelime ve vektör) bunları kullanır. Zenginleştirme kanıt değildir: bilgi metnine, alıntıya ve Mentor cevabına
+  girmez, ekranda gösterilmez. Taslaklar modele gönderilmez; model blokta olmayan bir tanımlayıcı (yazmaç, fonksiyon,
+  hata kodu) uydurursa o cümle/soru atılır.
+- Arka planda, düşük öncelikle: model meşgulse Mentor'a yer bırakır; zenginleştirme hataları modeli Mentor için kapatmaz.
+  Model yoksa beklenir, arama zenginleştirmesiz sürer. Model ya da ayar değişmedikçe aynı bölüm yeniden gönderilmez.
+- **Ayarlar → İnceleme politikası → Model zenginleştirmesi** (proje başına, yalnız yönetici; varsayılan açık). Kapatınca
+  saklanan zenginleştirme de aramadan çıkar. İlerleme: Ayarlar → Sistem durumu. Şema 0013.
+- Arama kalitesine katkısı **ölçülmedi** (bu sürümün geliştirme bilgisayarında şirket modeli yok; kurgusal modelle yalnız
+  işleyiş denendi). Etkisini görmek için Model laboratuvarı → Arama ölçümü'nü zenginleştirme öncesi ve sonrası çalıştırın.
+
 **2.0.20 — Vektör (anlamsal) arama:**
 - Arama artık kelime eşleşmesinin yanında anlam benzerliğini de kullanabilir: farklı sözcüklerle ya da Türkçe–İngilizce
   karışık sorulan sorularda doğru bölüm daha üstte çıkar. İki sıralama RRF ile birleşir; tanımlayıcı (yazmaç, fonksiyon,

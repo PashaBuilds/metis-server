@@ -1170,9 +1170,12 @@ class SearchState(Base):
 class PassageEnrichment(Base):
     """Model zenginleştirmesi (İş 4): yayımlanmış bir bloğun bağlam cümlesi ve cevapladığı sorular. Anahtar: bloğun temel
     metni (başlık + başlık yolu + gövde) sha256'sı + istem sürümü. Kanıt değildir; yalnız aramada (tsv D, gömme) kullanılır.
-    status: ok | rejected (süzgeçten hiçbir şey geçmedi)."""
+    status: ok | rejected (süzgeçten hiçbir şey geçmedi) | failed (model bu blok için geçerli çıktı vermedi; aynı istem
+    sürümüyle yeniden denenmez)."""
 
     __tablename__ = "passage_enrichments"
+    # Proje başına: başka projenin (ya da çağrıdaki komşu blokların) içeriği bu projenin aramasına sızmaz.
+    project_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("projects.id"), primary_key=True)
     base_sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
     prompt_version: Mapped[str] = mapped_column(String(80), primary_key=True)
     model_id: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, nullable=True)

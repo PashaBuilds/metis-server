@@ -63,6 +63,14 @@ def update(db: Session, user: User, project_id: uuid.UUID, data: schemas.Project
     if data.enrichment_enabled is not None and data.enrichment_enabled != project.enrichment_enabled:
         require_admin(user)  # şirket modeline hangi içeriğin gideceği yönetici kararı
         project.enrichment_enabled = data.enrichment_enabled
+        db.flush()
+        # Açma/kapama saklanan zenginleştirmenin aramada kullanılıp kullanılmayacağını da belirler: blok indeksi yeniden kurulur.
+        if project.active_publication_id:
+            from metis.core.models import SearchDocument
+            from metis.modules.search.index import index_pages
+
+            pages = set(db.scalars(select(SearchDocument.page_id).where(SearchDocument.project_id == project.id)))
+            index_pages(db, project.id, project.active_publication_id, pages)
     if data.name is not None:
         project.name = data.name.strip()
     if data.description is not None:

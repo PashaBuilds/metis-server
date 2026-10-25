@@ -22,10 +22,10 @@ BODY = "## Saat\n\nPERST# sinyali en az 100 ms aktif tutulur.\n\n## Kesme\n\nMSI
 
 def test_accept_filters_invented_identifiers():
     block = "PERST# sinyali en az 100 ms aktif tutulur."
-    ctx, qs = accept(block, "PCIe", "Bölüm PCIe sıfırlama süresini anlatır.", ["PERST# ne kadar tutulur?", "LTSSM_STATE nedir?", "", "x" * 400])
+    ctx, qs = accept(block, "PCIe", "", "Bölüm PCIe sıfırlama süresini anlatır.", ["PERST# ne kadar tutulur?", "LTSSM_STATE nedir?", "", "x" * 400])
     assert ctx == "Bölüm PCIe sıfırlama süresini anlatır."
     assert qs == ["PERST# ne kadar tutulur?"]  # blokta geçmeyen tanımlayıcı, boş ve aşırı uzun soru atılır
-    ctx, _ = accept(block, "PCIe", "LTSSM_STATE değerini anlatır.", [])
+    ctx, _ = accept(block, "PCIe", "", "LTSSM_STATE değerini anlatır.", [])
     assert ctx == ""  # bağlam da blokta olmayan tanımlayıcı uyduramaz
 
 
@@ -84,3 +84,50 @@ def test_status_and_setting_admin_only(enrich):  # noqa: ANN001
     assert st["blocks_enriched"] == 2
     r = enrich["contributor"].patch(f"/api/v1/projects/{enrich['pid']}", json={"enrichment_enabled": False})
     assert r.status_code in (403, 404)
+
+
+def _search_titles(c, pid: str, q: str) -> list[str]:  # noqa: ANN001
+    return [h["page_id"] for h in c.get(f"/api/v1/projects/{pid}/search", params={"q": q}).json()["hits"]]
+
+
+def test_upgrade_backfills_keys_then_enriches(enrich):  # noqa: ANN001
+    """2.0.20'den yükseltme: eski blokların zenginleştirme anahtarı boş; `metis migrate` doldurur, sonra iş ilerler."""
+    from sqlalchemy import update
+
+    from metis.modules.search.index import fill_embed_hashes
+
+    with transaction() as db:
+        db.execute(update(SearchPassage).values(base_sha256=None))
+    assert enrich_next() == 0  # anahtarsız blok modele gönderilmez (eskiden aynı sayfada takılıyordu)
+    with transaction() as db:
+        assert fill_embed_hashes(db) > 0
+    assert _run_all() == 2
+
+
+def test_bad_output_marks_failed_and_moves_on(enrich, monkeypatch):  # noqa: ANN001
+    from types import SimpleNamespace
+
+    from metis.llm.client import ModelClient
+
+    monkeypatch.setattr(ModelClient, "call", lambda self, *a, **k: SimpleNamespace(ok=False, error="INVALID_RESPONSE", output=None))
+    assert enrich_next() == 2 and enrich_next() == 0  # takılmaz: bloklar 'failed', tekrar gönderilmez
+    st = enrich["admin"].get("/api/v1/system/status").json()["enrichment"]
+    assert st["blocks_failed"] == 2
+
+
+def test_transient_failure_retries_later(enrich, monkeypatch):  # noqa: ANN001
+    from types import SimpleNamespace
+
+    from metis.llm.client import ModelClient
+
+    monkeypatch.setattr(ModelClient, "call", lambda self, *a, **k: SimpleNamespace(ok=False, error="TIMEOUT", output=None))
+    assert enrich_next() == -1
+    with transaction() as db:
+        assert db.scalar(select(func.count()).select_from(PassageEnrichment)) == 0
+
+
+def test_turning_off_removes_enrichment_from_search(enrich):  # noqa: ANN001
+    _run_all()
+    assert enrich["page"] in _search_titles(enrich["reader"], enrich["pid"], "anlatır")
+    assert enrich["admin"].patch(f"/api/v1/projects/{enrich['pid']}", json={"enrichment_enabled": False}).status_code == 200
+    assert enrich["page"] not in _search_titles(enrich["reader"], enrich["pid"], "anlatır")

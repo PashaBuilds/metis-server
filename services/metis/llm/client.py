@@ -95,8 +95,11 @@ def _release_slot(slot_id: uuid.UUID) -> None:
         db.execute(delete(ProviderSlot).where(ProviderSlot.id == slot_id))
 
 
-def _record_outcome(model_id: uuid.UUID, ok: bool, error: str | None) -> None:
-    """Devre kesici: art arda 3 bağlantı hatası → 60 sn bekleme. Doğrulama hataları devreyi açmaz."""
+def _record_outcome(model_id: uuid.UUID, ok: bool, error: str | None, purpose: str = "") -> None:
+    """Devre kesici: art arda 3 bağlantı hatası → 60 sn bekleme. Doğrulama hataları devreyi açmaz. Arka plan
+    zenginleştirmesinin hataları da açmaz (Mentor'u etkilemesin; zenginleştirme kendi geri çekilmesini yapar)."""
+    if not ok and purpose == "enrichment":
+        return
     with transaction() as db:
         model = db.get(Model, model_id, with_for_update=True)
         if model is None:
@@ -240,7 +243,7 @@ class ModelClient:
                         if db.get(ModelCache, key) is None:
                             db.add(ModelCache(key=key, call_id=call_id, output=output))
                 if not error:
-                    _record_outcome(model.id, True, None)
+                    _record_outcome(model.id, True, None, purpose)
                     return CallResult(ok=True, output=output, call_id=call_id, latency_ms=round((time.perf_counter() - started) * 1000, 2), usage=usage, raw=raw_text)
                 if error in ("INVALID_RESPONSE", "VALIDATION") and attempt < repairs:
                     attempt += 1
@@ -255,7 +258,7 @@ class ModelClient:
                     attempt += 1
                     time.sleep(min(2.0, 0.25 * (2**http_retries)) * (0.5 + random.random()))
                     continue
-                _record_outcome(model.id, False, error)
+                _record_outcome(model.id, False, error, purpose)
                 return CallResult(ok=False, error=error, call_id=call_id, latency_ms=round((time.perf_counter() - started) * 1000, 2), usage=usage, raw=raw_text)
         finally:
             if slot is not None:
@@ -271,5 +274,5 @@ class ModelClient:
             db.flush()
             call_id = call.id
         if code not in ("PROVIDER_BUSY", "BUDGET_EXCEEDED"):
-            _record_outcome(model.id, False, code)
+            _record_outcome(model.id, False, code, purpose)
         return CallResult(ok=False, error=code, call_id=call_id, latency_ms=round((time.perf_counter() - started) * 1000, 2))

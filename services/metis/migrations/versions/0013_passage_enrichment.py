@@ -37,6 +37,7 @@ def _grant(table: str, privileges: str) -> None:
 def upgrade() -> None:
     op.create_table(
         "passage_enrichments",
+        sa.Column("project_id", sa.UUID(), nullable=False),
         sa.Column("base_sha256", sa.String(64), nullable=False),
         sa.Column("prompt_version", sa.String(80), nullable=False),
         sa.Column("model_id", sa.UUID(), nullable=True),
@@ -44,7 +45,8 @@ def upgrade() -> None:
         sa.Column("questions", ARRAY(sa.Text()), nullable=False, server_default="{}"),
         sa.Column("status", sa.String(20), nullable=False, server_default="ok"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.PrimaryKeyConstraint("base_sha256", "prompt_version"),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"]),
+        sa.PrimaryKeyConstraint("project_id", "base_sha256", "prompt_version"),
     )
     op.add_column("search_passages", sa.Column("base_sha256", sa.String(64), nullable=True))
     op.create_index(op.f("ix_search_passages_base_sha256"), "search_passages", ["base_sha256"])

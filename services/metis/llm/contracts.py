@@ -121,8 +121,9 @@ class ProbeOut(Strict):
 
 class EnrichItem(Strict):
     id: str = Field(min_length=1, max_length=12)
-    context: str = Field(default="", max_length=400)
-    questions: list[str] = Field(default_factory=list, max_length=3)
+    # Sözleşme geniş tutulur: tek bloğun fazlası tüm sayfayı düşürmesin; sınırları süzgeç (accept) uygular.
+    context: str = Field(default="", max_length=2000)
+    questions: list[str] = Field(default_factory=list, max_length=10)
 
 
 class PassageEnrichmentOut(Strict):
