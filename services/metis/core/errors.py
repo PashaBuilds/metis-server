@@ -68,6 +68,18 @@ CATALOG: dict[str, tuple[int, bool]] = {
     "SECRET_STORE_UNAVAILABLE": (503, False),
     "SERVICE_UNAVAILABLE": (503, True),
     "INTERNAL": (500, True),
+    # dış kaynaklar (Confluence, GitLab)
+    "EXTERNAL_UNAUTHORIZED": (502, False),
+    "EXTERNAL_UNREACHABLE": (502, True),
+    "EXTERNAL_TLS": (502, False),
+    "EXTERNAL_TIMEOUT": (504, True),
+    "EXTERNAL_BAD_RESPONSE": (502, False),
+    "EXTERNAL_NOT_FOUND": (404, False),
+    "EXTERNAL_RESTRICTED": (403, False),
+    "EXTERNAL_SCOPE_NOT_ALLOWED": (403, False),
+    "EXTERNAL_TOO_LARGE": (413, False),
+    "EXTERNAL_URL_UNRECOGNIZED": (422, False),
+    "IMPORT_USED": (409, False),
 }
 
 

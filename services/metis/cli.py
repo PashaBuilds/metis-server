@@ -1,4 +1,4 @@
-"""metis komut satırı: migrate | serve | worker | setup-code | admin | doctor | backup | restore | demo | mock-llm."""
+"""metis komut satırı: migrate | serve | worker | setup-code | admin | doctor | backup | restore | demo | mock-llm | mock-sources."""
 
 from __future__ import annotations
 
@@ -161,6 +161,13 @@ def cmd_mock_llm(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mock_sources(args: argparse.Namespace) -> int:
+    from metis.modules.external.fake import serve
+
+    serve(args.host, args.port)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     # Windows'ta yönlendirilen çıktı (servis, zamanlanmış görev, betik) cp1252 olur; Türkçe metin UnicodeEncodeError verir.
     for stream in (sys.stdout, sys.stderr):
@@ -222,6 +229,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=9100)
     p.set_defaults(func=cmd_mock_llm)
+
+    p = sub.add_parser("mock-sources", help="Kurgusal Confluence + GitLab sunucusu (geliştirme denemesi)")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=9160)
+    p.set_defaults(func=cmd_mock_sources)
 
     args = parser.parse_args(argv)
     from metis.core.errors import AppError
