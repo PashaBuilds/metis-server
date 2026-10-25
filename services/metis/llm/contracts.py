@@ -114,3 +114,16 @@ class ResolutionAssessment(Strict):
 class ProbeOut(Strict):
     ok: bool
     echo: str
+
+
+# ---------------------------------------------------------------- arama zenginleştirmesi (İş 4)
+
+
+class EnrichItem(Strict):
+    id: str = Field(min_length=1, max_length=12)
+    context: str = Field(default="", max_length=400)
+    questions: list[str] = Field(default_factory=list, max_length=3)
+
+
+class PassageEnrichmentOut(Strict):
+    items: list[EnrichItem] = Field(max_length=12)

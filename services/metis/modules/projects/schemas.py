@@ -16,6 +16,7 @@ class ProjectOut(BaseModel):
     is_demo: bool
     review_policy: Literal["independent", "owner_review", "self_publish"]
     review_interval_days: int
+    enrichment_enabled: bool = True
     active_publication_id: uuid.UUID | None
     created_at: datetime
     my_roles: list[str]
@@ -31,6 +32,8 @@ class ProjectUpdateInput(BaseModel):
     description: str | None = Field(default=None, max_length=4000)
     review_policy: Literal["independent", "owner_review", "self_publish"] | None = None
     review_interval_days: int | None = Field(default=None, ge=7, le=730)
+    # Model zenginleştirmesi (bağlam + soru; yalnız yayımlanmış bloklar, model varsa) açık/kapalı — yalnız yönetici
+    enrichment_enabled: bool | None = None
 
 
 class MemberOut(BaseModel):

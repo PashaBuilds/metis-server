@@ -17,7 +17,16 @@ from sqlalchemy import delete, func, literal_column, select
 from sqlalchemy.orm import Session
 
 from metis.core.config import ROOT
-from metis.core.models import Claim, Page, PageRevision, PageRevisionFigure, SearchDocument, SearchPassage
+from metis.core.models import (
+    Claim,
+    Page,
+    PageRevision,
+    PageRevisionFigure,
+    PassageEnrichment,
+    SearchDocument,
+    SearchPassage,
+)
+from metis.llm.prompts import ENRICH
 from metis.modules.knowledge.figures import strip_figures
 from metis.modules.search.text import fold
 from metis.modules.search.vectors import bump, embed_hash
@@ -98,11 +107,13 @@ def heading_paths(statements: list[str]) -> list[str]:
     return out
 
 
-def _weighted(config: str, title: str, heading: str, body: str):  # noqa: ANN202
+def _weighted(config: str, title: str, heading: str, body: str, extra: str = ""):  # noqa: ANN202
+    """A: sayfa başlığı · B: başlık yolu · C: blok gövdesi · D: model zenginleştirmesi (kanıt değil, düşük ağırlık)."""
     return (
         func.setweight(func.to_tsvector(config, title), literal_column("'A'"))
         .op("||")(func.setweight(func.to_tsvector(config, heading), literal_column("'B'")))
         .op("||")(func.setweight(func.to_tsvector(config, body), literal_column("'C'")))
+        .op("||")(func.setweight(func.to_tsvector(config, extra), literal_column("'D'")))
     )
 
 
@@ -121,7 +132,20 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
         claim_rows = db.scalars(select(Claim).where(Claim.page_revision_id == rev.id).order_by(Claim.ord)).all()
         claims = [c.statement for c in claim_rows]
         claim_text = "\n".join(claims)
-        for c, path in zip(claim_rows, heading_paths(claims), strict=True):
+        paths = heading_paths(claims)
+        bases = [embed_hash(rev.title, p, c.statement) for c, p in zip(claim_rows, paths, strict=True)]
+        enriched = {
+            e.base_sha256: e
+            for e in db.scalars(
+                select(PassageEnrichment).where(
+                    PassageEnrichment.base_sha256.in_(bases), PassageEnrichment.prompt_version == ENRICH, PassageEnrichment.status == "ok"
+                )
+            )
+        }
+        for c, path, base in zip(claim_rows, paths, bases, strict=True):
+            e = enriched.get(base)
+            ctx, qs = (e.context, list(e.questions)) if e else ("", [])
+            extra = " ".join([ctx, *qs])
             db.add(
                 SearchPassage(
                     page_id=page.id,
@@ -133,12 +157,13 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
                     heading_path=path,
                     is_heading=is_heading_block(c.statement),
                     body=c.statement,
-                    embed_sha256=embed_hash(rev.title, path, c.statement),
+                    base_sha256=base,
+                    embed_sha256=embed_hash(rev.title, path, c.statement, ctx, qs),
                     symbols=extract_symbols(c.statement),
                     scope=rev.scope,
                     kind=rev.kind,
-                    tsv_simple=_weighted("simple", fold(rev.title), fold(path), fold(c.statement)),
-                    tsv_turkish=_weighted("turkish", rev.title, path, c.statement),
+                    tsv_simple=_weighted("simple", fold(rev.title), fold(path), fold(c.statement), fold(extra)),
+                    tsv_turkish=_weighted("turkish", rev.title, path, c.statement, extra),
                 )
             )
         captions = db.scalars(

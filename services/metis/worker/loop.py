@@ -133,6 +133,24 @@ def embed_loop(idle: float = 20.0) -> None:
         _stop.wait(0.1 if n else idle)
 
 
+def enrich_loop(idle: float = 30.0, backoff: float = 300.0) -> None:
+    """Model zenginleştirmesi (2026-10-25): uygun model ve açık proje varsa yayımlanmış blokları sayfa sayfa zenginleştirir.
+    Art arda 3 başarısız çağrıda 5 dk bekler (model kapalıyken şirket modelini yormaz)."""
+    from metis.modules.search.enrichment import enrich_next
+
+    failures = 0
+    while not _stop.is_set():
+        try:
+            n = enrich_next()
+        except Exception:  # noqa: BLE001
+            log.exception("enrichment tick failed")
+            n = -1
+        failures = failures + 1 if n < 0 else 0
+        if n > 0:
+            log.info("passages enriched", extra={"event": n})
+        _stop.wait(backoff if failures >= 3 else (1.0 if n > 0 else idle))
+
+
 def run_forever(slots: int = 2, once: bool = False) -> None:
     settings = get_settings()
     configure_logging(settings.log_dir, settings.env, name="metis-worker")
@@ -147,6 +165,7 @@ def run_forever(slots: int = 2, once: bool = False) -> None:
     threads.append(threading.Thread(target=slot_loop, args=(f"{base}:b", True), daemon=True))
     threads.append(threading.Thread(target=scheduler_loop, daemon=True))
     threads.append(threading.Thread(target=embed_loop, daemon=True))
+    threads.append(threading.Thread(target=enrich_loop, daemon=True))
     for t in threads:
         t.start()
     log.info("worker started", extra={"event": f"slots={slots}"})

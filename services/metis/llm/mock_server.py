@@ -43,6 +43,7 @@ PROMPT_IDS = [
     prompts.PAGE_DIFF,
     prompts.CLAIM_CONFLICT,
     prompts.RELATION,
+    prompts.ENRICH,
     prompts.REFINE,
     prompts.CONFLICT_RESOLUTION,
 ]

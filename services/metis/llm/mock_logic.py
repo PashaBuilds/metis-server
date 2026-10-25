@@ -366,4 +366,22 @@ def respond(prompt_id: str, payload: Any, remote_id: str) -> dict:
         return refine(payload)
     if prompt_id == "conflict-resolution-v1":
         return resolution(payload)
+    if prompt_id == "passage-enrichment-v1":
+        return enrichment(payload)
     return {"error": "unknown prompt"}
+
+
+def enrichment(payload: Any) -> dict:
+    """Deterministik kurgusal zenginleştirme: blokta olmayan tanımlayıcı uydurmaz."""
+    title = str(payload.get("page_title", ""))
+    items = []
+    for b in payload.get("blocks", []):
+        words = str(b.get("text", "")).split()
+        items.append(
+            {
+                "id": str(b.get("id", "")),
+                "context": f"Bu bölüm '{title}' içinde {b.get('heading_path') or 'genel'} konusunu anlatır.",
+                "questions": [" ".join(words[:6]).rstrip(".") + "?"] if words else [],
+            }
+        )
+    return {"items": items}

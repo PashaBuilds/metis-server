@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { SkeletonRows, useToast } from '@/design/primitives';
+import { Checkbox, SkeletonRows, useToast } from '@/design/primitives';
 import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { api, type Schemas } from '@/lib/api/client';
@@ -62,6 +62,32 @@ export function PolicyTab() {
           </label>
         ))}
       </div>
+      <EnrichmentSetting />
     </section>
+  );
+}
+
+/** Model zenginleştirmesi: yayımlanmış bölümler şirket modeline gönderilir mi (yalnız yönetici). Kanıt değildir. */
+function EnrichmentSetting() {
+  const session = useSession();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const project = useProject(session.projectId);
+  const m = useMutation({
+    mutationFn: (on: boolean) => api.patch<Schemas['ProjectOut']>(`/projects/${session.projectId}`, { enrichment_enabled: on }),
+    onSuccess: (d) => {
+      qc.setQueryData(['project', session.projectId], d);
+      toast.show(tr.settings.enrichmentSaved(d.enrichment_enabled ?? true));
+    },
+    onError: (e) => toast.show(messageOf(e), { tone: 'error' }),
+  });
+  if (!project.data) return null;
+  const on = m.isPending ? !!m.variables : project.data.enrichment_enabled !== false;
+  return (
+    <div className={s.stack}>
+      <h3 className={s.blockTitle}>{tr.settings.enrichment}</h3>
+      <p className={s.hint}>{tr.settings.enrichmentText}</p>
+      <Checkbox label={tr.settings.enrichmentOn} checked={on} disabled={!session.isAdmin || m.isPending} onChange={(v) => m.mutate(v)} />
+    </div>
   );
 }

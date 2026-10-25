@@ -23,6 +23,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from metis.core.models import PassageVector, SearchState
+from metis.llm.prompts import ENRICH
 from metis.modules.search.embedding import get_embedder
 
 log = logging.getLogger("metis.vectors")
@@ -30,12 +31,14 @@ log = logging.getLogger("metis.vectors")
 FAILED = b""  # hesaplanamayan blok işareti: yeniden denenmez, matrise girmez, durumda "hesaplanamadı" sayılır
 
 
-def embed_text(title: str, heading_path: str, body: str) -> str:
-    return "\n".join(p for p in (title.strip(), heading_path.strip(), body.strip()) if p)
+def embed_text(title: str, heading_path: str, body: str, context: str = "", questions: list[str] | None = None) -> str:
+    """Gömülen metin: başlık, başlık yolu, gövde; varsa zenginleştirme (bağlam + sorular, kanıt değildir)."""
+    parts = (title, heading_path, body, context, *(questions or []))
+    return "\n".join(p.strip() for p in parts if p and p.strip())
 
 
-def embed_hash(title: str, heading_path: str, body: str) -> str:
-    return hashlib.sha256(embed_text(title, heading_path, body).encode("utf-8")).hexdigest()
+def embed_hash(title: str, heading_path: str, body: str, context: str = "", questions: list[str] | None = None) -> str:
+    return hashlib.sha256(embed_text(title, heading_path, body, context, questions).encode("utf-8")).hexdigest()
 
 
 def bump(db: Session, project_ids: set[uuid.UUID], vectors: bool = False) -> None:
@@ -58,10 +61,13 @@ def embed_missing(db: Session, limit: int = 16) -> int:
     rows = db.execute(
         text(
             """
-            SELECT h, title, heading_path, body FROM (
-              SELECT DISTINCT ON (sp.embed_sha256) sp.embed_sha256 AS h, d.title, sp.heading_path, sp.body
+            SELECT h, title, heading_path, body, context, questions FROM (
+              SELECT DISTINCT ON (sp.embed_sha256) sp.embed_sha256 AS h, d.title, sp.heading_path, sp.body,
+                     coalesce(pe.context, '') AS context, coalesce(pe.questions, '{}') AS questions
               FROM search_passages sp
               JOIN search_documents d ON d.page_id = sp.page_id
+              LEFT JOIN passage_enrichments pe
+                ON pe.base_sha256 = sp.base_sha256 AND pe.prompt_version = :pv AND pe.status = 'ok'
               WHERE sp.embed_sha256 IS NOT NULL
                 AND NOT EXISTS (SELECT 1 FROM passage_vectors pv WHERE pv.model_id = :m AND pv.text_sha256 = sp.embed_sha256)
               ORDER BY sp.embed_sha256
@@ -69,11 +75,11 @@ def embed_missing(db: Session, limit: int = 16) -> int:
             ) x ORDER BY length(body)
             """
         ),
-        {"m": emb.model_id, "limit": limit},
+        {"m": emb.model_id, "limit": limit, "pv": ENRICH},
     ).all()
     if not rows:
         return 0
-    texts = [embed_text(r.title, r.heading_path, r.body) for r in rows]
+    texts = [embed_text(r.title, r.heading_path, r.body, r.context, list(r.questions)) for r in rows]
     try:
         vecs: list[bytes] = [v.astype(np.float16).tobytes() for v in emb.embed(texts, "passage")]
     except Exception:  # noqa: BLE001 — bir blok tüm partiyi sonsuza dek kilitlemesin

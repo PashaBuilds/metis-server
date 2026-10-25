@@ -3481,6 +3481,11 @@ export interface components {
             /** Description */
             description: string;
             /**
+             * Enrichment Enabled
+             * @default true
+             */
+            enrichment_enabled: boolean;
+            /**
              * Id
              * Format: uuid
              */
@@ -3503,6 +3508,8 @@ export interface components {
         ProjectUpdateInput: {
             /** Description */
             description?: string | null;
+            /** Enrichment Enabled */
+            enrichment_enabled?: boolean | null;
             /** Name */
             name?: string | null;
             /** Review Interval Days */
@@ -4255,6 +4262,13 @@ export interface components {
             disk_free_bytes: number | null;
             /** Disk Total Bytes */
             disk_total_bytes: number | null;
+            /**
+             * Enrichment
+             * @default {}
+             */
+            enrichment: {
+                [key: string]: unknown;
+            };
             /** Expired Leases */
             expired_leases: number;
             /** Failed Jobs 24H */

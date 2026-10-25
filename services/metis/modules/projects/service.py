@@ -21,6 +21,7 @@ def to_out(db: Session, user: User, project: Project) -> schemas.ProjectOut:
         is_demo=project.is_demo,
         review_policy=project.review_policy,  # type: ignore[arg-type]
         review_interval_days=project.review_interval_days,
+        enrichment_enabled=project.enrichment_enabled,
         active_publication_id=project.active_publication_id,
         created_at=project.created_at,
         my_roles=sorted(effective_roles(db, user, project.id)),
@@ -59,6 +60,9 @@ def update(db: Session, user: User, project_id: uuid.UUID, data: schemas.Project
         # İnceleme politikasını yalnız yönetici değiştirir.
         require_admin(user)
         project.review_policy = data.review_policy
+    if data.enrichment_enabled is not None and data.enrichment_enabled != project.enrichment_enabled:
+        require_admin(user)  # şirket modeline hangi içeriğin gideceği yönetici kararı
+        project.enrichment_enabled = data.enrichment_enabled
     if data.name is not None:
         project.name = data.name.strip()
     if data.description is not None:

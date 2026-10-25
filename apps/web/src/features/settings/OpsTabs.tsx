@@ -176,6 +176,7 @@ export function SystemTab() {
           <Fact label={x.vector}>
             <VectorStatus v={d.vector_search ?? {}} />
           </Fact>
+          <Fact label={x.enrichment}>{x.enrichmentProgress(Number(d.enrichment?.blocks_enriched ?? 0), Number(d.enrichment?.blocks_eligible ?? 0))}</Fact>
         </dl>
       </section>
       <section className={s.block} aria-labelledby="sys-ep">

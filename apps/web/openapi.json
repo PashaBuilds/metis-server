@@ -4473,6 +4473,11 @@
             "title": "Description",
             "type": "string"
           },
+          "enrichment_enabled": {
+            "default": true,
+            "title": "Enrichment Enabled",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -4534,6 +4539,17 @@
               }
             ],
             "title": "Description"
+          },
+          "enrichment_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enrichment Enabled"
           },
           "name": {
             "anyOf": [
@@ -6195,6 +6211,12 @@
               }
             ],
             "title": "Disk Total Bytes"
+          },
+          "enrichment": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Enrichment",
+            "type": "object"
           },
           "expired_leases": {
             "title": "Expired Leases",

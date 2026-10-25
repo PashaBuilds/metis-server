@@ -123,6 +123,8 @@ class Project(Base):
     # self_publish: yazar yayımlar (yayın öncesi otomatik kontrol); independent: başka bir inceleyici onaylar;
     # owner_review: eski "kişisel pilot incelemesi" (aktarılan veriler için geçerli kalır).
     review_policy: Mapped[str] = mapped_column(String(20), nullable=False, default="self_publish")
+    # Model zenginleştirmesi (bağlam + soru; yalnız yayımlanmış bloklar, model varsa): proje başına açık/kapalı.
+    enrichment_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     review_interval_days: Mapped[int] = mapped_column(Integer, nullable=False, default=90)
     active_publication_id: Mapped[uuid.UUID | None] = mapped_column(
         UUIDPK, ForeignKey("publications.id", use_alter=True, name="fk_projects_active_publication"), nullable=True
@@ -1128,7 +1130,9 @@ class SearchPassage(Base):
     # Başlık bloğu (`## …`) puana katılır ama gösterilen/alıntılanan en iyi blok olarak seçilmez.
     is_heading: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
-    # Vektör için gömülen metnin (sayfa başlığı + başlık yolu + gövde) sha256'sı; passage_vectors anahtarı.
+    # Bloğun temel metni (sayfa başlığı + başlık yolu + gövde) sha256'sı: zenginleştirme anahtarı.
+    base_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    # Vektör için gömülen metnin (temel metin + varsa zenginleştirme) sha256'sı; passage_vectors anahtarı.
     embed_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     symbols: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list)
     scope: Mapped[dict] = jsonb()
@@ -1161,3 +1165,18 @@ class SearchState(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("projects.id"), primary_key=True)
     version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     vectors_version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+
+
+class PassageEnrichment(Base):
+    """Model zenginleştirmesi (İş 4): yayımlanmış bir bloğun bağlam cümlesi ve cevapladığı sorular. Anahtar: bloğun temel
+    metni (başlık + başlık yolu + gövde) sha256'sı + istem sürümü. Kanıt değildir; yalnız aramada (tsv D, gömme) kullanılır.
+    status: ok | rejected (süzgeçten hiçbir şey geçmedi)."""
+
+    __tablename__ = "passage_enrichments"
+    base_sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    prompt_version: Mapped[str] = mapped_column(String(80), primary_key=True)
+    model_id: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, nullable=True)
+    context: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    questions: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="ok")
+    created_at: Mapped[datetime] = ts()
