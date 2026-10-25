@@ -1078,3 +1078,34 @@ class ExternalOrigin(Base):
         UniqueConstraint("project_id", "external_key", name="uq_external_origin_key"),
         UniqueConstraint("page_id", name="uq_external_origin_page"),
     )
+
+
+# ---------------------------------------------------------------- arama ölçümü
+
+
+class SearchEvalQuestion(Base):
+    """Arama ölçümü sorusu: soru + beklenen bilgi(ler) + isteğe bağlı beklenen alıntı. Gerçek sorular yalnız veritabanında."""
+
+    __tablename__ = "search_eval_questions"
+    id: Mapped[uuid.UUID] = pk()
+    project_id: Mapped[uuid.UUID] = fk("projects.id")
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    expected_page_ids: Mapped[list[uuid.UUID]] = mapped_column(ARRAY(UUIDPK), nullable=False, default=list)
+    expected_quote: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    kind: Mapped[str] = mapped_column(String(30), nullable=False, default="kavram")
+    created_by: Mapped[uuid.UUID] = fk("users.id", index=False)
+    created_at: Mapped[datetime] = ts()
+    deleted_at: Mapped[datetime | None] = ts(nullable=True)
+
+
+class SearchEvalRun(Base):
+    """Bir ölçüm koşusu: o anki aramayla tüm sorular; metrikler ve soru başına sonuç (deterministik, modelsiz)."""
+
+    __tablename__ = "search_eval_runs"
+    id: Mapped[uuid.UUID] = pk()
+    project_id: Mapped[uuid.UUID] = fk("projects.id")
+    created_by: Mapped[uuid.UUID] = fk("users.id", index=False)
+    created_at: Mapped[datetime] = ts()
+    metrics: Mapped[dict] = jsonb()
+    per_question: Mapped[list[dict]] = jsonb(list)
+    note: Mapped[str] = mapped_column(Text, nullable=False, default="")
