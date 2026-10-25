@@ -20,6 +20,7 @@ from metis.core.config import ROOT
 from metis.core.models import Claim, Page, PageRevision, PageRevisionFigure, SearchDocument, SearchPassage
 from metis.modules.knowledge.figures import strip_figures
 from metis.modules.search.text import fold
+from metis.modules.search.vectors import bump, embed_hash
 
 SYMBOL_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]{2,}(?:\(\))?")
 HEX_RE = re.compile(r"\b0[xX][0-9A-Fa-f]+\b")
@@ -132,6 +133,7 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
                     heading_path=path,
                     is_heading=is_heading_block(c.statement),
                     body=c.statement,
+                    embed_sha256=embed_hash(rev.title, path, c.statement),
                     symbols=extract_symbols(c.statement),
                     scope=rev.scope,
                     kind=rev.kind,
@@ -168,6 +170,7 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
         )
         db.add(doc)
     db.flush()
+    bump(db, {project_id})
 
 
 def ensure_passage_index(db: Session) -> int:
@@ -184,3 +187,15 @@ def ensure_passage_index(db: Session) -> int:
             index_pages(db, project.id, project.active_publication_id, page_ids)
             built += 1
     return built
+
+
+def fill_embed_hashes(db: Session) -> int:
+    """2.0.19'da kurulan blokların gömme anahtarını doldurur (`metis migrate` sonunda; idempotent). Dönen: satır sayısı."""
+    rows = db.execute(
+        select(SearchPassage, SearchDocument.title)
+        .join(SearchDocument, SearchDocument.page_id == SearchPassage.page_id)
+        .where(SearchPassage.embed_sha256.is_(None))
+    ).all()
+    for p, title in rows:
+        p.embed_sha256 = embed_hash(title, p.heading_path, p.body)
+    return len(rows)

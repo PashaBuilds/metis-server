@@ -105,6 +105,13 @@ def embedder_status() -> dict:
     return {k: _state.get(k) for k in ("state", "model_id", "reason")}
 
 
+def use_for_tests(embedder: object) -> None:
+    """Testler: deterministik sahte gömmeyi süreç modeli olarak kurar."""
+    with _lock:
+        _state.clear()
+        _state.update(state="ready", model_id=getattr(embedder, "model_id", "test"), reason=None, embedder=embedder)
+
+
 def reset() -> None:
     """Testler ve yapılandırma değişikliği için: bir sonraki çağrı modeli yeniden arar."""
     with _lock:

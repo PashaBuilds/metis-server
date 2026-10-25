@@ -116,6 +116,23 @@ def scheduler_loop(interval: float = 60.0) -> None:
         _stop.wait(interval)
 
 
+def embed_loop(idle: float = 20.0) -> None:
+    """Vektör kanalı (2026-10-25): model kuruluysa vektörü olmayan blokları sırayla hesaplar; iş yoksa bekler."""
+    from metis.core.db import transaction
+    from metis.modules.search.vectors import embed_missing
+
+    while not _stop.is_set():
+        try:
+            with transaction() as db:
+                n = embed_missing(db, limit=64)
+        except Exception:  # noqa: BLE001
+            log.exception("embedding tick failed")
+            n = 0
+        if n:
+            log.info("passages embedded", extra={"event": n})
+        _stop.wait(0.1 if n else idle)
+
+
 def run_forever(slots: int = 2, once: bool = False) -> None:
     settings = get_settings()
     configure_logging(settings.log_dir, settings.env, name="metis-worker")
@@ -129,6 +146,7 @@ def run_forever(slots: int = 2, once: bool = False) -> None:
     threads = [threading.Thread(target=slot_loop, args=(f"{base}:{i}", False), daemon=True) for i in range(max(1, slots))]
     threads.append(threading.Thread(target=slot_loop, args=(f"{base}:b", True), daemon=True))
     threads.append(threading.Thread(target=scheduler_loop, daemon=True))
+    threads.append(threading.Thread(target=embed_loop, daemon=True))
     for t in threads:
         t.start()
     log.info("worker started", extra={"event": f"slots={slots}"})

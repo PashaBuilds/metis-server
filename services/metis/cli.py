@@ -39,6 +39,11 @@ def cmd_migrate(args: argparse.Namespace) -> int:
 
         with transaction() as db:
             out["passage_index_projects"] = ensure_passage_index(db)
+        # 2026-10-25 (şema 0012): blokların gömme anahtarı (vektörler worker'da, model kuruluysa hesaplanır).
+        from metis.modules.search.index import fill_embed_hashes
+
+        with transaction() as db:
+            out["passage_embed_keys"] = fill_embed_hashes(db)
         if report.skipped:  # dönüştürülemeyen kaynak silinmez; yönetici görsün diye raporlanır
             out["skipped_sources"] = report.skipped
     print(json.dumps(out))

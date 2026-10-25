@@ -21,6 +21,7 @@ from sqlalchemy import (
     Identity,
     Index,
     Integer,
+    LargeBinary,
     PrimaryKeyConstraint,
     SmallInteger,
     String,
@@ -1127,6 +1128,8 @@ class SearchPassage(Base):
     # Başlık bloğu (`## …`) puana katılır ama gösterilen/alıntılanan en iyi blok olarak seçilmez.
     is_heading: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
+    # Vektör için gömülen metnin (sayfa başlığı + başlık yolu + gövde) sha256'sı; passage_vectors anahtarı.
+    embed_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     symbols: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list)
     scope: Mapped[dict] = jsonb()
     kind: Mapped[str] = mapped_column(String(30), nullable=False)
@@ -1137,3 +1140,23 @@ class SearchPassage(Base):
         Index("ix_passage_tsv_turkish", "tsv_turkish", postgresql_using="gin"),
         Index("ix_passage_symbols", "symbols", postgresql_using="gin"),
     )
+
+
+class PassageVector(Base):
+    """Blok vektörü: model + gömülen metnin (başlık, başlık yolu, gövde) sha256'sı → float16 vektör. Aynı metin aynı modelle
+    yeniden hesaplanmaz; yayın değişse de metin aynıysa vektör yeniden kullanılır. Kanıt değildir."""
+
+    __tablename__ = "passage_vectors"
+    model_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    text_sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    vector: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = ts()
+
+
+class SearchState(Base):
+    """Proje başına arama indeksi sürümü: blok indeksi ya da vektörler değişince artar; API süreçleri bellekteki vektör
+    matrisini buna göre tazeler."""
+
+    __tablename__ = "search_state"
+    project_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("projects.id"), primary_key=True)
+    version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
