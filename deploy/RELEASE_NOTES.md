@@ -14,6 +14,9 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
   Mentor'a girmez. Yayımlanan bilgide kaynak satırı; aynı kaynak tekrar alınınca güncelleme taslağı. Şema 0010.
 - **Gerçek Confluence/GitLab ile denenmedi**: kurgusal sahte sunucuyla (testler + tarayıcı) denendi. İlk gerçek deneme
   şirket sunucusunda yapılacak.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi (testler dahil); aynı commit'te CI yeşil (uçtan uca + temiz Windows Server'da
+  kurulum/yükseltme). Çift tıklamayla **gerçek yükseltme denendi**: kurulu 2.0.15 → 2.0.18 (yedek alındı, şema 0010,
+  sağlık `ready`).
 
 **2.0.17 — Geri bildirim bölümü:**
 - Sol menüde yeni **Geri bildirim**: herkes (Okur dahil) bir **Hata** ya da **İstek** yazar; en çok 5 ekran
