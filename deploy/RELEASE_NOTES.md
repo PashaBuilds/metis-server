@@ -13,6 +13,10 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
   alanı/projesi içindekiler, en çok 20). Tıklayınca Yeni katkı → Kaynaktan al adres ve bağlantı dolu açılır.
 - Bağlantı adresinin kök yolu artık bölüm sınırıyla denetlenir (`/confluence` bağlantısı `/confluence2/...` adresini tanımaz).
 - Gerçek Confluence/GitLab ile **denenmedi** (kurgusal sahte sunucuyla testler + tarayıcı).
+- Vektör modeli eklentisi (`METIS-vektor-modeli-e5-base-1.zip`, 2.0.20 ile aynı dosya) bu sürüme de eklendi.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi (testler dahil); aynı commit'te CI yeşil (uçtan uca + temiz Windows Server'da
+  kurulum/yükseltme). Çift tıklamada yükseltme sorusu açıldı ama o an öndeki bir sistem penceresi yüzünden cevaplanamadı;
+  yükseltme bu sürümde o bilgisayarda **denenmedi** (ürün sahibinin "beklemeden yayımla" kararıyla istisna).
 
 **2.0.21 — Model zenginleştirmesi (arama için):**
 - Şirket modeli varken yayımlanmış bölümlere kısa bir **bağlam cümlesi** ve **"bu bölüm hangi soruları cevaplar"** yazılır;
