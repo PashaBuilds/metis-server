@@ -19,7 +19,7 @@ from urllib.parse import urlsplit
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from metis.core.access import require_admin, require_human, require_member
+from metis.core.access import can_read_page_revision, require_admin, require_human, require_member
 from metis.core.audit import audit
 from metis.core.blobs import put_blob
 from metis.core.config import get_settings
@@ -94,8 +94,12 @@ def create_connection(db: Session, user: User, data: schemas.ConnectionIn) -> sc
 def update_connection(db: Session, user: User, connection_id: uuid.UUID, data: schemas.ConnectionIn) -> schemas.ConnectionOut:
     require_admin(user)
     c = _get(db, connection_id)
+    url = validate_endpoint(data.base_url, check_allowlist=False)
+    if not data.token.strip() and (url != c.base_url or data.kind != c.kind):
+        # Kayıtlı token başka bir adrese/türe taşınmaz: adres değişince token yeniden girilir.
+        raise AppError("VALIDATION_ERROR", "token required when the address changes", fields=[{"field": "token", "type": "missing"}])
     c.kind, c.name = data.kind, data.name.strip()
-    c.base_url = validate_endpoint(data.base_url, check_allowlist=False)
+    c.base_url = url
     c.allowed_scopes = _check_scopes(data.kind, data.allowed_scopes)
     c.enabled = data.enabled
     if data.token.strip():
@@ -123,7 +127,10 @@ def test_connection(db: Session, user: User, data: schemas.ConnectionTestIn) -> 
     url = validate_endpoint(data.base_url, check_allowlist=False)
     token = data.token.strip()
     if not token and data.connection_id:
-        token = decrypt_secret(_get(db, data.connection_id).secret_enc)
+        saved = _get(db, data.connection_id)
+        if saved.base_url != url or saved.kind != data.kind:
+            raise AppError("VALIDATION_ERROR", "token required for another address", fields=[{"field": "token", "type": "missing"}])
+        token = decrypt_secret(saved.secret_enc)
     http = ExternalHttp(data.kind, url, token)
     try:
         who = confluence.current_user(http) if data.kind == "confluence" else gitlab.current_user(http)
@@ -255,8 +262,13 @@ def _download(fetched: _Fetched, limit: int) -> list[tuple[str, str, bytes]]:
     return kept
 
 
-def _latest_title(db: Session, page_id: uuid.UUID) -> str | None:
-    return db.scalar(select(PageRevision.title).where(PageRevision.page_id == page_id).order_by(PageRevision.number.desc()).limit(1))
+def _live_origin(db: Session, project_id: uuid.UUID, key: str) -> ExternalOrigin | None:
+    """Kökenin sayfası silinmişse köken bayattır: kaynak yeniden içe aktarılabilir (bağlama sırasında yeni sayfaya geçer)."""
+    origin = db.scalar(select(ExternalOrigin).where(ExternalOrigin.project_id == project_id, ExternalOrigin.external_key == key))
+    if origin is None:
+        return None
+    page = db.get(Page, origin.page_id)
+    return origin if page is not None and page.deleted_at is None else None
 
 
 def preview(user_id: uuid.UUID, project_id: uuid.UUID, data: schemas.PreviewIn) -> schemas.PreviewOut:
@@ -308,14 +320,16 @@ def preview(user_id: uuid.UUID, project_id: uuid.UUID, data: schemas.PreviewIn) 
         )
         db.add(imp)
         db.flush()
-        origin = db.scalar(select(ExternalOrigin).where(ExternalOrigin.project_id == project_id, ExternalOrigin.external_key == fetched.key))
-        existing_title, edited = None, False
+        origin = _live_origin(db, project_id, fetched.key)
+        existing_id, existing_title, unavailable, edited = None, None, False, False
         if origin is not None:
-            existing_title = _latest_title(db, origin.page_id)
             page = db.get(Page, origin.page_id)
-            if page and page.published_revision_id:
-                rev = db.get(PageRevision, page.published_revision_id)
-                edited = rev is not None and body_hash(rev.body_md) != origin.imported_body_sha256
+            rev = db.get(PageRevision, page.published_revision_id) if page and page.published_revision_id else None
+            if rev is not None and can_read_page_revision(db, user, rev):
+                existing_id, existing_title = origin.page_id, rev.title
+                edited = body_hash(rev.body_md) != origin.imported_body_sha256
+            else:
+                unavailable = True  # yayımlanmamış ya da okunamayan taslak: kimliği ve başlığı sızdırılmaz
         audit(db, user.id, "external.import.preview", "external_import", imp.id, key=fetched.key, url=fetched.url, attachments=len(rows))
         return schemas.PreviewOut(
             import_id=imp.id,
@@ -325,8 +339,9 @@ def preview(user_id: uuid.UUID, project_id: uuid.UUID, data: schemas.PreviewIn) 
             attachments=[attachment_out(a) for a in rows],
             skipped=fetched.skipped,
             origin=schemas.OriginOut(kind=conn.kind, url=fetched.url, version=imp.version, connection_name=conn.name),  # type: ignore[arg-type]
-            existing_page_id=origin.page_id if origin else None,
+            existing_page_id=existing_id,
             existing_title=existing_title,
+            existing_unavailable=unavailable,
             edited_since_import=edited,
         )
 
@@ -344,14 +359,18 @@ def bind_import(db: Session, actor: User, project_id: uuid.UUID, page: Page, imp
     if not imp or imp.user_id != actor.id or imp.project_id != project_id:
         raise AppError("NOT_FOUND", "import not found")
     origin = db.scalar(select(ExternalOrigin).where(ExternalOrigin.project_id == project_id, ExternalOrigin.external_key == imp.external_key))
+    if origin is not None and _live_origin(db, project_id, imp.external_key) is None:
+        db.delete(origin)  # silinmiş sayfaya bağlı bayat köken: kaynak yeni sayfaya bağlanır
+        db.flush()
+        origin = None
     if imp.used_at is not None and (origin is None or origin.page_id != page.id):
         raise AppError("IMPORT_USED", "this preview was already used for another draft")
     if origin is not None and origin.page_id != page.id:
-        raise AppError("VALIDATION_ERROR", "this source is already linked to another page", fields=[{"field": "import_id", "type": "already_imported"}], page_id=str(origin.page_id))
+        raise AppError("EXTERNAL_ALREADY_IMPORTED", "this source is already linked to another page in this project")
     if origin is None:
         other = db.scalar(select(ExternalOrigin).where(ExternalOrigin.page_id == page.id))
         if other is not None:
-            raise AppError("VALIDATION_ERROR", "page already has another source", fields=[{"field": "import_id", "type": "page_has_origin"}])
+            raise AppError("EXTERNAL_ALREADY_IMPORTED", "page already has another source")
         origin = ExternalOrigin(project_id=project_id, page_id=page.id, external_key=imp.external_key, connection_id=imp.connection_id, url=imp.url, imported_by=actor.id, imported_body_sha256="")
         db.add(origin)
     origin.connection_id, origin.url, origin.version = imp.connection_id, imp.url, imp.version

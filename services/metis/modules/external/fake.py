@@ -52,6 +52,7 @@ ISSUES = {
         "notes": [
             {"system": True, "author": "Kurgusal Kişi", "created_at": "2026-01-05T09:05:00.000Z", "body": "added ~pcie label"},
             {"system": False, "author": "Kurgusal İkinci", "created_at": "2026-01-06T08:30:00.000Z", "body": "Saat kaynağını değiştirdin mi?"},
+            {"system": False, "internal": True, "author": "Kurgusal Üçüncü", "created_at": "2026-01-06T09:00:00.000Z", "body": "Dahili kurgusal not"},
             {"system": False, "author": "Kurgusal Kişi", "created_at": "2026-01-06T11:00:00.000Z", "body": "Evet, `CLK_SRC` = 2 yapınca düzeldi."},
         ],
     },
@@ -99,7 +100,14 @@ def _confluence(request: httpx.Request, path: str) -> httpx.Response:
         m = re.search(r'title ~ "([^"]*)"', cql)
         term = (m.group(1) if m else "").casefold()
         hits = [pid for pid, p in PAGES.items() if p["space"] in spaces and term in str(p["title"]).casefold()]
-        return _json({"results": [{"id": h, "title": PAGES[h]["title"], "space": {"key": PAGES[h]["space"]}} for h in hits]})
+        return _json(
+            {
+                "results": [
+                    {"id": h, "title": PAGES[h]["title"], "space": {"key": PAGES[h]["space"]}, "restrictions": _restrictions(bool(PAGES[h]["restricted"]))}
+                    for h in hits
+                ]
+            }
+        )
     m = re.fullmatch(r"/rest/api/content/(\d+)", path)
     if m:
         return _json(_page(m.group(1))) if m.group(1) in PAGES else _json({"message": "not found"}, 404)
@@ -163,7 +171,12 @@ def _gitlab(request: httpx.Request, raw: str) -> httpx.Response:
             return _json({"message": "404 Not found"}, 404)
         if request.url.params.get("page", "1") != "1":
             return _json([])
-        return _json([{"system": n["system"], "author": {"name": n["author"]}, "created_at": n["created_at"], "body": n["body"]} for n in issue["notes"]])
+        return _json(
+            [
+                {"system": n["system"], "internal": n.get("internal", False), "author": {"name": n["author"]}, "created_at": n["created_at"], "body": n["body"]}
+                for n in issue["notes"]
+            ]
+        )
     m = re.fullmatch(r"/api/v4/projects/(\d+)/uploads/([^/]+)/([^/]+)", raw)
     if m and m.group(2) == "abc123" and unquote(m.group(3)) == "log.png":
         return httpx.Response(200, content=PNG, headers={"Content-Type": "image/png"})

@@ -81,3 +81,17 @@ def test_line_breaks_and_task_list():
 
 def test_pre_block():
     assert md("<pre>a  b\n  c</pre>") == "```\na  b\n  c\n```"
+
+
+STATUS = '<ac:structured-macro ac:name="status"><ac:parameter ac:name="title">ONAYLANDI</ac:parameter></ac:structured-macro>'
+
+
+def test_status_macro_inline_in_paragraph_and_cell():
+    conv = storage_to_markdown(f"<p>Durum: {STATUS} tamam</p><table><tr><th>Adım</th><th>Durum</th></tr><tr><td>A</td><td>{STATUS}</td></tr></table>")
+    assert conv.markdown == "Durum: ONAYLANDI tamam\n\n| Adım | Durum |\n| --- | --- |\n| A | ONAYLANDI |"
+    assert conv.skipped_macros == []
+
+
+def test_bodyless_macro_does_not_split_paragraph():
+    conv = storage_to_markdown('<p>Bkz <ac:structured-macro ac:name="jira"><ac:parameter ac:name="key">X-1</ac:parameter></ac:structured-macro> sonra</p>')
+    assert conv.markdown == "Bkz sonra" and conv.skipped_macros == ["jira"]

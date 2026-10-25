@@ -80,6 +80,7 @@ CATALOG: dict[str, tuple[int, bool]] = {
     "EXTERNAL_TOO_LARGE": (413, False),
     "EXTERNAL_URL_UNRECOGNIZED": (422, False),
     "IMPORT_USED": (409, False),
+    "EXTERNAL_ALREADY_IMPORTED": (409, False),
 }
 
 

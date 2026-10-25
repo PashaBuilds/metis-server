@@ -85,5 +85,7 @@ class PreviewOut(BaseModel):
     origin: OriginOut
     existing_page_id: uuid.UUID | None = None
     existing_title: str | None = None
+    # Kaynak bu projede yayımlanmamış (ya da bu kullanıcının okuyamadığı) bir taslağa bağlı: kimliği/başlığı gösterilmez.
+    existing_unavailable: bool = False
     # Var olan bilgi içe aktarıldıktan sonra METIS'te elle değiştirilmiş mi (güncelleme taslağı o değişiklikleri içermez).
     edited_since_import: bool = False

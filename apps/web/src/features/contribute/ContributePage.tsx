@@ -120,7 +120,7 @@ export function ContributePage() {
     }
     setDirty(true);
   };
-  if (imported) {
+  if (imported && !search.change && !search.page) {
     initial = imported.initial;
     target = imported.target;
     notice = tr.external.filled;
@@ -151,7 +151,7 @@ export function ContributePage() {
           {notice && <Banner tone="bilgi">{notice}</Banner>}
           {initial ? (
             <NoteEditor
-              key={imported?.key ?? target.changeId ?? target.pageId ?? 'new'}
+              key={(!search.change && !search.page && imported?.key) || (target.changeId ?? target.pageId ?? 'new')}
               initial={initial}
               target={target}
               onDirty={setDirty}

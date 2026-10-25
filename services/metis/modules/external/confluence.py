@@ -145,11 +145,12 @@ def search(http: ExternalHttp, spaces: list[str], q: str) -> list[SearchItem]:
     if not keys:
         return []
     cql = f'type=page AND space in ({keys}) AND title ~ "{_cql_text(q)}"'
-    data = http.get_json("/rest/api/content/search", {"cql": cql, "limit": 20, "expand": "space"})
+    expand = "space,restrictions.read.restrictions.user,restrictions.read.restrictions.group"
+    data = http.get_json("/rest/api/content/search", {"cql": cql, "limit": 20, "expand": expand})
     out = []
     for r in (data or {}).get("results") or []:
         rid = str(r.get("id") or "")
-        if not rid.isdigit():
+        if not rid.isdigit() or _restricted(r):  # kısıtlı sayfanın başlığı da listelenmez
             continue
         out.append(
             SearchItem(

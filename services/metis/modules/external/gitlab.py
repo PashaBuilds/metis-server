@@ -11,8 +11,9 @@ from metis.modules.external.confluence import SearchItem
 from metis.modules.external.http import ExternalHttp
 
 PROJECT_RE = re.compile(r"^[\w.-]+(/[\w.-]+)+$")
-UPLOAD_RE = re.compile(r"\]\((/uploads/([0-9A-Za-z]{6,64})/([^)\s]+))\)")
-UPLOAD_LINK_RE = re.compile(r"!?\[[^\]]*\]\(/uploads/[0-9A-Za-z]{6,64}/([^)\s]+)\)")
+# Dosya adında "/" yok: "../" ile izinli proje dışına (ör. başka projenin dosyasına) çıkılamaz.
+UPLOAD_RE = re.compile(r"\]\((/uploads/([0-9A-Za-z]{6,64})/([^/)\s]+))\)")
+UPLOAD_LINK_RE = re.compile(r"!?\[[^\]]*\]\(/uploads/[0-9A-Za-z]{6,64}/([^/)\s]+)\)")
 IMAGE_EXT = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg")
 STATES = {"opened": "Açık", "closed": "Kapalı"}
 
@@ -88,6 +89,8 @@ def fetch(http: ExternalHttp, ref: GitlabRef, max_pages: int = 20) -> GitlabIssu
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise AppError("EXTERNAL_BAD_RESPONSE", "unexpected GitLab issue shape") from exc
+    if issue.confidential:
+        return issue  # gizli issue alınmaz (servis reddeder); yorumları hiç okunmaz
     for page in range(1, max_pages + 1):
         notes = http.get_json(
             f"/api/v4/projects/{issue.project_id}/issues/{issue.iid}/notes",
@@ -96,7 +99,8 @@ def fetch(http: ExternalHttp, ref: GitlabRef, max_pages: int = 20) -> GitlabIssu
         if not isinstance(notes, list):
             raise AppError("EXTERNAL_BAD_RESPONSE", "unexpected GitLab notes shape")
         for n in notes:
-            if n.get("system"):
+            # Sistem notları ve dahili (internal/confidential) yorumlar alınmaz: yayımlanınca tüm üyelere açılırdı.
+            if n.get("system") or n.get("internal") or n.get("confidential"):
                 continue
             issue.notes.append(GitlabNote(str((n.get("author") or {}).get("name") or ""), str(n.get("created_at") or ""), str(n.get("body") or "")))
         if len(notes) < 100:
@@ -127,7 +131,8 @@ def issue_markdown(issue: GitlabIssue) -> str:
 def upload_refs(markdown: str) -> list[tuple[str, str]]:
     out: dict[tuple[str, str], None] = {}
     for m in UPLOAD_RE.finditer(markdown):
-        out[(m.group(2), m.group(3))] = None
+        if m.group(3) not in (".", ".."):
+            out[(m.group(2), m.group(3))] = None
     return list(out)
 
 
@@ -142,7 +147,9 @@ def replace_uploads(markdown: str) -> str:
 
 
 def download_upload(http: ExternalHttp, project_id: int, secret: str, filename: str, limit: int) -> bytes:
-    return http.get_bytes(f"/api/v4/projects/{project_id}/uploads/{secret}/{quote(filename)}", limit)
+    if "/" in filename or filename in (".", ".."):
+        raise AppError("EXTERNAL_BAD_RESPONSE", "invalid upload name")
+    return http.get_bytes(f"/api/v4/projects/{int(project_id)}/uploads/{quote(secret, safe='')}/{quote(filename, safe='')}", limit)
 
 
 def search(http: ExternalHttp, projects: list[str], q: str) -> list[SearchItem]:

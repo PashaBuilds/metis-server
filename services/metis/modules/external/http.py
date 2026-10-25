@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import ssl
+import time
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -16,7 +17,8 @@ import httpx
 from metis.core.config import get_settings
 from metis.core.errors import AppError
 
-TIMEOUT_S = 30.0
+TIMEOUT_S = 30.0  # bağlantı/okuma başına
+TOTAL_S = 30.0  # istek başına toplam (yavaş damlatan sunucu iş parçacığını tutamaz)
 MAX_JSON = 8 * 1024 * 1024
 # Testler kurgusal sunucuyu buraya bağlar (httpx.MockTransport); üretimde None.
 TRANSPORT: httpx.BaseTransport | None = None
@@ -59,6 +61,7 @@ class ExternalHttp:
 
     def _fetch(self, path_or_url: str, params: dict | None, limit: int) -> bytes:
         url = self.url(path_or_url)
+        deadline = time.monotonic() + TOTAL_S
         try:
             with self._client() as client, client.stream("GET", url, params=params) as resp:
                 if resp.status_code in (401, 403):
@@ -69,6 +72,8 @@ class ExternalHttp:
                     raise AppError("EXTERNAL_BAD_RESPONSE", "unexpected remote status", status_code=resp.status_code)
                 body = bytearray()
                 for chunk in resp.iter_bytes():
+                    if time.monotonic() > deadline:
+                        raise AppError("EXTERNAL_TIMEOUT", "remote did not answer in time")
                     if len(body) + len(chunk) > limit:
                         raise AppError("EXTERNAL_TOO_LARGE", "remote response too large", limit=limit)
                     body.extend(chunk)

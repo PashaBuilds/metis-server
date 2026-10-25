@@ -75,3 +75,8 @@ def test_upload_refs():
 def test_upload_links_become_markers():
     md = "Log: ![log](/uploads/abc123/log.png) ve [rapor](/uploads/def456/rapor.pdf) ve [dış](https://dis.example.test/a)"
     assert gitlab.replace_uploads(md) == "Log: [Görsel: log.png] ve [Ek: rapor.pdf] ve [dış](https://dis.example.test/a)"
+
+
+def test_upload_path_traversal_ignored():
+    md = "![a](/uploads/abcdef12/../../../../99/jobs/5/artifacts/rapor.pdf) ve ![b](/uploads/abcdef12/alt/b.png)"
+    assert gitlab.upload_refs(md) == []

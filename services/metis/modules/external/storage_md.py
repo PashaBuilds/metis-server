@@ -153,6 +153,14 @@ class _Renderer:
             return ""
         return self.inline(n.children)
 
+    def _inline_macro(self, n: _Node) -> bool:
+        """Gövdesiz makro (status, jira…) satır içidir: paragrafı bölmez, tablo hücresinde kaybolmaz."""
+        if n.tag not in ("ac:structured-macro", "ac:macro"):
+            return False
+        if n.attrs.get("ac:name") == "status":
+            return True
+        return self._child(n, "ac:rich-text-body") is None and self._child(n, "ac:plain-text-body") is None
+
     # ------------------------------------------------------------ bloklar
     def blocks(self, nodes: list[_Node | _Text]) -> list[str]:
         out: list[str] = []
@@ -165,7 +173,7 @@ class _Renderer:
             run.clear()
 
         for n in nodes:
-            if isinstance(n, _Node) and n.tag in BLOCK:
+            if isinstance(n, _Node) and n.tag in BLOCK and not self._inline_macro(n):
                 flush()
                 out.extend(self.block(n))
             else:

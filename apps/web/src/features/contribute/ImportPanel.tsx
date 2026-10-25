@@ -154,6 +154,8 @@ export function ImportPanel({ projectId, onUse }: Props) {
                 {tr.external.existing(pv.existing_title ?? pv.title)}
                 {pv.edited_since_import && ` ${tr.external.editedWarning}`}
               </Banner>
+            ) : pv.existing_unavailable ? (
+              <Banner tone="dikkat">{tr.external.unavailable}</Banner>
             ) : (
               <div>
                 <Button variant="primary" onClick={() => onUse(pv, null)}>

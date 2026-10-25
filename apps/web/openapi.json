@@ -4365,6 +4365,11 @@
             ],
             "title": "Existing Title"
           },
+          "existing_unavailable": {
+            "default": false,
+            "title": "Existing Unavailable",
+            "type": "boolean"
+          },
           "import_id": {
             "format": "uuid",
             "title": "Import Id",

@@ -185,7 +185,7 @@ def test_same_source_cannot_bind_second_page(ext):  # noqa: ANN001
     second = preview(c, pid, ext["wiki"], url).json()
     assert save_draft(c, pid, first).status_code == 201
     r = save_draft(c, pid, second)  # sayfa belirtilmeden ikinci yeni sayfa
-    assert r.status_code == 422 and r.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert r.status_code == 409 and r.json()["error"]["code"] == "EXTERNAL_ALREADY_IMPORTED"
 
 
 def test_gitlab_issue_to_draft(ext):  # noqa: ANN001
@@ -196,6 +196,7 @@ def test_gitlab_issue_to_draft(ext):  # noqa: ANN001
     assert pv["kind"] == "gitlab" and pv["title"] == "PCIe bağlantısı kurulmuyor"
     body = pv["body_md"]
     assert body.startswith("**Durum:** Kapalı · **Etiketler:** pcie, sürücü")
+    assert "Dahili kurgusal not" not in body  # GitLab dahili (internal) yorumu alınmaz
     assert "added ~pcie label" not in body and "[Görsel: log.png]" in body and "/uploads/" not in body
     assert "### Kurgusal İkinci — 2026-01-06" in body and "### Kurgusal Kişi — 2026-01-06" in body
     assert [a["filename"] for a in pv["attachments"]] == ["log.png"]
@@ -243,6 +244,7 @@ def test_search_lists_allowed_only(ext):  # noqa: ANN001
     r = c.get(f"/api/v1/projects/{pid}/external/search", params={"connection_id": ext["wiki"], "q": "sa"})
     assert r.status_code == 200, r.text
     assert {x["container"] for x in r.json()} == {"BSP"} and "Başka Alan" not in r.text
+    assert "Kısıtlı Sayfa" not in r.text  # görüntüleme kısıtlı sayfanın başlığı da listelenmez
     g = c.get(f"/api/v1/projects/{pid}/external/search", params={"connection_id": ext["git"], "q": "pcie"}).json()
     assert [x["title"] for x in g] == ["PCIe bağlantısı kurulmuyor"]  # gizli issue listelenmez
 
@@ -264,3 +266,62 @@ def test_remote_errors_mapped(ext, monkeypatch):  # noqa: ANN001
     assert r.status_code == 502 and r.json()["error"]["code"] == "EXTERNAL_BAD_RESPONSE"
     with transaction() as db:
         assert db.scalar(select(ExternalImport.id)) is None and db.scalar(select(Attachment.id)) is None
+
+
+def test_stored_token_only_for_same_address(ext):  # noqa: ANN001
+    a = ext["admin"]
+    other = "http://127.0.0.2:9160"
+    r = a.post("/api/v1/external/connections/test", json={"kind": "gitlab", "base_url": other, "token": "", "connection_id": ext["git"]})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "VALIDATION_ERROR"
+    conn = next(x for x in a.get("/api/v1/external/connections").json() if x["id"] == ext["git"])
+    body = {**{k: conn[k] for k in ("kind", "name", "allowed_scopes")}, "base_url": other, "token": "", "enabled": True}
+    r = a.put(f"/api/v1/external/connections/{conn['id']}", json=body)
+    assert r.status_code == 422 and r.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert a.put(f"/api/v1/external/connections/{conn['id']}", json={**body, "token": fake.TOKEN}).status_code == 200
+
+
+def test_deleted_draft_frees_the_source(ext):  # noqa: ANN001
+    c, pid = ext["contributor"], ext["pid"]
+    url = f"{WIKI}/pages/viewpage.action?pageId=1004"
+    change = save_draft(c, pid, preview(c, pid, ext["wiki"], url).json()).json()
+    assert c.delete(f"/api/v1/changes/{change['id']}").status_code == 200
+    again = preview(c, pid, ext["wiki"], url).json()
+    assert again["existing_page_id"] is None and again["existing_unavailable"] is False
+    r = save_draft(c, pid, again)
+    assert r.status_code == 201, r.text
+
+
+def test_other_users_unpublished_draft_not_leaked(ext, make_client):  # noqa: ANN001
+    from tests.factories import create_user
+
+    second = create_user(ext["admin"], "ikinci", ["contributor"], ext["pid"], make_client)
+    pid, url = ext["pid"], f"{WIKI}/pages/viewpage.action?pageId=1004"
+    assert save_draft(ext["contributor"], pid, preview(ext["contributor"], pid, ext["wiki"], url).json()).status_code == 201
+    pv = preview(second, pid, ext["wiki"], url).json()
+    assert pv["existing_page_id"] is None and pv["existing_title"] is None and pv["existing_unavailable"] is True
+    r = save_draft(second, pid, pv)
+    assert r.status_code == 409 and r.json()["error"]["code"] == "EXTERNAL_ALREADY_IMPORTED"
+
+
+def test_total_time_limit(ext, monkeypatch):  # noqa: ANN001
+    import time
+
+    def slow(request: httpx.Request) -> httpx.Response:
+        def drip():  # noqa: ANN202
+            for _ in range(20):
+                time.sleep(0.05)
+                yield b" "
+
+        return httpx.Response(200, stream=httpx.ByteStream(b"") if False else _Iter(drip()))
+
+    class _Iter(httpx.SyncByteStream):
+        def __init__(self, it) -> None:  # noqa: ANN001
+            self.it = it
+
+        def __iter__(self):  # noqa: ANN204
+            return self.it
+
+    monkeypatch.setattr(ext_http, "TRANSPORT", httpx.MockTransport(slow))
+    monkeypatch.setattr(ext_http, "TOTAL_S", 0.2)
+    r = preview(ext["contributor"], ext["pid"], ext["wiki"], f"{WIKI}/pages/viewpage.action?pageId=1001")
+    assert r.status_code == 504 and r.json()["error"]["code"] == "EXTERNAL_TIMEOUT"

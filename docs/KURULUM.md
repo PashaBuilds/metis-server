@@ -237,6 +237,26 @@ açılır. Taslak kaydedilir, Kayıtlar'dan açılıp geliştirilir; **Yayımla*
 çelişki/tekrar kontrolüyle). v0.5.5 aktarımı ve "önce kaynak ekle, sonra alıntı seç" yöntemi 2.0.10'da kaldırıldı;
 yükseltmede hiçbir bilgiye bağlanmamış eski kaynaklar kendiliğinden taslağa dönüşür (metin → not, dosya → ek).
 
+### 10a. Confluence ve GitLab'dan taslak (2.0.18'den beri)
+
+1. **Ayarlar → Dış kaynaklar → Bağlantı ekle** (yalnız yönetici): tür (Confluence / GitLab), ad, kök adres, token ve
+   izinli kapsamlar.
+   - Confluence Server/Data Center: kök adres bağlam yoluyla (ör. `https://wiki.sirket.local/confluence`), **kişisel
+     erişim anahtarı** (yalnız okuma). İzinli kapsam = alan anahtarları (ör. `BSP, DOC`).
+   - GitLab: kök adres (ör. `https://gitlab.sirket.local`), **erişim token'ı** (`read_api`). İzinli kapsam = proje yolları
+     (ör. `ekip/bsp`).
+   - Token, bu iş için açılmış bir okuma hesabına ait olmalı; şifreli saklanır, ekranda yalnız "kayıtlı" görünür.
+   - Adres iç ağ aralıklarında olmalı (`METIS_ENDPOINT_NETWORKS`, model adresleriyle aynı kural); şirket CA'sı
+     `METIS_CA_BUNDLE`. **Bağlantıyı dene** kaydetmeden sınar.
+2. **Yeni katkı → Kaynaktan al**: sayfa/issue adresini yapıştır ya da başlıkla ara → **Önizle** → **Taslağa çevir**.
+   Confluence sayfasının metni, başlıkları, tabloları ve kod blokları not olur; PNG/JPEG/PDF ekleri ek olur (en çok 30,
+   dosya başına yükleme sınırı). GitLab issue'sunun açıklaması ve yorumları (yazan + tarih) not olur, sistem notları
+   alınmaz. Alınmayanlar önizlemede listelenir.
+3. Kaynak sistemde **görüntüleme kısıtı olan Confluence sayfaları** ve **gizli (confidential) GitLab issue'ları alınmaz**.
+4. İçe aktarılan içerik yalnız taslaktır: bir insan yayımlayana kadar Mentor'a ve aramaya girmez. Yayımlanan bilginin
+   sayfasında "Kaynak: Confluence · sürüm · tarih" satırı ve kaynağa bağlantı görünür. Aynı sayfa/issue tekrar
+   alınırsa METIS var olan bilgiyi gösterir ve **güncelleme taslağı** hazırlar (yeni sayfa açılmaz).
+
 ## 11. Sorun giderme
 
 | Belirti | Bakılacak yer |
@@ -246,6 +266,7 @@ yükseltmede hiçbir bilgiye bağlanmamış eski kaynaklar kendiliğinden tasla�
 | "Şema sürümü" uyarısı | `C:\METIS\bin\metis migrate` |
 | Giriş sonrası 403 / CSRF | `METIS_PUBLIC_URL` tarayıcıdaki adresle aynı mı? |
 | Mentor cevabı parça parça gelmiyor | ARR `responseBufferLimit=0` ve dinamik sıkıştırma kapalı mı? |
+| Dış kaynak bağlanamıyor | "ulaşılamadı" → METIS sunucusundan adrese erişim var mı; "token kabul edilmedi" → token süresi/yetkisi; "sertifika" → `METIS_CA_BUNDLE`; "izinli değil" → alan/proje izinli kapsamlarda mı |
 | Model eklenemiyor | "izin verilen ağların dışında" → adres iç ağda mı (`METIS_ENDPOINT_NETWORKS`)? https gerekiyor mu? Şirket CA'sı (`METIS_CA_BUNDLE`) |
 | Disk doluyor | `C:\METIS\data\backups` saklama süresi (`--keep-days`), günlük boyutu |
 

@@ -3376,6 +3376,11 @@ export interface components {
             /** Existing Title */
             existing_title?: string | null;
             /**
+             * Existing Unavailable
+             * @default false
+             */
+            existing_unavailable: boolean;
+            /**
              * Import Id
              * Format: uuid
              */
