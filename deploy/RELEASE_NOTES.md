@@ -18,6 +18,9 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
 - Kurgusal 44 soruluk sette (geliştirme): MRR 0,900 → 0,932, nDCG@10 0,919 → 0,944, doğru bilgi ilk 5'te 0,977 (aynı),
   beklenen metin ilk 5'te 0,805 (önce ölçülemiyordu). **Gerçek içerikte ölçülmedi.** Şema 0011; yükseltmede mevcut
   yayın bölümlere indekslenir.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi (testler dahil); aynı commit'te CI yeşil (uçtan uca + temiz Windows Server'da
+  kurulum/yükseltme). Çift tıklamada yükseltme sorusu çıktı; yükseltmenin kendisi bu sürümde o bilgisayarda **denenmedi**
+  (sorunun önüne geçen Windows giriş penceresine erişim verilmedi; ürün sahibinin "beklemeden yayımla" kararıyla istisna).
 
 **2.0.18 — Confluence ve GitLab'dan taslak:**
 - **Ayarlar → Dış kaynaklar** (yalnız yönetici): Confluence Server/Data Center ve GitLab bağlantıları; token şifreli
