@@ -71,3 +71,11 @@ def test_summary_and_multiword_alias_still_found(corpus):  # noqa: ANN001
     )  # fmt: skip
     assert page in [h["page_id"] for h in _search(corpus["reader"], corpus["pid"], "zebrafis")]
     assert page in [h["page_id"] for h in _search(corpus["reader"], corpus["pid"], "kurgu tezgahı")]
+
+
+def test_long_question_keeps_symbol_hit_and_drops_single_common_word(corpus):  # noqa: ANN001
+    """Doğal dil sorusunda (4+ içerik sözcüğü) tek sık sözcükle eşleşen sayfa düşer; tanımlayıcı isabeti kalır."""
+    page = _publish(corpus["contributor"], corpus["pid"], "Kurgusal saat seçimi", "Saat kaynağı `KURGU_SAAT_SEL` yazmacıyla seçilir.")
+    hits = [h["page_id"] for h in _search(corpus["reader"], corpus["pid"], "kart açılırken KURGU_SAAT_SEL hangi değeri alır acaba")]
+    assert page in hits
+    assert _search(corpus["reader"], corpus["pid"], "uzay aracı yakıtı nasıl seçilir bilmiyorum") == []

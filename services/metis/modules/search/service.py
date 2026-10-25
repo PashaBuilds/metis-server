@@ -146,6 +146,26 @@ def _trgm(db: Session) -> bool:
     return bool(db.execute(text("SELECT 1 FROM pg_extension WHERE extname='pg_trgm'")).scalar())
 
 
+def _coverage(db: Session, page_ids: list[uuid.UUID], terms: list[str]) -> dict[uuid.UUID, int]:
+    """Sayfa başına sorgu sözcüklerinden kaçının sayfada (başlık, metin ya da blok zenginleştirmesi) geçtiği."""
+    if not page_ids or not terms:
+        return {}
+    rows = db.execute(
+        text(
+            """
+            SELECT d.page_id,
+                   (SELECT count(*) FROM unnest(CAST(:t AS text[]), CAST(:ft AS text[])) AS u(t, ft)
+                     WHERE d.tsv_turkish @@ plainto_tsquery('turkish', u.t) OR d.tsv_simple @@ plainto_tsquery('simple', u.t)
+                        OR EXISTS (SELECT 1 FROM search_passages sp WHERE sp.page_id = d.page_id
+                                     AND (sp.tsv_simple @@ plainto_tsquery('simple', u.ft) OR sp.tsv_turkish @@ plainto_tsquery('turkish', u.t))))
+            FROM search_documents d WHERE d.page_id = ANY(CAST(:ids AS uuid[]))
+            """
+        ),
+        {"t": terms, "ft": [fold(t) for t in terms], "ids": page_ids},
+    ).all()
+    return {pid: int(n) for pid, n in rows}
+
+
 def search(
     db: Session,
     user: User,
@@ -205,6 +225,7 @@ def search(
                + 0.5 * (ts_rank_cd(d.tsv_simple, q.qsr) + ts_rank_cd(d.tsv_turkish, q.qt))
                {fuzzy_sql}
                ) AS score,
+               EXISTS (SELECT 1 FROM unnest(d.aliases) a3 WHERE lower(a3) = ANY(CAST(:words AS text[]))) AS alias_hit,
                a.best_claims, a.best_body, a.best_heading,
                CASE WHEN a.best_body IS NOT NULL
                     THEN ts_headline('turkish', a.best_body, q.qt, 'MaxWords=28, MinWords=12, StartSel=«, StopSel=»')
@@ -232,6 +253,13 @@ def search(
     if kind:
         params["kind"] = kind
     rows = [dict(r) for r in db.execute(sql, params).mappings().all()]
+    # Kapsam: 4+ içerik sözcüklü (doğal dil) soruda yalnız metinle bulunan sayfa en az 2 sözcüğü içermeli; kısa, anahtar
+    # sözcük gibi sorularda ("buton debounce süresi") tek ayırt edici eşleşme yeter. Konu dışı soruda tek bir
+    # sık sözcük ("yapılır", "var", "is") isabet üretmez; tanımlayıcı ve eş ad isabetleri bu kuraldan muaftır.
+    if len(set(parsed.words)) >= 4:
+        weak = [r["page_id"] for r in rows if not r["matched"] and not r["alias_hit"]]
+        cover = _coverage(db, weak, parsed.expanded)
+        rows = [r for r in rows if r["page_id"] not in cover or cover[r["page_id"]] >= 2]
     dense_res = dense_search(db, project_id, q) if dense else DenseResult("unavailable", [])
     rows = _fuse(db, project_id, rows, dense_res, kind)
     hidden = unreadable_revisions(db, user, project_id, [r["revision_id"] for r in rows])
