@@ -4649,6 +4649,7 @@
               "type": "string"
             },
             "maxItems": 10,
+            "minItems": 1,
             "title": "Expected Page Ids",
             "type": "array"
           },
@@ -4678,7 +4679,8 @@
           }
         },
         "required": [
-          "question"
+          "question",
+          "expected_page_ids"
         ],
         "title": "QuestionIn",
         "type": "object"
@@ -4696,6 +4698,7 @@
               "type": "string"
             },
             "maxItems": 10,
+            "minItems": 1,
             "title": "Expected Page Ids",
             "type": "array"
           },
@@ -4731,6 +4734,7 @@
         },
         "required": [
           "question",
+          "expected_page_ids",
           "id",
           "created_at"
         ],

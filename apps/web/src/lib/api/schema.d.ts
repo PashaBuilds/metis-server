@@ -3548,7 +3548,7 @@ export interface components {
         /** QuestionIn */
         QuestionIn: {
             /** Expected Page Ids */
-            expected_page_ids?: string[];
+            expected_page_ids: string[];
             /**
              * Expected Quote
              * @default
@@ -3571,7 +3571,7 @@ export interface components {
              */
             created_at: string;
             /** Expected Page Ids */
-            expected_page_ids?: string[];
+            expected_page_ids: string[];
             /**
              * Expected Quote
              * @default

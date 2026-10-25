@@ -22,7 +22,7 @@ Kind = Literal["tanimlayici", "kavram", "nasil", "issue", "karisik"]
 
 class QuestionIn(BaseModel):
     question: str = Field(min_length=2, max_length=500)
-    expected_page_ids: list[uuid.UUID] = Field(default_factory=list, max_length=10)
+    expected_page_ids: list[uuid.UUID] = Field(min_length=1, max_length=10)
     expected_quote: str = Field(default="", max_length=1000)
     kind: Kind = "kavram"
 

@@ -12,7 +12,6 @@ asla NO_EVIDENCE ile karıştırılmaz. Sessiz fallback yok: seçilen model uygu
 
 from __future__ import annotations
 
-import re
 import time
 import uuid
 from collections.abc import Callable
@@ -50,6 +49,7 @@ from metis.llm.validators import valid_source_selection, validate_answer
 from metis.modules.lab.service import eligibility, route
 from metis.modules.mentor import schemas
 from metis.modules.scopes.semantics import DIMENSIONS, matches_scope, mismatched_dimensions, normalize_scope
+from metis.modules.search.index import is_heading_block
 from metis.modules.sources.locator import locator_label
 
 TOP_K = 12
@@ -57,7 +57,6 @@ SHORT_PAGE = 8  # bu kadar bloğu olan sayfa pakete olduğu gibi girer
 BEST_PER_PAGE = 6
 MAX_BUNDLE = 40
 RELATED_PASSAGES = 5
-_HEADING_RE = re.compile(r"^#{1,6}\s")
 SELECTION_THRESHOLD = 8
 EXCLUDED_SUPPORT = ("unsupported", "conflicting")
 
@@ -68,27 +67,57 @@ def _noop(_e: str, _d: dict) -> None:
     return None
 
 
-def select_blocks(rows: list[dict], best: list[str]) -> list[dict]:
-    """Uzun sayfanın ilgili blokları: en iyi 6 blok + komşuları (ord±1) + her birinin önündeki en yakın başlık bloğu.
-    Kısa sayfa (≤ 8 blok) olduğu gibi; blok sıralaması yoksa (yalnız başlık/alias eşleşmesi) ilk 8 blok."""
+def block_priority(rows: list[dict], best: list[str]) -> list[dict]:
+    """Sayfanın paket adayı bloklarını öncelik sırasıyla döner: her en iyi blok için önce kendisi, sonra önündeki en yakın
+    başlık, sonra komşuları (ord±1); en çok 6 en iyi blok. Kısa sayfa (≤ 8 blok) sırasıyla; blok sıralaması yoksa
+    (yalnız başlık/alias eşleşmesi) ilk 8 blok."""
     if len(rows) <= SHORT_PAGE:
-        return rows
+        return list(rows)
     by_id = {r["claim_id"]: r for r in rows}
-    ords = sorted(r["ord"] for r in rows)
-    headings = sorted(r["ord"] for r in rows if _HEADING_RE.match(r["statement"]) and "\n" not in r["statement"].strip())
-    chosen: set[int] = set()
+    by_ord = {r["ord"]: r for r in rows}
+    headings = sorted(o for o, r in by_ord.items() if is_heading_block(r["statement"]))
+    out: list[dict] = []
+    seen: set[int] = set()
+
+    def take(o: int) -> None:
+        if o in by_ord and o not in seen:
+            seen.add(o)
+            out.append(by_ord[o])
+
     for cid in best[:BEST_PER_PAGE]:
         r = by_id.get(cid)
         if r is None:
             continue
         o = r["ord"]
-        chosen.update(x for x in (o - 1, o, o + 1) if x in ords)
+        take(o)
         prev = [h for h in headings if h <= o]
         if prev:
-            chosen.add(prev[-1])
-    if not chosen:
-        chosen = set(ords[:SHORT_PAGE])
-    return sorted((r for r in rows if r["ord"] in chosen), key=lambda r: r["ord"])
+            take(prev[-1])
+        take(o - 1)
+        take(o + 1)
+    if not out:
+        return sorted(rows, key=lambda r: r["ord"])[:SHORT_PAGE]
+    return out
+
+
+def select_blocks(rows: list[dict], best: list[str]) -> list[dict]:
+    """Tek sayfanın seçilen blokları, not sırasıyla."""
+    return sorted(block_priority(rows, best), key=lambda r: r["ord"])
+
+
+def allocate(pages: list[tuple[list[dict], list[str]]], cap: int = MAX_BUNDLE) -> list[list[dict]]:
+    """Paket payını sayfalara sırayla birer blok dağıtır (önce her sayfanın en iyi bloğu): sıralamada geride kalan sayfanın
+    cevap bloğu, öndeki uzun sayfalar yüzünden paketten düşmez. Her sayfanın seçimi not sırasıyla döner."""
+    queues = [block_priority(rows, best) for rows, best in pages]
+    chosen: list[list[dict]] = [[] for _ in pages]
+    total, round_ = 0, 0
+    while total < cap and any(round_ < len(q) for q in queues):
+        for i, q in enumerate(queues):
+            if round_ < len(q) and total < cap:
+                chosen[i].append(q[round_])
+                total += 1
+        round_ += 1
+    return [sorted(c, key=lambda r: r["ord"]) for c in chosen]
 
 
 def _bundle_for(db: Session, user: User, page: Page, rev: PageRevision) -> list[dict]:
@@ -187,6 +216,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
         "error": None,
     }
     bundle: list[dict] = []
+    pending: list[tuple[schemas.RelatedPage, list[dict], list[str]]] = []  # pakete aday sayfalar (arama sırasıyla)
     passages: list[dict] = []  # model yokken gösterilecek ilgili yayımlanmış bölümler (cevap değildir)
     candidate_revisions: list[uuid.UUID] = []
     pending_conflict: dict | None = None
@@ -235,16 +265,22 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                         related.excluded = "dependency_changed"  # kaynağı değişen sayfa mentor tarafından kullanılmaz
                         state["related"].append(related)
                         continue
-                    claims = select_blocks(_bundle_for(db, user, page, rev), [str(c) for c in h.best_claims])
+                    claims = _bundle_for(db, user, page, rev)
                     if not claims:
                         related.excluded = "no_verbatim_claims"
-                    bundle.extend(claims[: max(0, MAX_BUNDLE - len(bundle))])
+                    else:
+                        pending.append((related, claims, [str(c) for c in h.best_claims]))
                     if h.passage_text and h.best_claims and len(passages) < RELATED_PASSAGES:
                         passages.append(
                             {"page_id": str(page.id), "title": rev.title, "heading_path": h.heading_path, "text": h.passage_text, "claim_id": str(h.best_claims[0]), "revision_id": str(rev.id)}
                         )
                     state["related"].append(related)
                     state["unknowns"].extend(u for u in (rev.unknowns or []) if u not in state["unknowns"])
+                for (related, _rows, _best), chosen in zip(pending, allocate([(r, b) for _, r, b in pending]), strict=True):
+                    if chosen:
+                        bundle.extend(chosen)
+                    else:
+                        related.excluded = "bundle_limit"  # paket sınırı: daha ilgili sayfalar öncelikli
                 emit("sources", {"related": [r.model_dump(mode="json") for r in state["related"]]})
                 conflict = _open_conflict(db, project_id, [r.page_id for r in state["related"] if not r.excluded])
                 if conflict is not None and bundle:

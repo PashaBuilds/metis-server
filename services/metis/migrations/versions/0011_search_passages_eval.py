@@ -51,6 +51,7 @@ def upgrade() -> None:
         sa.Column("claim_id", sa.UUID(), nullable=False),
         sa.Column("ord", sa.Integer(), nullable=False),
         sa.Column("heading_path", sa.Text(), nullable=False, server_default=""),
+        sa.Column("is_heading", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("body", sa.Text(), nullable=False),
         sa.Column("symbols", ARRAY(sa.Text()), nullable=False, server_default="{}"),
         sa.Column("scope", JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),

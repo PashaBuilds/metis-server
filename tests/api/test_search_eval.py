@@ -47,8 +47,12 @@ def test_eval_metrics_math():
 
 
 def test_eval_api_roles(team):  # noqa: ANN001
+    from tests.api.test_search_blocks import _publish
+
     pid = team["pid"]
-    body = {"question": "PCIe neden Gen1'de?", "expected_page_ids": [], "expected_quote": "", "kind": "issue"}
+    assert team["admin"].patch(f"/api/v1/projects/{pid}", json={"review_policy": "self_publish"}).status_code == 200
+    page = _publish(team["contributor"], pid, "PCIe notu", "Bağlantı Gen1'de kalırsa SSC kapatılır.")
+    body = {"question": "PCIe neden Gen1'de?", "expected_page_ids": [page], "expected_quote": "", "kind": "issue"}
     assert team["reader"].post(f"/api/v1/projects/{pid}/search-eval/questions", json=body).status_code == 403
     assert team["contributor"].post(f"/api/v1/projects/{pid}/search-eval/questions", json=body).status_code == 403
     r = team["admin"].post(f"/api/v1/projects/{pid}/search-eval/questions", json=body)
@@ -77,3 +81,17 @@ def test_corpus_baseline(team, capsys):  # noqa: ANN001
         print("\nARAMA ÖLÇÜMÜ", json.dumps({k: v for k, v in m.items() if k != "by_kind"}, ensure_ascii=False))
         print("TÜR", json.dumps(m["by_kind"], ensure_ascii=False))
         print("KAÇAN", [r["question"] for r in res.per_question if not r["rank"] or r["rank"] > 5])
+
+
+def test_quote_miss_counts_when_blocks_supported():
+    qs = [EvalQuestion(id="1", question="a", expected_page_ids=[A], expected_quote="beklenen metin", kind="kavram")]
+
+    def run(db, user, project_id, q, scope=None, kind=None, limit=20):  # noqa: ANN001, ANN202
+        return SimpleNamespace(hits=[SimpleNamespace(page_id=A, passage_text=None)])  # yalnız başlıkla bulundu
+
+    assert evaluate(None, None, None, qs, search_fn=run).metrics["quote_at_5"] == 0
+
+
+def test_question_needs_expected_page(team):  # noqa: ANN001
+    body = {"question": "Boş beklenti", "expected_page_ids": [], "expected_quote": "", "kind": "kavram"}
+    assert team["admin"].post(f"/api/v1/projects/{team['pid']}/search-eval/questions", json=body).status_code == 422

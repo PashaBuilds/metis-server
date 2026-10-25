@@ -865,6 +865,7 @@ export const tr = {
     unknowns: 'Bildiklerimizin sınırı',
     related: 'İlgili okuma',
     relatedExcluded: {
+      bundle_limit: 'Cevap için daha ilgili bölümler öncelikli kullanıldı (paket sınırı)',
       dependency_changed: 'Kaynağı değişti; cevapta kullanılmadı.',
       no_verbatim_claims: 'Kaynakta birebir geçen iddiası yok; cevapta kullanılmadı.',
     } as Record<string, string>,

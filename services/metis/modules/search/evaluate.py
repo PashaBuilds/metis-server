@@ -62,10 +62,10 @@ def evaluate(db, user, project_id, questions: list[EvalQuestion], search_fn: Cal
         idcg = sum(1 / math.log2(i + 2) for i in range(min(len(expected), 10)))
         quote_hit: int | None = None
         if q.expected_quote:
-            passages = [getattr(h, "passage_text", None) for h in hits[:5]]
-            if all(p is None for p in passages) and hits:
+            if hits and not hasattr(hits[0], "passage_text"):
                 quote_hit = None  # arama blok bilgisi vermiyor: ölçülmedi
-            else:
+            else:  # blok bilgisi var: ilk 5'te yoksa (ya da yalnız başlıkla bulunduysa) ıska sayılır
+                passages = [getattr(h, "passage_text", None) for h in hits[:5]]
                 quote_hit = int(any(p and _norm(q.expected_quote) in _norm(p) for p in passages))
         rows.append(
             {

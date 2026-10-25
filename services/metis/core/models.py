@@ -1124,6 +1124,8 @@ class SearchPassage(Base):
     claim_id: Mapped[uuid.UUID] = fk("claims.id", index=False)
     ord: Mapped[int] = mapped_column(Integer, nullable=False)
     heading_path: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Başlık bloğu (`## …`) puana katılır ama gösterilen/alıntılanan en iyi blok olarak seçilmez.
+    is_heading: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     symbols: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list)
     scope: Mapped[dict] = jsonb()

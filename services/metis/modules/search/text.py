@@ -3,7 +3,12 @@ eşleşir. İndekste ve sorguda aynı işlev kullanılır; `turkish` kanalı (k�
 
 from __future__ import annotations
 
-_FOLD = str.maketrans({"İ": "i", "I": "i", "ı": "i", "Ğ": "g", "ğ": "g", "Ş": "s", "ş": "s", "Ç": "c", "ç": "c", "Ö": "o", "ö": "o", "Ü": "u", "ü": "u"})
+_FOLD = str.maketrans({"İ": "i", "I": "i", "ı": "i", "Ğ": "g", "ğ": "g", "Ş": "s", "ş": "s", "Ç": "c", "ç": "c", "Ö": "o", "ö": "o", "Ü": "u", "ü": "u", "̇": None})
+
+
+def lower_tr(text: str) -> str:
+    """Küçük harfe çevirir; "İ" → "i" (casefold "İ"yi "i" + birleşik nokta yapar, sözcük bölünürdü)."""
+    return (text or "").replace("İ", "i").casefold()
 
 
 def fold(text: str) -> str:

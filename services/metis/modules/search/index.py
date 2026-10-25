@@ -78,6 +78,10 @@ def aliases_for(title: str, explicit: list[str], text: str) -> list[str]:
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 
 
+def is_heading_block(statement: str) -> bool:
+    return "\n" not in statement.strip() and bool(_HEADING.match(statement))
+
+
 def heading_paths(statements: list[str]) -> list[str]:
     """Not bloklarının başlık yolu ("PCIe › Saat › Sıfırlama"). Tek satırlık `#` bloğu başlıktır ve kendi yolunu taşır."""
     stack: list[tuple[int, str]] = []
@@ -126,6 +130,7 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
                     claim_id=c.id,
                     ord=c.ord,
                     heading_path=path,
+                    is_heading=is_heading_block(c.statement),
                     body=c.statement,
                     symbols=extract_symbols(c.statement),
                     scope=rev.scope,

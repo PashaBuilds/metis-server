@@ -2,6 +2,8 @@
 
 FTS blok düzeyindedir (search_passages, 2026-10-25): sayfa puanı en iyi bloğundan (+ ikinci blok × 0.25) gelir; uzun
 sayfada isabetli paragraf sayfanın geri kalanı içinde erimez. `simple` kanalı Türkçe harfleri katlar (search.text.fold).
+Sayfa düzeyi FTS (özet, görsel açıklamaları, alias'lar) düşük ağırlıklı yedektir (× 0.5). Gösterilen en iyi blok başlık
+satırı değil, başlığın altındaki bloktur.
 
 `pg_trgm` varsa bulanık sembol eşleşmesi eklenir; yoksa kapalıdır (UI "bulanık arama kullanılamıyor" der).
 Erişim: erişilemeyen kaynağa dayanan sayfa sonuçta görünmez (sayıya da girmez).
@@ -21,7 +23,7 @@ from metis.core.access import require_member, unreadable_revisions
 from metis.core.models import User
 from metis.modules.scopes.semantics import matches_scope
 from metis.modules.search.index import is_symbol, terminology
-from metis.modules.search.text import fold
+from metis.modules.search.text import fold, lower_tr
 
 TOKEN_RE = re.compile(r"[\w]+(?:\(\))?", re.UNICODE)
 STOP = {
@@ -78,10 +80,10 @@ class ParsedQuery:
 def parse_query(q: str) -> ParsedQuery:
     raw = [t for t in TOKEN_RE.findall(q or "")]
     symbols = [t.rstrip("()") for t in raw if is_symbol(t)]
-    words = [t.casefold() for t in raw if t.casefold() not in STOP and len(t) >= 2]
+    words = [lower_tr(t) for t in raw if lower_tr(t) not in STOP and len(t) >= 2]
     terms = terminology()
     expanded: dict[str, None] = {w: None for w in words}
-    lowered = (q or "").casefold()
+    lowered = lower_tr(q or "")
     for term, syns in terms.items():
         if re.search(rf"(?<!\w){re.escape(term)}", lowered):
             for s in syns:
@@ -120,10 +122,11 @@ def search(
     sql = text(
         f"""
         WITH q AS (
-          SELECT websearch_to_tsquery('simple', :oqs) AS qs, websearch_to_tsquery('turkish', :oq) AS qt
+          SELECT websearch_to_tsquery('simple', :oqs) AS qs, websearch_to_tsquery('turkish', :oq) AS qt,
+                 websearch_to_tsquery('simple', :oq) AS qsr
         ),
         p AS (
-          SELECT sp.page_id, sp.claim_id, sp.ord, sp.heading_path, sp.body,
+          SELECT sp.page_id, sp.claim_id, sp.ord, sp.heading_path, sp.body, sp.is_heading,
                  ts_rank_cd(sp.tsv_simple, q.qs) * 2 + ts_rank_cd(sp.tsv_turkish, q.qt) * 2
                  + CASE WHEN sp.symbols && CAST(:symbols AS text[]) THEN 5 ELSE 0 END AS ps
           FROM search_passages sp, q
@@ -131,15 +134,16 @@ def search(
             AND (sp.tsv_simple @@ q.qs OR sp.tsv_turkish @@ q.qt OR sp.symbols && CAST(:symbols AS text[]))
         ),
         ranked AS (
-          SELECT p.*, row_number() OVER (PARTITION BY page_id ORDER BY ps DESC, ord) AS rn FROM p
+          SELECT p.*, row_number() OVER (PARTITION BY page_id ORDER BY ps DESC, ord) AS rn,
+                 row_number() OVER (PARTITION BY page_id ORDER BY is_heading, ps DESC, ord) AS dn FROM p
         ),
         agg AS (
           SELECT page_id,
                  max(ps) FILTER (WHERE rn = 1) AS best,
                  coalesce(max(ps) FILTER (WHERE rn = 2), 0) AS second,
-                 (array_agg(claim_id ORDER BY ps DESC, ord))[1:8] AS best_claims,
-                 max(body) FILTER (WHERE rn = 1) AS best_body,
-                 max(heading_path) FILTER (WHERE rn = 1) AS best_heading
+                 (array_agg(claim_id ORDER BY is_heading, ps DESC, ord))[1:8] AS best_claims,
+                 max(body) FILTER (WHERE dn = 1) AS best_body,
+                 max(heading_path) FILTER (WHERE dn = 1) AS best_heading
           FROM ranked GROUP BY page_id
         )
         SELECT d.page_id, d.revision_id, d.title, d.kind, d.scope,
@@ -148,6 +152,7 @@ def search(
                + CASE WHEN d.title ILIKE ANY(CAST(:likes AS text[])) THEN 4 ELSE 0 END
                + CASE WHEN EXISTS (SELECT 1 FROM unnest(d.aliases) a WHERE lower(a) = ANY(CAST(:words AS text[]))) THEN 3 ELSE 0 END
                + coalesce(a.best, 0) + 0.25 * coalesce(a.second, 0)
+               + 0.5 * (ts_rank_cd(d.tsv_simple, q.qsr) + ts_rank_cd(d.tsv_turkish, q.qt))
                {fuzzy_sql}
                ) AS score,
                a.best_claims, a.best_body, a.best_heading,
@@ -157,6 +162,7 @@ def search(
         FROM search_documents d CROSS JOIN q LEFT JOIN agg a ON a.page_id = d.page_id
         WHERE d.project_id = :project_id
           AND (a.page_id IS NOT NULL OR d.symbols && CAST(:symbols AS text[])
+               OR d.tsv_simple @@ q.qsr OR d.tsv_turkish @@ q.qt
                OR d.title ILIKE ANY(CAST(:likes AS text[]))
                OR EXISTS (SELECT 1 FROM unnest(d.aliases) a2 WHERE lower(a2) = ANY(CAST(:words AS text[])))
                {"OR EXISTS (SELECT 1 FROM unnest(d.symbols) s, unnest(CAST(:symbols AS text[])) sym WHERE similarity(s, sym) > 0.45)" if fuzzy and parsed.symbols else ""})
