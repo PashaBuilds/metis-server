@@ -13,6 +13,11 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
 - Kurgusal 44 soruluk sette (yalnız kelime araması): konu dışı 8 sorudan 5'indeki yanlış isabet 0'a indi; MRR 0,932 → 0,943,
   nDCG@10 0,944 → 0,952, doğru bilgi ilk 5'te 0,977 (aynı). Vektörle birlikte sonuçlar aynı. **Gerçek içerikte ölçülmedi**;
   eşik bu kurgusal setle seçildi.
+- Vektör modeli eklentisi (`METIS-vektor-modeli-e5-base-1.zip`, 2.0.20 ile aynı dosya) bu sürüme de eklendi.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi (testler dahil); aynı commit'te CI yeşil (uçtan uca + temiz Windows Server'da
+  kurulum/yükseltme). Çift tıklamada yükseltme sorusu → Yes denendi; yönetici izni onaylanamadığı için yükseltmenin kendisi
+  bu sürümde o bilgisayarda **denenmedi** (ürün sahibinin "beklemeden yayımla" kararıyla istisna). 2.0.22 aynı bilgisayarda
+  ürün sahibince gerçek olarak yükseltildi (2.0.18 → 2.0.22); 2.0.23'te şema değişikliği yok.
 
 **2.0.22 — Bağlantılı bilgiler (modelsiz):**
 - Bilgi sayfasının altında **Bağlantılı bilgiler**: notta adresi geçen ve METIS'e daha önce alınmış Confluence sayfası /
