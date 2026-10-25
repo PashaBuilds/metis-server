@@ -56,6 +56,8 @@ class SystemStatus(BaseModel):
     last_backup: dict | None
     fuzzy_search_available: bool
     model_endpoints: list[ModelEndpointStatus]
+    # Vektör arama: state absent (model kurulu değil) | error (yüklenemedi; reason) | ready; blok kapsaması
+    vector_search: dict = {}
 
 
 def last_backup_info() -> dict | None:
@@ -70,6 +72,25 @@ def last_backup_info() -> dict | None:
 
 def trgm_available(db: Session) -> bool:
     return bool(db.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm'")).scalar())
+
+
+def _vector_status(db: Session) -> dict:
+    from sqlalchemy import text
+
+    from metis.modules.search.embedding import embedder_status
+
+    st = embedder_status()
+    total = db.scalar(text("SELECT count(*) FROM search_passages")) or 0
+    done = 0
+    if st["state"] == "ready":
+        done = db.scalar(
+            text(
+                "SELECT count(*) FROM search_passages sp WHERE EXISTS "
+                "(SELECT 1 FROM passage_vectors pv WHERE pv.model_id = :m AND pv.text_sha256 = sp.embed_sha256)"
+            ),
+            {"m": st["model_id"]},
+        ) or 0
+    return {**st, "blocks_total": int(total), "blocks_embedded": int(done)}
 
 
 def status(db: Session, user: User) -> SystemStatus:
@@ -141,5 +162,6 @@ def status(db: Session, user: User) -> SystemStatus:
         disk_total_bytes=total,
         last_backup=last_backup_info(),
         fuzzy_search_available=trgm_available(db),
+        vector_search=_vector_status(db),
         model_endpoints=endpoints,
     )

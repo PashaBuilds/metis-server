@@ -4064,6 +4064,11 @@ export interface components {
         };
         /** SearchOut */
         SearchOut: {
+            /**
+             * Dense
+             * @default unavailable
+             */
+            dense: string;
             /** Fuzzy Available */
             fuzzy_available: boolean;
             /** Hits */
@@ -4271,6 +4276,13 @@ export interface components {
             queue_waiting: number;
             /** Running Jobs */
             running_jobs: number;
+            /**
+             * Vector Search
+             * @default {}
+             */
+            vector_search: {
+                [key: string]: unknown;
+            };
             /** Version */
             version: string;
         };

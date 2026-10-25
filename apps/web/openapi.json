@@ -5736,6 +5736,11 @@
       },
       "SearchOut": {
         "properties": {
+          "dense": {
+            "default": "unavailable",
+            "title": "Dense",
+            "type": "string"
+          },
           "fuzzy_available": {
             "title": "Fuzzy Available",
             "type": "boolean"
@@ -6251,6 +6256,12 @@
           "running_jobs": {
             "title": "Running Jobs",
             "type": "integer"
+          },
+          "vector_search": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Vector Search",
+            "type": "object"
           },
           "version": {
             "title": "Version",

@@ -47,3 +47,18 @@ def test_no_model_no_work(team):  # noqa: ANN001
     embedding.reset()
     with transaction() as db:
         assert embed_missing(db) == 0
+
+
+def test_system_status_reports_vector_search(team, fake):  # noqa: ANN001
+    pid = team["pid"]
+    assert team["admin"].patch(f"/api/v1/projects/{pid}", json={"review_policy": "self_publish"}).status_code == 200
+    publish_corpus(team["contributor"], pid)
+    st = team["admin"].get("/api/v1/system/status").json()["vector_search"]
+    assert st["state"] == "ready" and st["model_id"] == fake.model_id and st["blocks_embedded"] == 0 and st["blocks_total"] > 0
+    with transaction() as db:
+        while embed_missing(db, limit=100):
+            pass
+    st = team["admin"].get("/api/v1/system/status").json()["vector_search"]
+    assert st["blocks_embedded"] == st["blocks_total"]
+    embedding.reset()
+    assert team["admin"].get("/api/v1/system/status").json()["vector_search"]["state"] == "absent"

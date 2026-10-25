@@ -173,6 +173,9 @@ export function SystemTab() {
                 {backupSize != null && <span className={s.hintInline}>{formatBytes(backupSize)}</span>}
               </span> : <StatusBadge tone="dikkat" size="sm" label={x.backupNone} />}</Fact>
           <Fact label={x.fuzzy}>{d.fuzzy_search_available ? <StatusBadge tone="onay" size="sm" label={x.fuzzyOn} /> : <StatusBadge tone="dikkat" size="sm" label={x.fuzzyOff} />}</Fact>
+          <Fact label={x.vector}>
+            <VectorStatus v={d.vector_search ?? {}} />
+          </Fact>
         </dl>
       </section>
       <section className={s.block} aria-labelledby="sys-ep">
@@ -312,4 +315,17 @@ export function ExportTab() {
       <p className={s.hint}>{tr.settingsExtra.exportNote}</p>
     </section>
   );
+}
+
+/** Vektör arama: model kurulu mu, kaç bölümün vektörü hazır. Model yoksa METIS yalnız kelime aramasıyla çalışır. */
+function VectorStatus({ v }: { v: Record<string, unknown> }) {
+  const x = tr.settingsExtra;
+  const state = typeof v.state === 'string' ? v.state : 'absent';
+  const total = typeof v.blocks_total === 'number' ? v.blocks_total : 0;
+  const done = typeof v.blocks_embedded === 'number' ? v.blocks_embedded : 0;
+  if (state === 'ready') {
+    return done >= total ? <StatusBadge tone="onay" size="sm" label={x.vectorReady(String(v.model_id ?? ''))} /> : <StatusBadge tone="inceleme" size="sm" label={x.vectorPartial(done, total)} />;
+  }
+  if (state === 'error') return <StatusBadge tone="celiski" size="sm" label={x.vectorError(String(v.reason ?? ''))} />;
+  return <StatusBadge tone="taslak" size="sm" label={x.vectorAbsent} />;
 }
