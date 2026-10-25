@@ -16,6 +16,11 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
   karşılaştırılabilir. Şema 0012.
 - Kurgusal 44 soruluk sette gerçek modelle: MRR 0,932 → 0,955, nDCG@10 0,944 → 0,960, doğru bilgi ilk 5'te 0,977 (aynı).
   **Gerçek içerikte ölçülmedi.** Paket boyutu 36 → 71 MB (onnxruntime, tokenizers, numpy).
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi (testler dahil); aynı commit'te CI yeşil (uçtan uca + temiz Windows Server'da
+  kurulum/yükseltme). Çift tıklamada yükseltme sorusu → Yes denendi; yönetici izni onaylanamadığı için yükseltmenin kendisi
+  bu sürümde o bilgisayarda **denenmedi** (ürün sahibinin "beklemeden yayımla" kararıyla istisna). Model eklentisinin
+  kurulum betiği yalnız yönetici olmayan kabukta denendi (açık hatayla durdu); yönetici yolu **denenmedi**. Model, geliştirme
+  sunucusu ve worker'la gerçek olarak çalıştırıldı.
 
 **2.0.19 — Bölüm düzeyinde arama ve arama ölçümü:**
 - Arama artık her bilginin **bölümlerini** (notun paragrafları, başlık yoluyla) puanlar: uzun bir dokümanda (ör. içe
