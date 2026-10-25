@@ -4,6 +4,16 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.23 — Konu dışı soruda yanlış isabet yok:**
+- Arama artık uzun, doğal dille sorulmuş bir soruda tek bir sık sözcük ("yapılır", "var") yüzünden ilgisiz bilgi getirmez:
+  dört ve daha fazla anlamlı sözcüklü soruda, yalnız metinle bulunan bilginin en az iki sözcüğü (eş anlamlısıyla) içermesi
+  gerekir. Kısa, anahtar sözcük gibi aramalar ("buton debounce süresi") ve tanımlayıcı (yazmaç, fonksiyon, hata kodu)
+  isabetleri etkilenmez. Mentor da bu yüzden konu dışı soruda ilgisiz bölüm yerine "kanıt yok" der.
+- "is", "of", "bu", "çok" gibi işlev sözcükleri aramada sayılmaz (İngilizce ya da karışık sorular da doğru bilgiyi bulur).
+- Kurgusal 44 soruluk sette (yalnız kelime araması): konu dışı 8 sorudan 5'indeki yanlış isabet 0'a indi; MRR 0,932 → 0,943,
+  nDCG@10 0,944 → 0,952, doğru bilgi ilk 5'te 0,977 (aynı). Vektörle birlikte sonuçlar aynı. **Gerçek içerikte ölçülmedi**;
+  eşik bu kurgusal setle seçildi.
+
 **2.0.22 — Bağlantılı bilgiler (modelsiz):**
 - Bilgi sayfasının altında **Bağlantılı bilgiler**: notta adresi geçen ve METIS'e daha önce alınmış Confluence sayfası /
   GitLab issue'su ("Notta adresi geçiyor"; GitLab issue'sundan alınmış bilgide `#123` aynı projenin issue'su sayılır, kod
