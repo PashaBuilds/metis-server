@@ -257,6 +257,13 @@ yükseltmede hiçbir bilgiye bağlanmamış eski kaynaklar kendiliğinden tasla�
    sayfasında "Kaynak: Confluence · sürüm · tarih" satırı ve kaynağa bağlantı görünür. Aynı sayfa/issue tekrar
    alınırsa METIS var olan bilgiyi gösterir ve **güncelleme taslağı** hazırlar (yeni sayfa açılmaz).
 
+### 10b. Arama ölçümü (2.0.19'dan beri)
+
+**Model laboratuvarı → Arama ölçümü** (yönetici ve proje sorumlusu): ekibin gerçekten sorduğu sorular, her biri için
+cevabın bulunduğu bilgi (ve isteğe bağlı cevabın geçtiği birebir metin) eklenir; **Ölçümü çalıştır** o anki aramayla
+tüm soruları dener ve sonucu önceki ölçümle yan yana gösterir. Arama ayarı değişmeden ya da yeni bir sürümden önce/sonra
+çalıştırmak, değişikliğin işe yarayıp yaramadığını gösterir. 50+ soru güvenilir karşılaştırma için önerilir.
+
 ## 11. Sorun giderme
 
 | Belirti | Bakılacak yer |

@@ -4,6 +4,21 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.19 — Bölüm düzeyinde arama ve arama ölçümü:**
+- Arama artık her bilginin **bölümlerini** (notun paragrafları, başlık yoluyla) puanlar: uzun bir dokümanda (ör. içe
+  aktarılmış Confluence sayfası) doğru bölüm bulunur, sonuçta o bölüm gösterilir. Türkçe harfsiz yazılan sorular
+  ("saat kaynagi") ve "İ" ile başlayan sözcükler eşleşir.
+- **Mentor** uzun bir sayfanın tüm paragrafları yerine soruyla ilgili bölümlerini (+ başlığı ve komşuları) kullanır; birden
+  çok sayfa arasında pay adil dağıtılır.
+- **Model yanıt vermezse** Mentor artık yalnız sayfa listesi değil, sorunla ilgili yayımlanmış bölümleri birebir gösterir
+  ("bu bir cevap değil" etiketiyle). Karar yine "Model kullanılamıyor"dur.
+- **Model laboratuvarı → Arama ölçümü** (yönetici ve proje sorumlusu): ekibin gerçek sorularıyla arama kalitesi ölçülür
+  (doğru bilgi ilk 5/10'da, MRR, nDCG, beklenen metin ilk 5'te); önceki ölçümle yan yana. Model kullanılmaz; sorular
+  yalnız sunucuda saklanır.
+- Kurgusal 44 soruluk sette (geliştirme): MRR 0,900 → 0,932, nDCG@10 0,919 → 0,944, doğru bilgi ilk 5'te 0,977 (aynı),
+  beklenen metin ilk 5'te 0,805 (önce ölçülemiyordu). **Gerçek içerikte ölçülmedi.** Şema 0011; yükseltmede mevcut
+  yayın bölümlere indekslenir.
+
 **2.0.18 — Confluence ve GitLab'dan taslak:**
 - **Ayarlar → Dış kaynaklar** (yalnız yönetici): Confluence Server/Data Center ve GitLab bağlantıları; token şifreli
   saklanır, yalnız izinli alan/projelerden alınır. **Bağlantıyı dene** kaydetmeden sınar. Ayrıntı: KURULUM.md 10a.
