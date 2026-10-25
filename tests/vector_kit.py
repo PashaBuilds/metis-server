@@ -9,7 +9,7 @@ import numpy as np
 
 from metis.modules.search.text import fold
 
-DIM = 64
+DIM = 1024  # geniş: kova çakışması (sahte benzerlik) olmasın
 
 
 class FakeEmbedder:

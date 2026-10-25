@@ -4,6 +4,19 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.20 — Vektör (anlamsal) arama:**
+- Arama artık kelime eşleşmesinin yanında anlam benzerliğini de kullanabilir: farklı sözcüklerle ya da Türkçe–İngilizce
+  karışık sorulan sorularda doğru bölüm daha üstte çıkar. İki sıralama RRF ile birleşir; tanımlayıcı (yazmaç, fonksiyon,
+  hata kodu) birebir eşleşen bilgi her zaman en üstte kalır.
+- Model **ayrı bir dosyadır** (`METIS-vektor-modeli-e5-base-1.zip`, multilingual-e5-base, MIT): kurulmazsa METIS önceki
+  gibi yalnız kelime aramasıyla çalışır. Yerel CPU'da, internetsiz; şirket modeline bağlı değildir. Kurulum: KURULUM.md 10c.
+- Bilgi havuzunda olmayan bir soru vektörle "en yakın" sonuca dönüşmez (kalibre eşik); Mentor'un "kanıt yok" kararı korunur.
+- Ayarlar → Sistem durumu → Vektör arama (kurulu değil / hazırlanıyor n/m / açık / yüklenemedi). Mentor, vektör araması
+  hazırlanırken ya da model yüklenemediğinde bunu cevabın altında söyler. Arama ölçümünde vektör kanalı açık/kapalı
+  karşılaştırılabilir. Şema 0012.
+- Kurgusal 44 soruluk sette gerçek modelle: MRR 0,932 → 0,955, nDCG@10 0,944 → 0,960, doğru bilgi ilk 5'te 0,977 (aynı).
+  **Gerçek içerikte ölçülmedi.** Paket boyutu 36 → 71 MB (onnxruntime, tokenizers, numpy).
+
 **2.0.19 — Bölüm düzeyinde arama ve arama ölçümü:**
 - Arama artık her bilginin **bölümlerini** (notun paragrafları, başlık yoluyla) puanlar: uzun bir dokümanda (ör. içe
   aktarılmış Confluence sayfası) doğru bölüm bulunur, sonuçta o bölüm gösterilir. Türkçe harfsiz yazılan sorular

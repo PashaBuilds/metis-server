@@ -264,6 +264,22 @@ cevabın bulunduğu bilgi (ve isteğe bağlı cevabın geçtiği birebir metin) 
 tüm soruları dener ve sonucu önceki ölçümle yan yana gösterir. Arama ayarı değişmeden ya da yeni bir sürümden önce/sonra
 çalıştırmak, değişikliğin işe yarayıp yaramadığını gösterir. 50+ soru güvenilir karşılaştırma için önerilir.
 
+### 10c. Vektör arama (anlamsal arama) modeli (2.0.20'den beri, isteğe bağlı)
+
+METIS model olmadan kelime aramasıyla çalışır. Vektör arama, farklı sözcüklerle ya da Türkçe–İngilizce karışık sorulan
+soruların doğru bölümü bulmasına yardım eder; yerel CPU'da, internetsiz çalışır, şirket modeline bağlı değildir.
+
+1. GitHub sürüm sayfasından **ayrı** model dosyasını al: `METIS-vektor-modeli-e5-base-1.zip` (≈ 218 MB; yanındaki
+   `.sha256` ile doğrula). Model değişmedikçe yeni METIS sürümlerinde yeniden kurmak gerekmez.
+2. ZIP'i aç, klasöründe yönetici PowerShell ile: `powershell -ExecutionPolicy Bypass -File .\vektor-modeli-kur.ps1`
+   (model `C:\METIS\models\multilingual-e5-base`'e kopyalanır, servisler yeniden başlar).
+3. **Ayarlar → Sistem durumu → Vektör arama**: önce "Hazırlanıyor: n/m bölüm" (worker yayımlanmış bölümleri arka planda
+   işler; bu bilgisayarda bölüm başına ≈ 18 ms, 100 bin bölüm ≈ 30 dk), sonra "Açık".
+4. Etkisini ölçmek için **Model laboratuvarı → Arama ölçümü**: "Vektör kanalı açık" işaretli ve işaretsiz iki koşu.
+
+Bellek: model her METIS sürecinde (2 API + worker) ≈ 300–500 MB; aranan her proje için API sürecinde bölüm başına ≈ 3 KB
+(100 bin bölüm ≈ 300 MB). Kaldırmak için `C:\METIS\models\multilingual-e5-base` klasörünü silip servisleri yeniden başlat.
+
 ## 11. Sorun giderme
 
 | Belirti | Bakılacak yer |
