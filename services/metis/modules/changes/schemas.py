@@ -53,6 +53,8 @@ class ItemIn(BaseModel):
     figures: list[FigureIn] = Field(default_factory=list, max_length=20)
     # Ekler (görsel/PDF) — POST /projects/{pid}/attachments ile yüklenen kimlikler, sıralı; en çok 30.
     attachments: list[uuid.UUID] = Field(default_factory=list, max_length=30)
+    # Dış kaynaktan taslak: POST /projects/{pid}/external/preview kaydı (yalnız not tabanlı öğe).
+    import_id: uuid.UUID | None = None
 
 
 class RelationIn(BaseModel):

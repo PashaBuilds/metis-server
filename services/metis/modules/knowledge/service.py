@@ -34,6 +34,7 @@ from metis.core.models import (
     User,
 )
 from metis.modules.changes.service import claim_diff
+from metis.modules.external.service import origin_for_page
 from metis.modules.knowledge import schemas
 from metis.modules.knowledge.figures import FIGURE_LINE, isolate_figures
 from metis.modules.knowledge.views import revision_view
@@ -339,6 +340,7 @@ def page_detail(db: Session, user: User, page_id: uuid.UUID, rev_id: uuid.UUID |
         review_policy_badge=badge,
         open_change_ids=list(open_changes),
         note_based=page.note_source_id is not None,
+        origin=origin_for_page(db, page.id),
     )
 
 

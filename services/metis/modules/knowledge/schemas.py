@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from metis.modules.changes.schemas import ClaimDiff
+from metis.modules.external.schemas import OriginOut
 from metis.modules.knowledge.views import RevisionView
 
 
@@ -97,6 +98,8 @@ class PageDetailOut(BaseModel):
     open_change_ids: list[uuid.UUID]
     # Not tabanlı bilgi: dayanağı yazarın notu (iddialar notun paragraflarıdır; ayrı iddia listesi gösterilmez).
     note_based: bool = False
+    # Dış kaynaktan içe aktarılmış bilginin kökeni (Confluence sayfası / GitLab issue'su); yoksa boş.
+    origin: OriginOut | None = None
 
 
 class CompareOut(BaseModel):

@@ -24,6 +24,7 @@ MODULES = [
     "lab",
     "export",
     "feedback",
+    "external",
 ]
 
 

@@ -40,6 +40,7 @@ from metis.core.models import (
 from metis.core.util import hash_json
 from metis.modules.attachments.service import resolve_for_draft as resolve_attachments
 from metis.modules.changes import schemas
+from metis.modules.external.service import bind_import
 from metis.modules.knowledge import publish as publisher
 from metis.modules.knowledge.figures import figure_refs
 from metis.modules.knowledge.views import RevisionView, revision_views
@@ -183,6 +184,8 @@ def _validate_item(db: Session, actor: User, project_id: uuid.UUID, item: schema
     if not item.title.strip():
         raise AppError("VALIDATION_ERROR", "title required", fields=[{"field": "title", "type": "missing"}])
     scope = validate_selection(db, project_id, item.scope.model_dump())
+    if item.import_id and not item.note:
+        raise AppError("VALIDATION_ERROR", "import only for note items", fields=[{"field": "import_id", "type": "not_allowed"}])
     if item.note and item.claims:
         raise AppError(
             "VALIDATION_ERROR", "note items derive claims from the note", fields=[{"field": "claims", "type": "not_allowed"}]
@@ -371,6 +374,8 @@ def _write_contents(
         if item.note:
             page, claims = materialize_note(db, author, change.project_id, page, item, scope)
             item = item.model_copy(update={"claims": claims})
+            if item.import_id:
+                bind_import(db, actor, change.project_id, page, item.import_id, item.body_md)
         page, rev = _write_revision(db, author, change.project_id, page, item, scope)
         seen.add(page.id)
         db.add(
