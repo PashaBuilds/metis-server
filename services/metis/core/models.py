@@ -1109,3 +1109,29 @@ class SearchEvalRun(Base):
     metrics: Mapped[dict] = jsonb()
     per_question: Mapped[list[dict]] = jsonb(list)
     note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+
+class SearchPassage(Base):
+    """Blok düzeyinde arama indeksi: yayındaki her iddia (not bloğu) bir satır. `index_pages` sayfa satırıyla birlikte
+    aynı transaction'da yeniden kurar. `simple` tsvector Türkçe harfleri katlanmış metinden üretilir (search.text.fold)."""
+
+    __tablename__ = "search_passages"
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    page_id: Mapped[uuid.UUID] = fk("pages.id")
+    project_id: Mapped[uuid.UUID] = fk("projects.id")
+    revision_id: Mapped[uuid.UUID] = fk("page_revisions.id", index=False)
+    publication_id: Mapped[uuid.UUID] = fk("publications.id", index=False)
+    claim_id: Mapped[uuid.UUID] = fk("claims.id", index=False)
+    ord: Mapped[int] = mapped_column(Integer, nullable=False)
+    heading_path: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    symbols: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list)
+    scope: Mapped[dict] = jsonb()
+    kind: Mapped[str] = mapped_column(String(30), nullable=False)
+    tsv_simple: Mapped[Any] = mapped_column(TSVECTOR, nullable=True)
+    tsv_turkish: Mapped[Any] = mapped_column(TSVECTOR, nullable=True)
+    __table_args__ = (
+        Index("ix_passage_tsv_simple", "tsv_simple", postgresql_using="gin"),
+        Index("ix_passage_tsv_turkish", "tsv_turkish", postgresql_using="gin"),
+        Index("ix_passage_symbols", "symbols", postgresql_using="gin"),
+    )

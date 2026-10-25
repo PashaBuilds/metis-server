@@ -1,5 +1,7 @@
 """arama: blok düzeyinde indeks ve arama ölçümü — 2026-10-25 (İş 2)
 
+- search_passages: yayındaki her iddia (not bloğu) bir arama satırı; başlık yolu; iki tsvector. Mevcut yayın `metis migrate`
+  sonunda indekslenir (search.index.ensure_passage_index).
 - search_eval_questions / search_eval_runs: METIS içinde soru seti ve ölçüm koşuları (deterministik, modelsiz).
 
 Revision ID: 0011
@@ -10,7 +12,7 @@ import os
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR
 
 revision = "0011"
 down_revision = "0010"
@@ -39,6 +41,35 @@ def _grant(table: str, privileges: str) -> None:
 
 
 def upgrade() -> None:
+    op.create_table(
+        "search_passages",
+        sa.Column("id", sa.BigInteger(), sa.Identity(), nullable=False),
+        sa.Column("page_id", sa.UUID(), nullable=False),
+        sa.Column("project_id", sa.UUID(), nullable=False),
+        sa.Column("revision_id", sa.UUID(), nullable=False),
+        sa.Column("publication_id", sa.UUID(), nullable=False),
+        sa.Column("claim_id", sa.UUID(), nullable=False),
+        sa.Column("ord", sa.Integer(), nullable=False),
+        sa.Column("heading_path", sa.Text(), nullable=False, server_default=""),
+        sa.Column("body", sa.Text(), nullable=False),
+        sa.Column("symbols", ARRAY(sa.Text()), nullable=False, server_default="{}"),
+        sa.Column("scope", JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column("kind", sa.String(30), nullable=False),
+        sa.Column("tsv_simple", TSVECTOR(), nullable=True),
+        sa.Column("tsv_turkish", TSVECTOR(), nullable=True),
+        sa.ForeignKeyConstraint(["page_id"], ["pages.id"]),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"]),
+        sa.ForeignKeyConstraint(["revision_id"], ["page_revisions.id"]),
+        sa.ForeignKeyConstraint(["publication_id"], ["publications.id"]),
+        sa.ForeignKeyConstraint(["claim_id"], ["claims.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_search_passages_page_id"), "search_passages", ["page_id"])
+    op.create_index(op.f("ix_search_passages_project_id"), "search_passages", ["project_id"])
+    op.create_index("ix_passage_tsv_simple", "search_passages", ["tsv_simple"], postgresql_using="gin")
+    op.create_index("ix_passage_tsv_turkish", "search_passages", ["tsv_turkish"], postgresql_using="gin")
+    op.create_index("ix_passage_symbols", "search_passages", ["symbols"], postgresql_using="gin")
+    _grant("search_passages", "SELECT, INSERT, UPDATE, DELETE")
     op.create_table(
         "search_eval_questions",
         sa.Column("id", sa.UUID(), nullable=False),
@@ -74,5 +105,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_table("search_passages")
     op.drop_table("search_eval_runs")
     op.drop_table("search_eval_questions")

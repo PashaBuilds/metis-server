@@ -34,6 +34,11 @@ def cmd_migrate(args: argparse.Namespace) -> int:
         with transaction() as db:
             report = convert_standalone_sources(db)
         out["converted_sources"] = report.created
+        # 2026-10-25 (şema 0011): blok düzeyinde arama indeksi mevcut yayından kurulur (idempotent).
+        from metis.modules.search.index import ensure_passage_index
+
+        with transaction() as db:
+            out["passage_index_projects"] = ensure_passage_index(db)
         if report.skipped:  # dönüştürülemeyen kaynak silinmez; yönetici görsün diye raporlanır
             out["skipped_sources"] = report.skipped
     print(json.dumps(out))

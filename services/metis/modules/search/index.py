@@ -17,8 +17,9 @@ from sqlalchemy import delete, func, literal_column, select
 from sqlalchemy.orm import Session
 
 from metis.core.config import ROOT
-from metis.core.models import Claim, Page, PageRevision, PageRevisionFigure, SearchDocument
+from metis.core.models import Claim, Page, PageRevision, PageRevisionFigure, SearchDocument, SearchPassage
 from metis.modules.knowledge.figures import strip_figures
+from metis.modules.search.text import fold
 
 SYMBOL_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]{2,}(?:\(\))?")
 HEX_RE = re.compile(r"\b0[xX][0-9A-Fa-f]+\b")
@@ -74,19 +75,65 @@ def aliases_for(title: str, explicit: list[str], text: str) -> list[str]:
     return list(out)[:100]
 
 
+_HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
+
+
+def heading_paths(statements: list[str]) -> list[str]:
+    """Not bloklarının başlık yolu ("PCIe › Saat › Sıfırlama"). Tek satırlık `#` bloğu başlıktır ve kendi yolunu taşır."""
+    stack: list[tuple[int, str]] = []
+    out = []
+    for s in statements:
+        m = _HEADING.match(s) if "\n" not in s.strip() else None
+        if m:
+            level = len(m.group(1))
+            while stack and stack[-1][0] >= level:
+                stack.pop()
+            stack.append((level, m.group(2)))
+        out.append(" › ".join(t for _, t in stack))
+    return out
+
+
+def _weighted(config: str, title: str, heading: str, body: str):  # noqa: ANN202
+    return (
+        func.setweight(func.to_tsvector(config, title), literal_column("'A'"))
+        .op("||")(func.setweight(func.to_tsvector(config, heading), literal_column("'B'")))
+        .op("||")(func.setweight(func.to_tsvector(config, body), literal_column("'C'")))
+    )
+
+
 def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, page_ids: set[uuid.UUID]) -> None:
     """Etkilenen sayfaların indeks satırlarını aktif yayına göre yeniden kurar (aynı transaction)."""
     if not page_ids:
         return
     db.execute(delete(SearchDocument).where(SearchDocument.page_id.in_(page_ids)))
+    db.execute(delete(SearchPassage).where(SearchPassage.page_id.in_(page_ids)))
     rows = db.execute(
         select(Page, PageRevision)
         .join(PageRevision, PageRevision.id == Page.published_revision_id)
         .where(Page.id.in_(page_ids), Page.lifecycle == "active", Page.deleted_at.is_(None))
     ).all()
     for page, rev in rows:
-        claims = db.scalars(select(Claim.statement).where(Claim.page_revision_id == rev.id).order_by(Claim.ord)).all()
+        claim_rows = db.scalars(select(Claim).where(Claim.page_revision_id == rev.id).order_by(Claim.ord)).all()
+        claims = [c.statement for c in claim_rows]
         claim_text = "\n".join(claims)
+        for c, path in zip(claim_rows, heading_paths(claims), strict=True):
+            db.add(
+                SearchPassage(
+                    page_id=page.id,
+                    project_id=project_id,
+                    revision_id=rev.id,
+                    publication_id=publication_id,
+                    claim_id=c.id,
+                    ord=c.ord,
+                    heading_path=path,
+                    body=c.statement,
+                    symbols=extract_symbols(c.statement),
+                    scope=rev.scope,
+                    kind=rev.kind,
+                    tsv_simple=_weighted("simple", fold(rev.title), fold(path), fold(c.statement)),
+                    tsv_turkish=_weighted("turkish", rev.title, path, c.statement),
+                )
+            )
         captions = db.scalars(
             select(PageRevisionFigure.caption).where(PageRevisionFigure.page_revision_id == rev.id).order_by(PageRevisionFigure.ord)
         ).all()
@@ -116,3 +163,19 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
         )
         db.add(doc)
     db.flush()
+
+
+def ensure_passage_index(db: Session) -> int:
+    """Yayını olup blok indeksi boş olan projelerin bloklarını kurar (`metis migrate` sonunda; idempotent).
+    Dönen: kurulan proje sayısı."""
+    from metis.core.models import Project
+
+    built = 0
+    for project in db.scalars(select(Project).where(Project.active_publication_id.is_not(None))):
+        if db.scalar(select(SearchPassage.id).where(SearchPassage.project_id == project.id).limit(1)) is not None:
+            continue
+        page_ids = set(db.scalars(select(SearchDocument.page_id).where(SearchDocument.project_id == project.id)))
+        if page_ids:
+            index_pages(db, project.id, project.active_publication_id, page_ids)
+            built += 1
+    return built
