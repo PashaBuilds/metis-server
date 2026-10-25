@@ -59,9 +59,10 @@ def _relative(base_url: str, url: str) -> tuple[str, dict[str, list[str]]]:
     base, target = urlsplit(base_url.rstrip("/")), urlsplit(url.strip())
     if (target.scheme, (target.hostname or "").lower(), target.port) != (base.scheme, (base.hostname or "").lower(), base.port):
         raise _unrecognized()
-    if not target.path.startswith(base.path):
+    rest = target.path[len(base.path) :]
+    if not target.path.startswith(base.path) or (rest and not rest.startswith("/")):  # /confluence2 ≠ /confluence
         raise _unrecognized()
-    return target.path[len(base.path) :], parse_qs(target.query)
+    return rest, parse_qs(target.query)
 
 
 def parse_ref(base_url: str, url: str) -> ConfluenceRef:

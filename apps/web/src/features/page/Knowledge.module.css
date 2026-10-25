@@ -522,6 +522,7 @@
 
 /* Bağlantılı bilgiler (modelsiz) */
 .relatedWhy {
+  flex-wrap: wrap;
   overflow-wrap: anywhere;
   min-width: 0;
 }

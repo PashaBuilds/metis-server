@@ -31,6 +31,7 @@ export function usePublishFlow(onPublished: (change: Change) => void) {
     qc.invalidateQueries({ queryKey: ['domains', d.project_id] });
     qc.invalidateQueries({ queryKey: ['findings', d.project_id] });
     for (const pid of d.page_ids) qc.invalidateQueries({ queryKey: ['page', pid] });
+    qc.invalidateQueries({ queryKey: ['page-related'] }); // yayın başka bilgilerin bağlantılarını da değiştirebilir
   };
 
   async function publish(changeId: string, check: Check, acknowledge: boolean): Promise<PublishOutcome> {

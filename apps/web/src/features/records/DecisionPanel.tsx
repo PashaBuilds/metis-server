@@ -58,6 +58,7 @@ export function DecisionPanel({ change }: { change: Change }) {
       qc.invalidateQueries({ queryKey: ['pages', change.project_id] });
       qc.invalidateQueries({ queryKey: ['domains', change.project_id] });
       for (const pid of d.page_ids) qc.invalidateQueries({ queryKey: ['page', pid] });
+      qc.invalidateQueries({ queryKey: ['page-related'] });
       toast.show(tr.record.published);
     },
     onError: (e) => {

@@ -58,9 +58,10 @@ def parse_ref(base_url: str, url: str) -> GitlabRef:
         raise _unrecognized()
     if (target.scheme, (target.hostname or "").lower(), target.port) != (base.scheme, (base.hostname or "").lower(), base.port):
         raise _unrecognized()
-    if not target.path.startswith(base.path):
+    rest = target.path[len(base.path) :]
+    if not target.path.startswith(base.path) or not rest.startswith("/"):  # /gitlab2 ≠ /gitlab
         raise _unrecognized()
-    m = re.match(r"^/(.+?)(?:/-)?/issues/(\d+)/?$", target.path[len(base.path) :])
+    m = re.match(r"^/(.+?)(?:/-)?/issues/(\d+)/?$", rest)
     if not m or not PROJECT_RE.match(m.group(1)):
         raise _unrecognized()
     return GitlabRef(m.group(1), int(m.group(2)))

@@ -26,7 +26,16 @@ export function RelatedPanel({ pageId, canImport }: { pageId: string; canImport:
             <li key={l.page_id} className={s.relation}>
               <span className={`${s.predicate} ${s.relatedWhy}`}>
                 <Link2 size={14} aria-hidden />
-                {l.reason === 'reference' ? tr.related.reference : tr.related.shared(l.symbols ?? [])}
+                {l.reason === 'reference' ? (
+                  tr.related.reference
+                ) : (
+                  <>
+                    {tr.related.shared}
+                    {(l.symbols ?? []).map((sym) => (
+                      <code key={sym}>{sym}</code>
+                    ))}
+                  </>
+                )}
               </span>
               <Link to="/bilgi/$pageId" params={{ pageId: l.page_id }} search={{}} className={s.relLink}>
                 <span>{l.title}</span>
@@ -41,7 +50,7 @@ export function RelatedPanel({ pageId, canImport }: { pageId: string; canImport:
           <ul className={s.relations}>
             {missing.map((m) => (
               <li key={m.url} className={s.relation}>
-                <Link to="/katki" search={{ kaynak: m.url, baglanti: m.connection_id }} className={s.relLink}>
+                <Link to="/katki" search={{ kaynak: m.url, baglanti: m.connection_id }} className={s.relLink} aria-label={tr.related.importAria(m.url)}>
                   <Download size={14} aria-hidden />
                   <span>{tr.related.importIt}</span>
                 </Link>

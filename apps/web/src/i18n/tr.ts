@@ -1152,10 +1152,11 @@ export const tr = {
   related: {
     title: 'Bağlantılı bilgiler',
     lead: 'Modelsiz bulunur: notta geçen adresler ve iki bilginin paylaştığı nadir tanımlayıcılar.',
-    reference: 'Notta adı geçiyor',
-    shared: (symbols: string[]) => `Ortak: ${symbols.join(', ')}`,
+    reference: 'Notta adresi geçiyor',
+    shared: 'Ortak:',
     missingTitle: "Notta geçen, METIS'te olmayan kaynaklar",
     importIt: 'İçe aktar',
+    importAria: (url: string) => `İçe aktar: ${url}`,
   },
   external: {
     title: 'Dış kaynaklar',
