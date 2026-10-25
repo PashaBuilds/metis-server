@@ -3,13 +3,14 @@ import { getRouteApi, Link, useBlocker, useNavigate } from '@tanstack/react-rout
 import { useRef, useState } from 'react';
 import { Button, Dialog, EmptyState, SkeletonRows } from '@/design/primitives';
 import { PageHeader } from '@/app/Shell';
-import { EMPTY_SCOPE } from '@/app/session';
+import { EMPTY_SCOPE, useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { api, type Schemas } from '@/lib/api/client';
 import { useUnsavedWarning } from '@/lib/hooks';
 import { Banner } from '@/features/shared/Banner';
 import { messageOf } from '@/features/shared/hooks';
 import { asScope } from '@/features/shared/scope';
+import { ImportPanel, type Preview } from './ImportPanel';
 import { NoteEditor, type NoteTarget, type NoteValues } from './NoteEditor';
 import s from './Contribute.module.css';
 
@@ -28,16 +29,24 @@ function valuesFromRevision(r: RevisionView): NoteValues {
     unknowns: r.unknowns.filter((u): u is string => typeof u === 'string'),
     aliases: r.aliases.filter((u): u is string => typeof u === 'string'),
     attachments: r.attachments ?? [],
+    importId: null,
   };
 }
 
-const EMPTY_VALUES: NoteValues = { title: '', kind: 'concept', summary: '', body_md: '', scope: EMPTY_SCOPE, unknowns: [], aliases: [], attachments: [] };
+const EMPTY_VALUES: NoteValues = { title: '', kind: 'concept', summary: '', body_md: '', scope: EMPTY_SCOPE, unknowns: [], aliases: [], attachments: [], importId: null };
+
+interface Imported {
+  initial: NoteValues;
+  target: NoteTarget;
+  key: string;
+}
 
 /** Tek adımda taslak hazırla (2026-10-19): ayrı kaynak adımı yok; taslağın notu bilginin dayanağıdır. */
 export function ContributePage() {
   const search = route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const session = useSession();
 
   const change = useQuery({
     queryKey: ['change', search.change],
@@ -54,6 +63,8 @@ export function ContributePage() {
   const dirtyRef = useRef(false);
   const allowNav = useRef(false);
   const [dirty, setDirtyState] = useState(false);
+  const [imported, setImported] = useState<Imported | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
   const setDirty = (d: boolean) => {
     dirtyRef.current = d;
     setDirtyState(d);
@@ -88,6 +99,32 @@ export function ContributePage() {
       notice = tr.contribute.fromPage;
     }
   }
+  // Kaynaktan al: önizleme taslak formunu doldurur (yeni bilgi ya da var olan bilginin güncelleme taslağı).
+  const applyImport = async (pv: Preview, existingPageId: string | null) => {
+    setImportError(null);
+    const fromImport = { title: pv.title, body_md: pv.body_md, attachments: pv.attachments, importId: pv.import_id };
+    if (!existingPageId) {
+      setImported({ initial: { ...EMPTY_VALUES, ...fromImport }, target, key: `import-${pv.import_id}` });
+    } else {
+      try {
+        const d = await api.get<Schemas['PageDetailOut']>(`/pages/${existingPageId}`);
+        setImported({
+          initial: { ...valuesFromRevision(d.revision), ...fromImport },
+          target: { pageId: d.page_id, baseRevisionId: d.published_revision_id, changeId: null, changeHash: null, changeSummary: '' },
+          key: `import-${pv.import_id}`,
+        });
+      } catch (e) {
+        setImportError(messageOf(e));
+        return;
+      }
+    }
+    setDirty(true);
+  };
+  if (imported) {
+    initial = imported.initial;
+    target = imported.target;
+    notice = tr.external.filled;
+  }
   const loadError = (search.change && change.isError && change.error) || (search.page && !search.change && page.isError && page.error);
   const title = search.change ? tr.contribute.titleDraft : search.page ? tr.contribute.titleEdit : tr.contribute.title;
 
@@ -109,10 +146,12 @@ export function ContributePage() {
         />
       ) : (
         <>
+          {!search.page && !search.change && !imported && session.projectId && <ImportPanel projectId={session.projectId} onUse={(pv, pageId) => void applyImport(pv, pageId)} />}
+          {importError && <Banner tone="celiski">{importError}</Banner>}
           {notice && <Banner tone="bilgi">{notice}</Banner>}
           {initial ? (
             <NoteEditor
-              key={target.changeId ?? target.pageId ?? 'new'}
+              key={imported?.key ?? target.changeId ?? target.pageId ?? 'new'}
               initial={initial}
               target={target}
               onDirty={setDirty}

@@ -8,7 +8,7 @@ import { ScopeChips } from '@/app/ScopeBar';
 import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { api, ApiError, type Schemas } from '@/lib/api/client';
-import { formatDateTime } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { Figure, figureRef } from '@/features/shared/Figure';
 import { Banner } from '@/features/shared/Banner';
 import { FreshnessBadge, PageKindIcon, PageKindLabel } from '@/features/shared/kinds';
@@ -170,6 +170,14 @@ function PageView({ page }: { page: PageDetail }) {
                 {formatDateTime(page.approved_at)}
               </time>
               {page.review_policy_badge === 'owner_review' && <span className={s.ownerBadge}>{tr.shared.ownerReview}</span>}
+            </p>
+          )}
+          {page.origin && (
+            <p className={s.approved}>
+              <span>{tr.external.originLine(tr.external.kinds[page.origin.kind] ?? page.origin.kind, page.origin.version, formatDate(page.origin.imported_at))}</span>
+              <a href={page.origin.url} target="_blank" rel="noreferrer noopener">
+                {tr.external.originOpen}
+              </a>
             </p>
           )}
         </header>

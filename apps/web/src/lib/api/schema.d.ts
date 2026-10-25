@@ -461,6 +461,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/external/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Connections
+         * @description Yönetici tüm bağlantıları görür; diğer kullanıcılar yalnız etkin olanların adını ve izinli kapsamlarını.
+         */
+        get: operations["list_connections_api_v1_external_connections_get"];
+        put?: never;
+        /** Create Connection */
+        post: operations["create_connection_api_v1_external_connections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/external/connections/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Connection
+         * @description Kaydetmeden dener; hiçbir şey içe aktarmaz.
+         */
+        post: operations["test_connection_api_v1_external_connections_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/external/connections/{connection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Connection */
+        put: operations["update_connection_api_v1_external_connections__connection_id__put"];
+        post?: never;
+        /** Delete Connection */
+        delete: operations["delete_connection_api_v1_external_connections__connection_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/feedback": {
         parameters: {
             query?: never;
@@ -1059,6 +1118,43 @@ export interface paths {
         };
         /** Export Zip */
         get: operations["export_zip_api_v1_projects__project_id__export_zip_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/external/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview
+         * @description Çeker, dönüştürür, ekleri kullanıcı adına yükler; taslak oluşturmaz. Sonuç taslak formunu doldurur.
+         */
+        post: operations["preview_api_v1_projects__project_id__external_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/external/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search */
+        get: operations["search_api_v1_projects__project_id__external_search_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2164,6 +2260,84 @@ export interface components {
             /** Quote */
             quote: string;
         };
+        /** ConnectionIn */
+        ConnectionIn: {
+            /** Allowed Scopes */
+            allowed_scopes: string[];
+            /** Base Url */
+            base_url: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "confluence" | "gitlab";
+            /** Name */
+            name: string;
+            /**
+             * Token
+             * @default
+             */
+            token: string;
+        };
+        /**
+         * ConnectionOut
+         * @description Yönetici tüm alanları görür; katkı sahibine yalnız kimlik, tür, ad ve izinli kapsamlar (diğerleri boş, yanıtta yok).
+         */
+        ConnectionOut: {
+            /** Allowed Scopes */
+            allowed_scopes: string[];
+            /** Base Url */
+            base_url?: string | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "confluence" | "gitlab";
+            /** Name */
+            name: string;
+            /** Secret Configured */
+            secret_configured?: boolean | null;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** ConnectionTestIn */
+        ConnectionTestIn: {
+            /** Base Url */
+            base_url: string;
+            /** Connection Id */
+            connection_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "confluence" | "gitlab";
+            /**
+             * Token
+             * @default
+             */
+            token: string;
+        };
+        /** ConnectionTestOut */
+        ConnectionTestOut: {
+            /** Error */
+            error?: string | null;
+            /** Ok */
+            ok: boolean;
+            /** User */
+            user?: string | null;
+        };
         /** DirectorySettingsIn */
         DirectorySettingsIn: {
             /**
@@ -2609,6 +2783,8 @@ export interface components {
             claims?: components["schemas"]["ClaimIn"][];
             /** Figures */
             figures?: components["schemas"]["FigureIn"][];
+            /** Import Id */
+            import_id?: string | null;
             /**
              * Kind
              * @default concept
@@ -2994,6 +3170,22 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** OriginOut */
+        OriginOut: {
+            /** Connection Name */
+            connection_name: string;
+            /** Imported At */
+            imported_at?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "confluence" | "gitlab";
+            /** Url */
+            url: string;
+            /** Version */
+            version: string;
+        };
         /** PageDetailOut */
         PageDetailOut: {
             /** Approved At */
@@ -3017,6 +3209,7 @@ export interface components {
             note_based: boolean;
             /** Open Change Ids */
             open_change_ids: string[];
+            origin?: components["schemas"]["OriginOut"] | null;
             /**
              * Page Id
              * Format: uuid
@@ -3156,6 +3349,47 @@ export interface components {
              * @default
              */
             theirs: string;
+        };
+        /** PreviewIn */
+        PreviewIn: {
+            /**
+             * Connection Id
+             * Format: uuid
+             */
+            connection_id: string;
+            /** Url */
+            url: string;
+        };
+        /** PreviewOut */
+        PreviewOut: {
+            /** Attachments */
+            attachments: components["schemas"]["AttachmentOut"][];
+            /** Body Md */
+            body_md: string;
+            /**
+             * Edited Since Import
+             * @default false
+             */
+            edited_since_import: boolean;
+            /** Existing Page Id */
+            existing_page_id?: string | null;
+            /** Existing Title */
+            existing_title?: string | null;
+            /**
+             * Import Id
+             * Format: uuid
+             */
+            import_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "confluence" | "gitlab";
+            origin: components["schemas"]["OriginOut"];
+            /** Skipped */
+            skipped: components["schemas"]["SkippedOut"][];
+            /** Title */
+            title: string;
         };
         /** ProjectCreateInput */
         ProjectCreateInput: {
@@ -3640,6 +3874,17 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** SearchItemOut */
+        SearchItemOut: {
+            /** Container */
+            container: string;
+            /** Key */
+            key: string;
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+        };
         /** SearchOut */
         SearchOut: {
             /** Fuzzy Available */
@@ -3682,6 +3927,21 @@ export interface components {
         SetupStatus: {
             /** Needs Setup */
             needs_setup: boolean;
+        };
+        /** SkippedOut */
+        SkippedOut: {
+            /** Name */
+            name: string;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "type" | "size" | "limit" | "fetch" | "macro";
+            /**
+             * Url
+             * @default
+             */
+            url: string;
         };
         /** SourceDetailOut */
         SourceDetailOut: {
@@ -4898,6 +5158,156 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["EvidenceViewOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_connections_api_v1_external_connections_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionOut"][];
+                };
+            };
+        };
+    };
+    create_connection_api_v1_external_connections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_connection_api_v1_external_connections_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionTestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionTestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_connection_api_v1_external_connections__connection_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_connection_api_v1_external_connections__connection_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -6241,6 +6651,75 @@ export interface operations {
                 };
                 content: {
                     "application/zip": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_v1_projects__project_id__external_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_api_v1_projects__project_id__external_search_get: {
+        parameters: {
+            query: {
+                connection_id: string;
+                q: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchItemOut"][];
                 };
             };
             /** @description Validation Error */

@@ -6,6 +6,7 @@ import { useSession } from '@/app/session';
 import { tr } from '@/i18n/tr';
 import { AppearanceTab } from './AppearanceTab';
 import { DirectoryTab } from './DirectoryTab';
+import { ExternalTab } from './ExternalTab';
 import { MembersTab } from './MembersTab';
 import { ExportTab, ScheduleTab, SystemTab } from './OpsTabs';
 import { PolicyTab } from './PolicyTab';
@@ -29,6 +30,7 @@ const TABS: SettingsTab[] = [
   { key: 'uyeler', label: tr.settings.tabs.uyeler!, render: () => <MembersTab />, visible: (s) => s.isAdmin || s.roles.has('steward') },
   { key: 'politika', label: tr.settings.tabs.politika!, render: () => <PolicyTab />, visible: admin },
   { key: 'giris', label: tr.settings.tabs.giris!, render: () => <DirectoryTab />, visible: admin },
+  { key: 'dis-kaynaklar', label: tr.settings.tabs['dis-kaynaklar']!, render: () => <ExternalTab />, visible: admin },
   { key: 'kapsam', label: tr.settings.tabs.kapsam!, render: () => <ScopesTab />, visible: (s) => s.roles.has('contributor') || s.roles.has('steward') },
   { key: 'bakim', label: tr.settings.tabs.bakim!, render: () => <ScheduleTab />, visible: (s) => s.roles.has('steward') },
   { key: 'sistem', label: tr.settings.tabs.sistem!, render: () => <SystemTab />, visible: admin },

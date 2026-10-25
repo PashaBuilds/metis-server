@@ -12,6 +12,8 @@ from metis.modules.external.http import ExternalHttp
 
 PROJECT_RE = re.compile(r"^[\w.-]+(/[\w.-]+)+$")
 UPLOAD_RE = re.compile(r"\]\((/uploads/([0-9A-Za-z]{6,64})/([^)\s]+))\)")
+UPLOAD_LINK_RE = re.compile(r"!?\[[^\]]*\]\(/uploads/[0-9A-Za-z]{6,64}/([^)\s]+)\)")
+IMAGE_EXT = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg")
 STATES = {"opened": "Açık", "closed": "Kapalı"}
 
 
@@ -127,6 +129,16 @@ def upload_refs(markdown: str) -> list[tuple[str, str]]:
     for m in UPLOAD_RE.finditer(markdown):
         out[(m.group(2), m.group(3))] = None
     return list(out)
+
+
+def replace_uploads(markdown: str) -> str:
+    """GitLab'a göreli yükleme bağlantıları METIS'te açılmaz: `[Görsel: ad]` / `[Ek: ad]` işaretine döner (dosya ek olur)."""
+
+    def marker(m: re.Match[str]) -> str:
+        name = m.group(1)
+        return f"[Görsel: {name}]" if name.lower().endswith(IMAGE_EXT) else f"[Ek: {name}]"
+
+    return UPLOAD_LINK_RE.sub(marker, markdown)
 
 
 def download_upload(http: ExternalHttp, project_id: int, secret: str, filename: str, limit: int) -> bytes:

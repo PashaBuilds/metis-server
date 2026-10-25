@@ -225,6 +225,7 @@ def _fetch_gitlab(conn: _Conn, url: str, limit: int) -> _Fetched:
         )
         for secret, name in gitlab.upload_refs(body)
     ]
+    body = gitlab.replace_uploads(body)
     web = issue.web_url if issue.web_url.startswith(conn.base_url) else f"{conn.base_url}/{ref.project_path}/-/issues/{issue.iid}"
     key = f"gitlab:{_host_key(conn.base_url)}:{issue.project_id}#{issue.iid}"
     return _Fetched(issue.title, body, key, web, issue.updated_at, candidates, [])

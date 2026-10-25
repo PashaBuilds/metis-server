@@ -70,3 +70,8 @@ def test_issue_markdown():
 def test_upload_refs():
     md = "Log: ![log](/uploads/abc123/log.png) ve [rapor](/uploads/def456/rapor.pdf) ve ![x](https://dis.example.test/a.png)"
     assert gitlab.upload_refs(md) == [("abc123", "log.png"), ("def456", "rapor.pdf")]
+
+
+def test_upload_links_become_markers():
+    md = "Log: ![log](/uploads/abc123/log.png) ve [rapor](/uploads/def456/rapor.pdf) ve [dış](https://dis.example.test/a)"
+    assert gitlab.replace_uploads(md) == "Log: [Görsel: log.png] ve [Ek: rapor.pdf] ve [dış](https://dis.example.test/a)"

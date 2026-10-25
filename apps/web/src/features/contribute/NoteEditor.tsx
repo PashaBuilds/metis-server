@@ -24,6 +24,8 @@ export interface NoteValues {
   unknowns: string[];
   aliases: string[];
   attachments: AttachmentData[];
+  /** Kaynaktan al: dış kaynak önizlemesinin kimliği (taslak kaydında köken bağlanır). */
+  importId?: string | null;
 }
 
 export interface NoteTarget {
@@ -88,6 +90,7 @@ export function NoteEditor({ initial, target, onDirty, onSaved, onPublished, onR
       unknowns: v.unknowns.map((u) => u.trim()).filter(Boolean),
       aliases: v.aliases,
       attachments: v.attachments.map((a) => a.id),
+      import_id: v.importId ?? null,
     };
     try {
       let id: string;

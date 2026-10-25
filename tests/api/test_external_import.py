@@ -196,7 +196,7 @@ def test_gitlab_issue_to_draft(ext):  # noqa: ANN001
     assert pv["kind"] == "gitlab" and pv["title"] == "PCIe bağlantısı kurulmuyor"
     body = pv["body_md"]
     assert body.startswith("**Durum:** Kapalı · **Etiketler:** pcie, sürücü")
-    assert "added ~pcie label" not in body
+    assert "added ~pcie label" not in body and "[Görsel: log.png]" in body and "/uploads/" not in body
     assert "### Kurgusal İkinci — 2026-01-06" in body and "### Kurgusal Kişi — 2026-01-06" in body
     assert [a["filename"] for a in pv["attachments"]] == ["log.png"]
     assert save_draft(c, pid, pv).status_code == 201
