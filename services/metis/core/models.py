@@ -1016,3 +1016,65 @@ class LegacyImportRun(Base):
     report: Mapped[dict] = jsonb()
     report_md: Mapped[str] = mapped_column(Text, nullable=False, default="")
     state: Mapped[str] = mapped_column(String(20), nullable=False, default="running")
+
+
+# ---------------------------------------------------------------- dış kaynaklar (Confluence, GitLab)
+
+
+class ExternalConnection(Base):
+    """Yöneticinin tanımladığı dış kaynak bağlantısı. Token şifreli (AES-GCM); yalnız izinli kapsamlardan alınır."""
+
+    __tablename__ = "external_connections"
+    id: Mapped[uuid.UUID] = pk()
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    base_url: Mapped[str] = mapped_column(Text, nullable=False)
+    secret_enc: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Confluence: alan anahtarları; GitLab: proje yolları (grup/proje)
+    allowed_scopes: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_by: Mapped[uuid.UUID] = fk("users.id", index=False)
+    created_at: Mapped[datetime] = ts()
+    updated_at: Mapped[datetime] = ts()
+    deleted_at: Mapped[datetime | None] = ts(nullable=True)
+    __table_args__ = (CheckConstraint("kind in ('confluence','gitlab')", name="ck_external_connection_kind"),)
+
+
+class ExternalImport(Base):
+    """Bir önizleme: çekilen ve dönüştürülen içerik. Yalnız önizleyen kullanıcı, aynı projede, bir kez kullanır."""
+
+    __tablename__ = "external_imports"
+    id: Mapped[uuid.UUID] = pk()
+    project_id: Mapped[uuid.UUID] = fk("projects.id")
+    user_id: Mapped[uuid.UUID] = fk("users.id")
+    connection_id: Mapped[uuid.UUID] = fk("external_connections.id", index=False)
+    external_key: Mapped[str] = mapped_column(String(300), nullable=False)
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    version: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    body_md: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    body_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    attachment_ids: Mapped[list[str]] = jsonb(list)
+    skipped: Mapped[list[dict]] = jsonb(list)
+    used_at: Mapped[datetime | None] = ts(nullable=True)
+    created_at: Mapped[datetime] = ts()
+
+
+class ExternalOrigin(Base):
+    """Bilginin dış kökeni: hangi Confluence sayfası / GitLab issue'su, hangi sürüm. Proje başına dış anahtar tekil."""
+
+    __tablename__ = "external_origins"
+    id: Mapped[uuid.UUID] = pk()
+    project_id: Mapped[uuid.UUID] = fk("projects.id")
+    page_id: Mapped[uuid.UUID] = fk("pages.id")
+    connection_id: Mapped[uuid.UUID] = fk("external_connections.id", index=False)
+    external_key: Mapped[str] = mapped_column(String(300), nullable=False)
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    version: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    imported_body_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    imported_at: Mapped[datetime] = ts()
+    imported_by: Mapped[uuid.UUID] = fk("users.id", index=False)
+    __table_args__ = (
+        UniqueConstraint("project_id", "external_key", name="uq_external_origin_key"),
+        UniqueConstraint("page_id", name="uq_external_origin_page"),
+    )
