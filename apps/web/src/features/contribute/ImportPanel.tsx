@@ -17,13 +17,16 @@ interface Props {
   projectId: string;
   /** Önizleme taslağa çevrilir. `pageId` doluysa var olan bilginin güncelleme taslağı. */
   onUse: (preview: Preview, pageId: string | null) => void;
+  /** Bilgi sayfasındaki "İçe aktar" önerisinden gelinirse: adres ve bağlantı dolu, bölüm açık gelir. */
+  initialUrl?: string;
+  initialConnection?: string;
 }
 
 /** Yeni katkı → Kaynaktan al: Confluence sayfası ya da GitLab issue'su bağlantıdan veya aramadan önizlenir. */
-export function ImportPanel({ projectId, onUse }: Props) {
+export function ImportPanel({ projectId, onUse, initialUrl, initialConnection }: Props) {
   const conns = useQuery({ queryKey: ['external-connections'], queryFn: () => api.get<Conn[]>('/external/connections') });
-  const [connId, setConnId] = useState('');
-  const [url, setUrl] = useState('');
+  const [connId, setConnId] = useState(initialConnection ?? '');
+  const [url, setUrl] = useState(initialUrl ?? '');
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [pv, setPv] = useState<Preview | null>(null);
@@ -47,7 +50,7 @@ export function ImportPanel({ projectId, onUse }: Props) {
   if (conns.isLoading) return null;
   const list = conns.data ?? [];
   return (
-    <details className={s.moreFields}>
+    <details className={s.moreFields} open={!!initialUrl || undefined}>
       <summary>{tr.external.importTitle}</summary>
       <div className={s.moreBody}>
         <p className={s.hint}>{tr.external.importLead}</p>

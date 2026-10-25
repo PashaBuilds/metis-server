@@ -17,6 +17,7 @@ import { RowMenu } from '@/features/shared/RowMenu';
 import { messageOf, useUndoableDelete } from '@/features/shared/hooks';
 import { asScope } from '@/features/shared/scope';
 import { HistoryDrawer } from './HistoryDrawer';
+import { RelatedPanel } from './RelatedPanel';
 import { Attachments } from '@/features/shared/Attachments';
 import s from './Knowledge.module.css';
 
@@ -270,6 +271,8 @@ function PageView({ page }: { page: PageDetail }) {
             </ul>
         </section>
         )}
+
+        {page.is_published_revision && <RelatedPanel pageId={page.page_id} canImport={canContribute} />}
 
         <div className={s.actionBar} role="toolbar" aria-label={tr.common.more}>
           <Link to="/mentor" search={{ q: r.title }} className={s.actionLink}>

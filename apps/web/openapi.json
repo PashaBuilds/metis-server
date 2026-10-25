@@ -3614,6 +3614,30 @@
         "title": "MembershipOut",
         "type": "object"
       },
+      "MissingRef": {
+        "properties": {
+          "connection_id": {
+            "format": "uuid",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "kind",
+          "connection_id"
+        ],
+        "title": "MissingRef",
+        "type": "object"
+      },
       "ModelEndpointStatus": {
         "properties": {
           "checked_at": {
@@ -4766,6 +4790,62 @@
           "created_at"
         ],
         "title": "QuestionOut",
+        "type": "object"
+      },
+      "RelatedLink": {
+        "properties": {
+          "page_id": {
+            "format": "uuid",
+            "title": "Page Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "symbols": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Symbols",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id",
+          "title",
+          "reason"
+        ],
+        "title": "RelatedLink",
+        "type": "object"
+      },
+      "RelatedOut": {
+        "properties": {
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedLink"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "missing": {
+            "items": {
+              "$ref": "#/components/schemas/MissingRef"
+            },
+            "title": "Missing",
+            "type": "array"
+          }
+        },
+        "required": [
+          "links",
+          "missing"
+        ],
+        "title": "RelatedOut",
         "type": "object"
       },
       "RelatedPage": {
@@ -9315,6 +9395,49 @@
           }
         },
         "summary": "History",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/v1/pages/{page_id}/related": {
+      "get": {
+        "operationId": "page_related_api_v1_pages__page_id__related_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "page_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Page Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Page Related",
         "tags": [
           "knowledge"
         ]

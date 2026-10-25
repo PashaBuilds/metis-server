@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from metis.core.deps import current_user, get_db
 from metis.core.models import User
-from metis.modules.knowledge import schemas, service
+from metis.modules.knowledge import related, schemas, service
 
 router = APIRouter(tags=["knowledge"])
 
@@ -86,3 +86,8 @@ def export_zip(project_id: uuid.UUID, user: User = Depends(current_user), db: Se
     filename, data = build(db, user, project_id)
     audit(db, user.id, "project.export", "project", project_id, bytes=len(data))
     return Response(data, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store"})
+
+
+@router.get("/pages/{page_id}/related", response_model=related.RelatedOut)
+def page_related(page_id: uuid.UUID, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> related.RelatedOut:
+    return related.related(db, user, page_id)

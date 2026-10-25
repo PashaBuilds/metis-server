@@ -126,11 +126,14 @@ const mapRoute = createRoute({
 export interface ContributeSearch {
   page?: string;
   change?: string;
+  /** İçe aktarma önerisi: dış kaynak adresi ve bağlantı kimliği. */
+  kaynak?: string;
+  baglanti?: string;
 }
 const contributeRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/katki',
-  validateSearch: (s: Record<string, unknown>): ContributeSearch => ({ page: str(s.page), change: str(s.change) }),
+  validateSearch: (s: Record<string, unknown>): ContributeSearch => ({ page: str(s.page), change: str(s.change), kaynak: str(s.kaynak), baglanti: str(s.baglanti) }),
   component: ContributePage,
 });
 const recordsRoute = createRoute({

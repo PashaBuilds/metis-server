@@ -146,7 +146,14 @@ export function ContributePage() {
         />
       ) : (
         <>
-          {!search.page && !search.change && !imported && session.projectId && <ImportPanel projectId={session.projectId} onUse={(pv, pageId) => void applyImport(pv, pageId)} />}
+          {!search.page && !search.change && !imported && session.projectId && (
+            <ImportPanel
+              projectId={session.projectId}
+              onUse={(pv, pageId) => void applyImport(pv, pageId)}
+              initialUrl={search.kaynak}
+              initialConnection={search.baglanti}
+            />
+          )}
           {importError && <Banner tone="celiski">{importError}</Banner>}
           {notice && <Banner tone="bilgi">{notice}</Banner>}
           {initial ? (

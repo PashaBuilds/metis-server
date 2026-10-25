@@ -1149,6 +1149,14 @@ export const tr = {
     enabled: 'Parolasız girişi aç',
     saved: (on: boolean) => (on ? 'Parolasız giriş açıldı' : 'Parolasız giriş kapatıldı'),
   },
+  related: {
+    title: 'Bağlantılı bilgiler',
+    lead: 'Modelsiz bulunur: notta geçen adresler ve iki bilginin paylaştığı nadir tanımlayıcılar.',
+    reference: 'Notta adı geçiyor',
+    shared: (symbols: string[]) => `Ortak: ${symbols.join(', ')}`,
+    missingTitle: "Notta geçen, METIS'te olmayan kaynaklar",
+    importIt: 'İçe aktar',
+  },
   external: {
     title: 'Dış kaynaklar',
     lead: 'Confluence sayfalarını ve GitLab issue’larını taslağa çevirmek için bağlantılar. Token şifreli saklanır, kimseye gösterilmez. Yalnız izinli alan ve projelerden alınır; kısıtlı sayfalar ve gizli issue’lar alınmaz. İçe aktarılan içerik bir insan yayımlayana kadar Mentor’a girmez.',

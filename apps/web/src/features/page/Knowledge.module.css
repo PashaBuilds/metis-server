@@ -519,3 +519,22 @@
     gap: 2px;
   }
 }
+
+/* Bağlantılı bilgiler (modelsiz) */
+.relatedWhy {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.relatedSub {
+  font-size: var(--fs-16);
+  margin: var(--s2) 0 0;
+}
+
+.relatedUrl {
+  font-family: var(--font-mono);
+  font-size: var(--fs-13);
+  color: var(--soluk);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}

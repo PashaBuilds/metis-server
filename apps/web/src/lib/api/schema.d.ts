@@ -936,6 +936,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pages/{page_id}/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Page Related */
+        get: operations["page_related_api_v1_pages__page_id__related_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pages/{page_id}/report": {
         parameters: {
             query?: never;
@@ -3145,6 +3162,18 @@ export interface components {
             /** Roles */
             roles: string[];
         };
+        /** MissingRef */
+        MissingRef: {
+            /**
+             * Connection Id
+             * Format: uuid
+             */
+            connection_id: string;
+            /** Kind */
+            kind: string;
+            /** Url */
+            url: string;
+        };
         /** ModelEndpointStatus */
         ModelEndpointStatus: {
             /** Checked At */
@@ -3599,6 +3628,30 @@ export interface components {
             kind: "tanimlayici" | "kavram" | "nasil" | "issue" | "karisik";
             /** Question */
             question: string;
+        };
+        /** RelatedLink */
+        RelatedLink: {
+            /**
+             * Page Id
+             * Format: uuid
+             */
+            page_id: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Symbols
+             * @default []
+             */
+            symbols: string[];
+            /** Title */
+            title: string;
+        };
+        /** RelatedOut */
+        RelatedOut: {
+            /** Links */
+            links: components["schemas"]["RelatedLink"][];
+            /** Missing */
+            missing: components["schemas"]["MissingRef"][];
         };
         /** RelatedPage */
         RelatedPage: {
@@ -6409,6 +6462,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HistoryRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    page_related_api_v1_pages__page_id__related_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                page_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelatedOut"];
                 };
             };
             /** @description Validation Error */
