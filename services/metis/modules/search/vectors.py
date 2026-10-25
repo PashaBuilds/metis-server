@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import threading
 import uuid
+from dataclasses import dataclass
 
 import numpy as np
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -70,3 +72,87 @@ def embed_missing(db: Session, limit: int = 64) -> int:
     )
     bump(db, projects)
     return len(rows)
+
+
+# ---------------------------------------------------------------- sorgu: proje matrisi ve en yakın bloklar
+
+RRF_K = 60
+DENSE_TOP = 50
+_cache: dict[tuple[uuid.UUID, str], dict] = {}
+_cache_lock = threading.Lock()
+
+
+@dataclass
+class DensePage:
+    page_id: uuid.UUID
+    claim_id: uuid.UUID
+    heading_path: str
+    body: str
+    score: float
+
+
+@dataclass
+class DenseResult:
+    state: str  # available | partial | unavailable
+    pages: list[DensePage]
+
+
+def reset_cache() -> None:
+    with _cache_lock:
+        _cache.clear()
+
+
+def _matrix(db: Session, project_id: uuid.UUID, model_id: str) -> dict:
+    version = db.scalar(select(SearchState.version).where(SearchState.project_id == project_id)) or 0
+    key = (project_id, model_id)
+    with _cache_lock:
+        hit = _cache.get(key)
+    if hit and hit["version"] == version:
+        return hit
+    rows = db.execute(
+        text(
+            """
+            SELECT sp.page_id, sp.claim_id, sp.heading_path, sp.body, sp.is_heading, pv.vector
+            FROM search_passages sp
+            JOIN passage_vectors pv ON pv.model_id = :m AND pv.text_sha256 = sp.embed_sha256
+            WHERE sp.project_id = :p
+            """
+        ),
+        {"m": model_id, "p": project_id},
+    ).all()
+    total = db.scalar(text("SELECT count(*) FROM search_passages WHERE project_id = :p"), {"p": project_id}) or 0
+    entry = {
+        "version": version,
+        "rows": [(r.page_id, r.claim_id, r.heading_path, r.body, r.is_heading) for r in rows],
+        # float16 saklanır (bellek yarıya iner); skor hesabı parça parça float32.
+        "matrix": np.vstack([np.frombuffer(r.vector, dtype=np.float16) for r in rows]) if rows else None,
+        "partial": len(rows) < total,
+    }
+    with _cache_lock:
+        _cache[key] = entry
+    return entry
+
+
+def dense_search(db: Session, project_id: uuid.UUID, query: str) -> DenseResult:
+    """Sorguya en yakın bloklar → sayfa başına en iyi blok (başlık satırı yerine altındaki blok tercih edilir)."""
+    emb = get_embedder()
+    if emb is None:
+        return DenseResult("unavailable", [])
+    try:
+        m = _matrix(db, project_id, emb.model_id)
+        state = "partial" if m["partial"] else "available"
+        if m["matrix"] is None:
+            return DenseResult(state, [])
+        q = emb.embed([query], "query")[0]
+        scores = np.concatenate([m["matrix"][i : i + 20000].astype(np.float32) @ q for i in range(0, len(m["matrix"]), 20000)])
+    except Exception:  # noqa: BLE001 — vektör kanalı arızası aramayı düşürmez
+        log.exception("dense search failed")
+        return DenseResult("unavailable", [])
+    top = np.argsort(-scores)[:DENSE_TOP]
+    best: dict[uuid.UUID, DensePage] = {}
+    for i in top:
+        page_id, claim_id, heading, body, is_heading = m["rows"][int(i)]
+        cur = best.get(page_id)
+        if cur is None or (cur.body.lstrip().startswith("#") and not is_heading):
+            best[page_id] = DensePage(page_id, claim_id, heading, body, float(scores[int(i)]) if cur is None else cur.score)
+    return DenseResult(state, sorted(best.values(), key=lambda p: -p.score))

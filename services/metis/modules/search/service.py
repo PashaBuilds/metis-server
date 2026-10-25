@@ -24,6 +24,7 @@ from metis.core.models import User
 from metis.modules.scopes.semantics import matches_scope
 from metis.modules.search.index import is_symbol, terminology
 from metis.modules.search.text import fold, lower_tr
+from metis.modules.search.vectors import RRF_K, DenseResult, dense_search
 
 TOKEN_RE = re.compile(r"[\w]+(?:\(\))?", re.UNICODE)
 STOP = {
@@ -68,6 +69,8 @@ class SearchOut(BaseModel):
     hits: list[SearchHit]
     fuzzy_available: bool
     query_terms: list[str]
+    # Vektör kanalı: available (tüm bloklar vektörlü) · partial (bir kısmı henüz hesaplanmadı) · unavailable (model yok)
+    dense: str = "unavailable"
 
 
 @dataclass
@@ -92,6 +95,50 @@ def parse_query(q: str) -> ParsedQuery:
             for part in term.split():
                 expanded[part] = None
     return ParsedQuery(words=words, symbols=symbols, expanded=list(expanded))
+
+
+def _fuse(db: Session, project_id: uuid.UUID, rows: list[dict], dense: DenseResult, kind: str | None) -> list[dict]:
+    """Kelime ve vektör sayfa sıralamalarını RRF (k=60) ile birleştirir. Birebir sembol isabeti olan sayfalar üstte kalır
+    (vektör tanımlayıcıyı aşağı itemez). Yalnız vektörle bulunan sayfanın satırı search_documents'tan gelir."""
+    if not dense.pages:
+        return rows
+    lex_rank = {r["page_id"]: i + 1 for i, r in enumerate(rows)}
+    dense_rank = {p.page_id: i + 1 for i, p in enumerate(dense.pages)}
+    by_page = {r["page_id"]: r for r in rows}
+    missing = [p.page_id for p in dense.pages if p.page_id not in by_page]
+    if missing:
+        extra = db.execute(
+            text(
+                f"""SELECT page_id, revision_id, title, kind, scope FROM search_documents
+                    WHERE project_id = :p AND page_id = ANY(:ids) {"AND kind = :kind" if kind else ""}"""
+            ).bindparams(bindparam("ids")),
+            {"p": project_id, "ids": missing, **({"kind": kind} if kind else {})},
+        ).mappings()
+        for e in extra:
+            by_page[e["page_id"]] = {**dict(e), "matched": [], "best_claims": [], "best_body": None, "best_heading": None, "snippet": "", "score": 0.0}
+    for p in dense.pages:
+        r = by_page.get(p.page_id)
+        if r is None:
+            continue
+        claims = list(r.get("best_claims") or [])
+        if p.claim_id not in claims:
+            claims.insert(1 if claims else 0, p.claim_id)
+        r["best_claims"] = claims[:8]
+        if not r.get("best_body"):
+            r["best_body"], r["best_heading"], r["snippet"] = p.body, p.heading_path, p.body[:400]
+
+    def rrf(page_id: uuid.UUID) -> float:
+        s = 0.0
+        if page_id in lex_rank:
+            s += 1 / (RRF_K + lex_rank[page_id])
+        if page_id in dense_rank:
+            s += 1 / (RRF_K + dense_rank[page_id])
+        return s
+
+    fused = sorted(by_page.values(), key=lambda r: (not r.get("matched"), -rrf(r["page_id"]), r["title"]))
+    for r in fused:
+        r["score"] = round(rrf(r["page_id"]), 6)
+    return fused
 
 
 def _trgm(db: Session) -> bool:
@@ -181,7 +228,9 @@ def search(
     }
     if kind:
         params["kind"] = kind
-    rows = db.execute(sql, params).mappings().all()
+    rows = [dict(r) for r in db.execute(sql, params).mappings().all()]
+    dense = dense_search(db, project_id, q)
+    rows = _fuse(db, project_id, rows, dense, kind)
     hidden = unreadable_revisions(db, user, project_id, [r["revision_id"] for r in rows])
     hits = []
     for r in rows:
@@ -206,4 +255,4 @@ def search(
         )
         if len(hits) >= limit:
             break
-    return SearchOut(hits=hits, fuzzy_available=fuzzy, query_terms=parsed.expanded + parsed.symbols)
+    return SearchOut(hits=hits, fuzzy_available=fuzzy, query_terms=parsed.expanded + parsed.symbols, dense=dense.state)

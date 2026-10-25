@@ -95,3 +95,34 @@ def test_quote_miss_counts_when_blocks_supported():
 def test_question_needs_expected_page(team):  # noqa: ANN001
     body = {"question": "Boş beklenti", "expected_page_ids": [], "expected_quote": "", "kind": "kavram"}
     assert team["admin"].post(f"/api/v1/projects/{team['pid']}/search-eval/questions", json=body).status_code == 422
+
+
+@pytest.mark.skipif(not __import__("os").getenv("METIS_TEST_EMBEDDING_MODEL_DIR"), reason="gerçek model dizini verilmedi")
+def test_corpus_hybrid_real_model(team, capsys, monkeypatch):  # noqa: ANN001
+    """Yerelde gerçek gömme modeliyle hibrit ölçüm (CI'da model yok, atlanır)."""
+    import os
+
+    from metis.modules.search import embedding
+    from metis.modules.search.vectors import embed_missing, reset_cache
+
+    monkeypatch.setenv("METIS_EMBEDDING_MODEL_DIR", os.environ["METIS_TEST_EMBEDDING_MODEL_DIR"])
+    embedding.reset()
+    reset_cache()
+    pid = team["pid"]
+    assert team["admin"].patch(f"/api/v1/projects/{pid}", json={"review_policy": "self_publish"}).status_code == 200
+    pages = publish_corpus(team["contributor"], pid)
+    while True:
+        with transaction() as db:
+            if not embed_missing(db, limit=64):
+                break
+    with transaction() as db:
+        user = db.get(User, uuid.UUID(team["reader"].user["id"]))
+        res = evaluate(db, user, uuid.UUID(pid), corpus_questions(pages))
+    embedding.reset()
+    reset_cache()
+    m = res.metrics
+    with capsys.disabled():
+        print("\nHYBRID-EVAL", json.dumps({k: v for k, v in m.items() if k != "by_kind"}))
+        print("BY-KIND", json.dumps(m["by_kind"]))
+        print("MISSED", json.dumps([r["question"] for r in res.per_question if not r["rank"] or r["rank"] > 5]))
+    assert m["recall_at_5"] >= 0.95
