@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckSquare, ChevronRight, KeyRound, Play, Plus, ShieldCheck, Square, Trash2, Zap, ZapOff } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button, ConfirmDialog, Dialog, Drawer, Field, Input, SkeletonRows, StatusBadge, Textarea, useToast, type Tone } from '@/design/primitives';
 import { PageHeader } from '@/app/Shell';
 import { useSession } from '@/app/session';
@@ -11,6 +11,7 @@ import { messageOf } from '@/features/shared/hooks';
 import { modelReason } from '@/features/shared/models';
 import { RowMenu } from '@/features/shared/RowMenu';
 import { QualityChart, type ChartPoint } from './QualityChart';
+import { SearchEval } from './SearchEval';
 import s from './Lab.module.css';
 
 type ModelRow = Schemas['ModelRow'];
@@ -91,11 +92,12 @@ function useRuns() {
 
 export default function LabPage() {
   const session = useSession();
-  return <Lab admin={session.isAdmin} />;
+  const curator = session.isAdmin || session.roles.has('steward');
+  return <Lab admin={session.isAdmin} extra={curator && session.projectId ? <SearchEval projectId={session.projectId} /> : null} />;
 }
 
 /** Yönetici her şeyi yönetir; diğer üyeler salt okunur görür: modeller, son benchmark sonuçları, grafik, geçmiş. */
-function Lab({ admin }: { admin: boolean }) {
+function Lab({ admin, extra }: { admin: boolean; extra?: ReactNode }) {
   const qc = useQueryClient();
   const toast = useToast();
   const providers = useQuery({ queryKey: ['providers'], queryFn: () => api.get<Provider[]>('/providers'), enabled: admin });
@@ -405,6 +407,7 @@ function Lab({ admin }: { admin: boolean }) {
         }}
       />
       <ConfirmDialog open={clearAll} onOpenChange={setClearAll} title={tr.lab.clearAllTitle} description={tr.lab.clearAllDesc} confirmLabel={tr.lab.clearAll} danger onConfirm={() => clearResults(null)} />
+      {extra}
       <ResultDrawer target={result} onOpenChange={(o) => !o && setResult(null)} />
     </div>
   );

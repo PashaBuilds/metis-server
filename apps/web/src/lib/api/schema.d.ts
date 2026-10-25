@@ -1391,6 +1391,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/search-eval/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Eval Questions */
+        get: operations["eval_questions_api_v1_projects__project_id__search_eval_questions_get"];
+        put?: never;
+        /** Eval Add Question */
+        post: operations["eval_add_question_api_v1_projects__project_id__search_eval_questions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/search-eval/questions/{question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Eval Delete Question */
+        delete: operations["eval_delete_question_api_v1_projects__project_id__search_eval_questions__question_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/search-eval/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Eval Runs */
+        get: operations["eval_runs_api_v1_projects__project_id__search_eval_runs_get"];
+        put?: never;
+        /**
+         * Eval Run
+         * @description Tüm soruları o anki aramayla çalıştırır (deterministik, modelsiz) ve sonucu saklar.
+         */
+        post: operations["eval_run_api_v1_projects__project_id__search_eval_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/sources": {
         parameters: {
             query?: never;
@@ -1765,6 +1821,11 @@ export interface components {
             question: string;
             /** Related */
             related: components["schemas"]["RelatedPage"][];
+            /**
+             * Related Passages
+             * @default []
+             */
+            related_passages: components["schemas"]["RelatedPassage"][];
             /** Scope */
             scope: {
                 [key: string]: unknown;
@@ -3484,6 +3545,52 @@ export interface components {
             /** Hash */
             hash: string;
         };
+        /** QuestionIn */
+        QuestionIn: {
+            /** Expected Page Ids */
+            expected_page_ids?: string[];
+            /**
+             * Expected Quote
+             * @default
+             */
+            expected_quote: string;
+            /**
+             * Kind
+             * @default kavram
+             * @enum {string}
+             */
+            kind: "tanimlayici" | "kavram" | "nasil" | "issue" | "karisik";
+            /** Question */
+            question: string;
+        };
+        /** QuestionOut */
+        QuestionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Expected Page Ids */
+            expected_page_ids?: string[];
+            /**
+             * Expected Quote
+             * @default
+             */
+            expected_quote: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @default kavram
+             * @enum {string}
+             */
+            kind: "tanimlayici" | "kavram" | "nasil" | "issue" | "karisik";
+            /** Question */
+            question: string;
+        };
         /** RelatedPage */
         RelatedPage: {
             /** Excluded */
@@ -3511,6 +3618,28 @@ export interface components {
             scope: {
                 [key: string]: unknown;
             };
+            /** Title */
+            title: string;
+        };
+        /**
+         * RelatedPassage
+         * @description Model yokken gösterilen ilgili yayımlanmış bölüm: cevap değildir, doğrulayıcıdan geçmez (birebir blok metni).
+         */
+        RelatedPassage: {
+            /**
+             * Claim Id
+             * Format: uuid
+             */
+            claim_id: string;
+            /** Heading Path */
+            heading_path: string;
+            /**
+             * Page Id
+             * Format: uuid
+             */
+            page_id: string;
+            /** Text */
+            text: string;
             /** Title */
             title: string;
         };
@@ -3762,6 +3891,37 @@ export interface components {
             /** Unknowns */
             unknowns: unknown[];
         };
+        /** RunIn */
+        RunIn: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** RunOut */
+        RunOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Note */
+            note: string;
+            /** Per Question */
+            per_question: {
+                [key: string]: unknown;
+            }[];
+        };
         /** RunRow */
         RunRow: {
             /**
@@ -3854,6 +4014,16 @@ export interface components {
         };
         /** SearchHit */
         SearchHit: {
+            /**
+             * Best Claims
+             * @default []
+             */
+            best_claims: string[];
+            /**
+             * Heading Path
+             * @default
+             */
+            heading_path: string;
             /** Kind */
             kind: string;
             /** Matched Symbols */
@@ -3863,6 +4033,8 @@ export interface components {
              * Format: uuid
              */
             page_id: string;
+            /** Passage Text */
+            passage_text?: string | null;
             /**
              * Revision Id
              * Format: uuid
@@ -7308,6 +7480,168 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    eval_questions_api_v1_projects__project_id__search_eval_questions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    eval_add_question_api_v1_projects__project_id__search_eval_questions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    eval_delete_question_api_v1_projects__project_id__search_eval_questions__question_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    eval_runs_api_v1_projects__project_id__search_eval_runs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    eval_run_api_v1_projects__project_id__search_eval_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"];
                 };
             };
             /** @description Validation Error */

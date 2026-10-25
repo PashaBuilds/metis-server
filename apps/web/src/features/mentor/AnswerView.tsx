@@ -207,6 +207,25 @@ function Abstain({ answer, onReask }: { answer: Answer; onReask: (modelId: strin
         {d === 'MODEL_UNAVAILABLE' && answer.model_unavailable_reason && <p className={s.reason}>{tr.mentor.modelReason(modelReason(answer.model_unavailable_reason))}</p>}
       </Banner>
 
+      {d === 'MODEL_UNAVAILABLE' && (answer.related_passages ?? []).length > 0 && (
+        <section className={s.block} aria-labelledby="answer-passages">
+          <h3 id="answer-passages" className={s.blockTitle}>
+            {tr.mentor.passagesTitle}
+          </h3>
+          <p className={s.hint}>{tr.mentor.passagesLead}</p>
+          <ol className={s.passages}>
+            {(answer.related_passages ?? []).map((p) => (
+              <li key={p.claim_id}>
+                <Link to="/bilgi/$pageId" params={{ pageId: p.page_id }} search={{}} className={s.relatedTitle}>
+                  {p.heading_path ? `${p.title} › ${p.heading_path}` : p.title}
+                </Link>
+                <p className={s.passageText}>{p.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
       {d === 'MODEL_UNAVAILABLE' && (
         <section className={s.block} aria-labelledby="answer-alts">
           <h3 id="answer-alts" className={s.blockTitle}>

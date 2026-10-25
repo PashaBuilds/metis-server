@@ -46,6 +46,16 @@ class RelatedPage(BaseModel):
     relevance: str | None = None
 
 
+class RelatedPassage(BaseModel):
+    """Model yokken gösterilen ilgili yayımlanmış bölüm: cevap değildir, doğrulayıcıdan geçmez (birebir blok metni)."""
+
+    page_id: uuid.UUID
+    title: str
+    heading_path: str
+    text: str
+    claim_id: uuid.UUID
+
+
 class ConflictSide(BaseModel):
     page_id: uuid.UUID | None
     page_title: str
@@ -63,6 +73,7 @@ class AnswerOut(BaseModel):
     explanation: list[Sentence]
     citations: list[Citation]
     related: list[RelatedPage]
+    related_passages: list[RelatedPassage] = []
     unknowns: list[str]
     conflict_sides: list[ConflictSide]
     conflict_finding_id: uuid.UUID | None

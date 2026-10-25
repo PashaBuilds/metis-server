@@ -698,3 +698,22 @@
     max-width: 100%;
   }
 }
+
+/* Model yokken ilgili bölümler: cevap değil, doğrulanmış alıntı da değil — altın (İz) kullanılmaz. */
+.passages {
+  display: grid;
+  gap: var(--s3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passageText {
+  margin: var(--s1) 0 0;
+  padding: 2px 0 2px var(--s3);
+  border-left: 2px solid var(--cizgi-guclu);
+  font-size: var(--fs-14);
+  line-height: var(--lh-read);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

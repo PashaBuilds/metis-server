@@ -284,6 +284,14 @@
             "title": "Related",
             "type": "array"
           },
+          "related_passages": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RelatedPassage"
+            },
+            "title": "Related Passages",
+            "type": "array"
+          },
           "scope": {
             "additionalProperties": true,
             "title": "Scope",
@@ -4633,6 +4641,102 @@
         "title": "PublishDirectIn",
         "type": "object"
       },
+      "QuestionIn": {
+        "properties": {
+          "expected_page_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Expected Page Ids",
+            "type": "array"
+          },
+          "expected_quote": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Expected Quote",
+            "type": "string"
+          },
+          "kind": {
+            "default": "kavram",
+            "enum": [
+              "tanimlayici",
+              "kavram",
+              "nasil",
+              "issue",
+              "karisik"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 500,
+            "minLength": 2,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "QuestionIn",
+        "type": "object"
+      },
+      "QuestionOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expected_page_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Expected Page Ids",
+            "type": "array"
+          },
+          "expected_quote": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Expected Quote",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "default": "kavram",
+            "enum": [
+              "tanimlayici",
+              "kavram",
+              "nasil",
+              "issue",
+              "karisik"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 500,
+            "minLength": 2,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "id",
+          "created_at"
+        ],
+        "title": "QuestionOut",
+        "type": "object"
+      },
       "RelatedPage": {
         "properties": {
           "excluded": {
@@ -4694,6 +4798,42 @@
           "scope"
         ],
         "title": "RelatedPage",
+        "type": "object"
+      },
+      "RelatedPassage": {
+        "description": "Model yokken gösterilen ilgili yayımlanmış bölüm: cevap değildir, doğrulayıcıdan geçmez (birebir blok metni).",
+        "properties": {
+          "claim_id": {
+            "format": "uuid",
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "heading_path": {
+            "title": "Heading Path",
+            "type": "string"
+          },
+          "page_id": {
+            "format": "uuid",
+            "title": "Page Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id",
+          "title",
+          "heading_path",
+          "text",
+          "claim_id"
+        ],
+        "title": "RelatedPassage",
         "type": "object"
       },
       "RelationIn": {
@@ -5189,6 +5329,58 @@
         "title": "RevisionView",
         "type": "object"
       },
+      "RunIn": {
+        "properties": {
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "title": "RunIn",
+        "type": "object"
+      },
+      "RunOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "per_question": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Per Question",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "note",
+          "metrics",
+          "per_question"
+        ],
+        "title": "RunOut",
+        "type": "object"
+      },
       "RunRow": {
         "properties": {
           "created_at": {
@@ -5433,6 +5625,20 @@
       },
       "SearchHit": {
         "properties": {
+          "best_claims": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Best Claims",
+            "type": "array"
+          },
+          "heading_path": {
+            "default": "",
+            "title": "Heading Path",
+            "type": "string"
+          },
           "kind": {
             "title": "Kind",
             "type": "string"
@@ -5448,6 +5654,17 @@
             "format": "uuid",
             "title": "Page Id",
             "type": "string"
+          },
+          "passage_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passage Text"
           },
           "revision_id": {
             "format": "uuid",
@@ -10985,6 +11202,249 @@
           }
         },
         "summary": "Search",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/search-eval/questions": {
+      "get": {
+        "operationId": "eval_questions_api_v1_projects__project_id__search_eval_questions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QuestionOut"
+                  },
+                  "title": "Response Eval Questions Api V1 Projects  Project Id  Search Eval Questions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Eval Questions",
+        "tags": [
+          "search"
+        ]
+      },
+      "post": {
+        "operationId": "eval_add_question_api_v1_projects__project_id__search_eval_questions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Eval Add Question",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/search-eval/questions/{question_id}": {
+      "delete": {
+        "operationId": "eval_delete_question_api_v1_projects__project_id__search_eval_questions__question_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Eval Delete Question",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/search-eval/runs": {
+      "get": {
+        "operationId": "eval_runs_api_v1_projects__project_id__search_eval_runs_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunOut"
+                  },
+                  "title": "Response Eval Runs Api V1 Projects  Project Id  Search Eval Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Eval Runs",
+        "tags": [
+          "search"
+        ]
+      },
+      "post": {
+        "description": "Tüm soruları o anki aramayla çalıştırır (deterministik, modelsiz) ve sonucu saklar.",
+        "operationId": "eval_run_api_v1_projects__project_id__search_eval_runs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Eval Run",
         "tags": [
           "search"
         ]

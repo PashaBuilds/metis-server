@@ -72,6 +72,7 @@ def test_corpus_baseline(team, capsys):  # noqa: ANN001
         res = evaluate(db, user, uuid.UUID(pid), corpus_questions(pages))
     m = res.metrics
     assert m["n"] == 44 and set(m) >= {"recall_at_5", "recall_at_10", "mrr", "ndcg_at_10", "quote_at_5", "by_kind"}
+    assert m["quote_at_5"] is not None and m["recall_at_5"] >= 0.95  # blok bilgisi var; taban çizgisinden düşmez
     with capsys.disabled():
         print("\nARAMA ÖLÇÜMÜ", json.dumps({k: v for k, v in m.items() if k != "by_kind"}, ensure_ascii=False))
         print("TÜR", json.dumps(m["by_kind"], ensure_ascii=False))

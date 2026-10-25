@@ -12,6 +12,7 @@ asla NO_EVIDENCE ile karıştırılmaz. Sessiz fallback yok: seçilen model uygu
 
 from __future__ import annotations
 
+import re
 import time
 import uuid
 from collections.abc import Callable
@@ -52,6 +53,11 @@ from metis.modules.scopes.semantics import DIMENSIONS, matches_scope, mismatched
 from metis.modules.sources.locator import locator_label
 
 TOP_K = 12
+SHORT_PAGE = 8  # bu kadar bloğu olan sayfa pakete olduğu gibi girer
+BEST_PER_PAGE = 6
+MAX_BUNDLE = 40
+RELATED_PASSAGES = 5
+_HEADING_RE = re.compile(r"^#{1,6}\s")
 SELECTION_THRESHOLD = 8
 EXCLUDED_SUPPORT = ("unsupported", "conflicting")
 
@@ -60,6 +66,29 @@ Emit = Callable[[str, dict], None]
 
 def _noop(_e: str, _d: dict) -> None:
     return None
+
+
+def select_blocks(rows: list[dict], best: list[str]) -> list[dict]:
+    """Uzun sayfanın ilgili blokları: en iyi 6 blok + komşuları (ord±1) + her birinin önündeki en yakın başlık bloğu.
+    Kısa sayfa (≤ 8 blok) olduğu gibi; blok sıralaması yoksa (yalnız başlık/alias eşleşmesi) ilk 8 blok."""
+    if len(rows) <= SHORT_PAGE:
+        return rows
+    by_id = {r["claim_id"]: r for r in rows}
+    ords = sorted(r["ord"] for r in rows)
+    headings = sorted(r["ord"] for r in rows if _HEADING_RE.match(r["statement"]) and "\n" not in r["statement"].strip())
+    chosen: set[int] = set()
+    for cid in best[:BEST_PER_PAGE]:
+        r = by_id.get(cid)
+        if r is None:
+            continue
+        o = r["ord"]
+        chosen.update(x for x in (o - 1, o, o + 1) if x in ords)
+        prev = [h for h in headings if h <= o]
+        if prev:
+            chosen.add(prev[-1])
+    if not chosen:
+        chosen = set(ords[:SHORT_PAGE])
+    return sorted((r for r in rows if r["ord"] in chosen), key=lambda r: r["ord"])
 
 
 def _bundle_for(db: Session, user: User, page: Page, rev: PageRevision) -> list[dict]:
@@ -85,6 +114,7 @@ def _bundle_for(db: Session, user: User, page: Page, rev: PageRevision) -> list[
         seen.add(claim.id)
         out.append(
             {
+                "ord": claim.ord,
                 "claim_id": str(claim.id),
                 "evidence_id": str(ev.id),
                 "statement": claim.statement,
@@ -157,6 +187,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
         "error": None,
     }
     bundle: list[dict] = []
+    passages: list[dict] = []  # model yokken gösterilecek ilgili yayımlanmış bölümler (cevap değildir)
     candidate_revisions: list[uuid.UUID] = []
     pending_conflict: dict | None = None
 
@@ -204,10 +235,14 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                         related.excluded = "dependency_changed"  # kaynağı değişen sayfa mentor tarafından kullanılmaz
                         state["related"].append(related)
                         continue
-                    claims = _bundle_for(db, user, page, rev)
+                    claims = select_blocks(_bundle_for(db, user, page, rev), [str(c) for c in h.best_claims])
                     if not claims:
                         related.excluded = "no_verbatim_claims"
-                    bundle.extend(claims)
+                    bundle.extend(claims[: max(0, MAX_BUNDLE - len(bundle))])
+                    if h.passage_text and h.best_claims and len(passages) < RELATED_PASSAGES:
+                        passages.append(
+                            {"page_id": str(page.id), "title": rev.title, "heading_path": h.heading_path, "text": h.passage_text, "claim_id": str(h.best_claims[0]), "revision_id": str(rev.id)}
+                        )
                     state["related"].append(related)
                     state["unknowns"].extend(u for u in (rev.unknowns or []) if u not in state["unknowns"])
                 emit("sources", {"related": [r.model_dump(mode="json") for r in state["related"]]})
@@ -372,6 +407,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 "selection": state["selection"],
                 "error": state["error"],
                 "explanation_dropped_all": bool(state["dropped"]) and not state["explanation"] and bool(state["citations"]),
+                "related_passages": passages if state["decision"] == "MODEL_UNAVAILABLE" else [],
             },
         )
         db.add(answer)
@@ -409,6 +445,13 @@ def answer_out(db: Session, user: User, answer: Answer) -> schemas.AnswerOut:
             )
         )
     d = answer.detail or {}
+    from metis.core.access import can_read_page_revision
+
+    passages = [
+        schemas.RelatedPassage(**{k: v for k, v in p.items() if k != "revision_id"})
+        for p in d.get("related_passages", [])
+        if can_read_page_revision(db, user, db.get(PageRevision, uuid.UUID(p["revision_id"])))
+    ]
     return schemas.AnswerOut(
         id=answer.id,
         project_id=answer.project_id,
@@ -419,6 +462,7 @@ def answer_out(db: Session, user: User, answer: Answer) -> schemas.AnswerOut:
         explanation=[schemas.Sentence(**s) for s in answer.explanation],
         citations=citations,
         related=[schemas.RelatedPage(**r) for r in d.get("related", [])],
+        related_passages=passages,
         unknowns=d.get("unknowns", []),
         conflict_sides=[schemas.ConflictSide(**c) for c in d.get("conflict_sides", [])],
         conflict_finding_id=uuid.UUID(d["conflict_finding_id"]) if d.get("conflict_finding_id") else None,
