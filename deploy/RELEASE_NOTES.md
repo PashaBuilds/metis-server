@@ -15,6 +15,10 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
   saklanan zenginleştirme de aramadan çıkar. İlerleme: Ayarlar → Sistem durumu. Şema 0013.
 - Arama kalitesine katkısı **ölçülmedi** (bu sürümün geliştirme bilgisayarında şirket modeli yok; kurgusal modelle yalnız
   işleyiş denendi). Etkisini görmek için Model laboratuvarı → Arama ölçümü'nü zenginleştirme öncesi ve sonrası çalıştırın.
+- Vektör modeli eklentisi (`METIS-vektor-modeli-e5-base-1.zip`, 2.0.20 ile aynı dosya) bu sürüme de eklendi.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi (testler dahil); aynı commit'te CI yeşil (uçtan uca + temiz Windows Server'da
+  kurulum/yükseltme). Çift tıklamada yükseltme sorusu → Yes denendi; yönetici izni onaylanamadığı için yükseltmenin kendisi
+  bu sürümde o bilgisayarda **denenmedi** (ürün sahibinin "beklemeden yayımla" kararıyla istisna).
 
 **2.0.20 — Vektör (anlamsal) arama:**
 - Arama artık kelime eşleşmesinin yanında anlam benzerliğini de kullanabilir: farklı sözcüklerle ya da Türkçe–İngilizce
