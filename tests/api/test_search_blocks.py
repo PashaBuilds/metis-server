@@ -79,3 +79,18 @@ def test_long_question_keeps_symbol_hit_and_drops_single_common_word(corpus):  #
     hits = [h["page_id"] for h in _search(corpus["reader"], corpus["pid"], "kart açılırken KURGU_SAAT_SEL hangi değeri alır acaba")]
     assert page in hits
     assert _search(corpus["reader"], corpus["pid"], "uzay aracı yakıtı nasıl seçilir bilmiyorum") == []
+
+
+def _lexical(c, pid: str, q: str) -> list[str]:  # noqa: ANN001
+    return [h["page_id"] for h in c.get(f"/api/v1/projects/{pid}/search", params={"q": q, "dense": "false"}).json()["hits"]]
+
+
+def test_english_function_words_do_not_count_as_concepts(corpus):  # noqa: ANN001
+    """'what is the watchdog feed interval': 'is' sözcük sayılmaz; tek ayırt edici eşleşme (watchdog) yeter."""
+    assert corpus["pages"]["watchdog"] in _lexical(corpus["reader"], corpus["pid"], "what is the watchdog feed interval")
+    assert corpus["pages"]["uart-console"] in _lexical(corpus["reader"], corpus["pid"], "what is the console baud rate here")
+
+
+def test_synonyms_count_once_and_aliases_need_typed_word(corpus):  # noqa: ANN001
+    """'kesme' ve eş anlamlıları (interrupt, ISR) tek kavram: konu dışı uzun soruda tek kavram isabet üretmez."""
+    assert _lexical(corpus["reader"], corpus["pid"], "Saç kesme randevusu bilmiyorum lütfen") == []

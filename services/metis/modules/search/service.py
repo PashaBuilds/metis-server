@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from pydantic import BaseModel
 from sqlalchemy import bindparam, text
@@ -27,27 +27,20 @@ from metis.modules.search.text import fold, lower_tr
 from metis.modules.search.vectors import RRF_K, DenseResult, dense_search
 
 TOKEN_RE = re.compile(r"[\w]+(?:\(\))?", re.UNICODE)
+# Tek başına isabet üretmemesi gereken sözcükler: soru kalıpları, PostgreSQL'in Türkçe durak listesi (turkish.stop) ve
+# İngilizce işlev sözcükleri ("can" bilerek yok: CAN veri yolu). ASCII yazımlar (nasil, icin) da tanınır.
 STOP = {
-    "nasıl",
-    "nedir",
-    "neden",
-    "için",
-    "hangi",
-    "bir",
-    "olarak",
-    "ile",
-    "ve",
-    "veya",
-    "mi",
-    "mı",
-    "mu",
-    "mü",
-    "ne",
-    "the",
-    "and",
-    "how",
-    "what",
-}
+    "nasıl", "nedir", "neden", "için", "hangi", "bir", "olarak", "ile", "ve", "veya", "mi", "mı", "mu", "mü", "ne",
+    "acaba", "ama", "aslında", "az", "bazı", "belki", "biri", "birkaç", "birşey", "biz", "bu", "çok", "çünkü", "da",
+    "daha", "de", "defa", "diye", "eğer", "en", "gibi", "hem", "hep", "hepsi", "her", "hiç", "ise", "kez", "ki", "kim",
+    "nerde", "nerede", "nereye", "niçin", "niye", "sanki", "şey", "siz", "şu", "tüm", "ya", "yani",
+    "the", "and", "how", "what", "a", "an", "is", "are", "was", "were", "be", "been", "of", "to", "in", "on", "at",
+    "for", "by", "from", "as", "or", "it", "its", "this", "that", "with", "which", "who", "why", "does", "do", "there",
+    "here",
+}  # fmt: skip
+
+
+_STOP_FOLDED = {fold(w) for w in STOP}
 
 
 class SearchHit(BaseModel):
@@ -78,23 +71,39 @@ class ParsedQuery:
     words: list[str]
     symbols: list[str]
     expanded: list[str]
+    # Kapsam kuralı için kavramlar: yazılan her sözcük eş anlamlılarıyla bir kavram; çok sözcüklü terim ("kart destek
+    # paketi") tek kavram. Her kavram, sayfada aranacak seçeneklerin listesidir.
+    concepts: list[list[str]] = field(default_factory=list)
+
+
+def _is_stop(word: str) -> bool:
+    return word in STOP or fold(word) in _STOP_FOLDED
 
 
 def parse_query(q: str) -> ParsedQuery:
     raw = [t for t in TOKEN_RE.findall(q or "")]
     symbols = [t.rstrip("()") for t in raw if is_symbol(t)]
-    words = [lower_tr(t) for t in raw if lower_tr(t) not in STOP and len(t) >= 2]
+    words = [lower_tr(t) for t in raw if not _is_stop(lower_tr(t)) and len(t) >= 2]
     terms = terminology()
     expanded: dict[str, None] = {w: None for w in words}
     lowered = lower_tr(q or "")
+    concepts: dict[str, list[str]] = {}
+    in_phrase: set[str] = set()
     for term, syns in terms.items():
         if re.search(rf"(?<!\w){re.escape(term)}", lowered):
             for s in syns:
                 for part in s.split():
-                    expanded[part] = None
+                    if not _is_stop(part):
+                        expanded[part] = None
             for part in term.split():
                 expanded[part] = None
-    return ParsedQuery(words=words, symbols=symbols, expanded=list(expanded))
+        if " " in term and re.search(rf"(?<!\w){re.escape(term)}(?!\w)", lowered):
+            concepts.setdefault(fold(term), [term, *syns])
+            in_phrase.update(term.split())
+    for w in words:
+        if w not in in_phrase:
+            concepts.setdefault(fold(w), [w, *terms.get(w, [])])
+    return ParsedQuery(words=words, symbols=symbols, expanded=list(expanded), concepts=list(concepts.values()))
 
 
 def _fuse(db: Session, project_id: uuid.UUID, rows: list[dict], dense: DenseResult, kind: str | None) -> list[dict]:
@@ -146,22 +155,30 @@ def _trgm(db: Session) -> bool:
     return bool(db.execute(text("SELECT 1 FROM pg_extension WHERE extname='pg_trgm'")).scalar())
 
 
-def _coverage(db: Session, page_ids: list[uuid.UUID], terms: list[str]) -> dict[uuid.UUID, int]:
-    """Sayfa başına sorgu sözcüklerinden kaçının sayfada (başlık, metin ya da blok zenginleştirmesi) geçtiği."""
-    if not page_ids or not terms:
+def _coverage(db: Session, page_ids: list[uuid.UUID], concepts: list[list[str]]) -> dict[uuid.UUID, int]:
+    """Sayfa başına sorgu kavramlarından kaçının (en çok 2'ye kadar sayılır) sayfada geçtiği: başlık, metin ya da blok
+    zenginleştirmesi. Bir kavram, seçeneklerinden (sözcük ya da eş anlamlısı) biri geçerse karşılanmış sayılır."""
+    if not page_ids or not concepts:
         return {}
+    gid, terms = [], []
+    for i, alts in enumerate(concepts):
+        for t in alts:
+            gid.append(i)
+            terms.append(t)
     rows = db.execute(
         text(
             """
             SELECT d.page_id,
-                   (SELECT count(*) FROM unnest(CAST(:t AS text[]), CAST(:ft AS text[])) AS u(t, ft)
-                     WHERE d.tsv_turkish @@ plainto_tsquery('turkish', u.t) OR d.tsv_simple @@ plainto_tsquery('simple', u.t)
-                        OR EXISTS (SELECT 1 FROM search_passages sp WHERE sp.page_id = d.page_id
-                                     AND (sp.tsv_simple @@ plainto_tsquery('simple', u.ft) OR sp.tsv_turkish @@ plainto_tsquery('turkish', u.t))))
+                   (SELECT count(*) FROM (
+                      SELECT DISTINCT u.g FROM unnest(CAST(:g AS int[]), CAST(:t AS text[]), CAST(:ft AS text[])) AS u(g, t, ft)
+                       WHERE d.tsv_turkish @@ plainto_tsquery('turkish', u.t) OR d.tsv_simple @@ plainto_tsquery('simple', u.t)
+                          OR EXISTS (SELECT 1 FROM search_passages sp WHERE sp.page_id = d.page_id
+                                       AND (sp.tsv_simple @@ plainto_tsquery('simple', u.ft) OR sp.tsv_turkish @@ plainto_tsquery('turkish', u.t)))
+                       LIMIT 2) AS c)
             FROM search_documents d WHERE d.page_id = ANY(CAST(:ids AS uuid[]))
             """
         ),
-        {"t": terms, "ft": [fold(t) for t in terms], "ids": page_ids},
+        {"g": gid, "t": terms, "ft": [fold(t) for t in terms], "ids": page_ids},
     ).all()
     return {pid: int(n) for pid, n in rows}
 
@@ -225,7 +242,7 @@ def search(
                + 0.5 * (ts_rank_cd(d.tsv_simple, q.qsr) + ts_rank_cd(d.tsv_turkish, q.qt))
                {fuzzy_sql}
                ) AS score,
-               EXISTS (SELECT 1 FROM unnest(d.aliases) a3 WHERE lower(a3) = ANY(CAST(:words AS text[]))) AS alias_hit,
+               EXISTS (SELECT 1 FROM unnest(d.aliases) a3 WHERE lower(a3) = ANY(CAST(:typed AS text[]))) AS alias_hit,
                a.best_claims, a.best_body, a.best_heading,
                CASE WHEN a.best_body IS NOT NULL
                     THEN ts_headline('turkish', a.best_body, q.qt, 'MaxWords=28, MinWords=12, StartSel=«, StopSel=»')
@@ -241,24 +258,26 @@ def search(
         ORDER BY score DESC, d.title
         LIMIT 200
         """
-    ).bindparams(bindparam("symbols"), bindparam("likes"), bindparam("words"))
+    ).bindparams(bindparam("symbols"), bindparam("likes"), bindparam("words"), bindparam("typed"))
     params = {
         "oq": or_query,
         "oqs": fold(or_query),
         "symbols": parsed.symbols,
         "likes": like_terms,
         "words": parsed.expanded,
+        "typed": parsed.words,
         "project_id": project_id,
     }
     if kind:
         params["kind"] = kind
     rows = [dict(r) for r in db.execute(sql, params).mappings().all()]
-    # Kapsam: 4+ içerik sözcüklü (doğal dil) soruda yalnız metinle bulunan sayfa en az 2 sözcüğü içermeli; kısa, anahtar
-    # sözcük gibi sorularda ("buton debounce süresi") tek ayırt edici eşleşme yeter. Konu dışı soruda tek bir
-    # sık sözcük ("yapılır", "var", "is") isabet üretmez; tanımlayıcı ve eş ad isabetleri bu kuraldan muaftır.
-    if len(set(parsed.words)) >= 4:
+    # Kapsam: 4+ kavramlı (doğal dil) soruda yalnız metinle bulunan sayfa en az 2 kavramı içermeli; kısa, anahtar sözcük
+    # gibi sorularda ("buton debounce süresi") tek ayırt edici eşleşme yeter. Konu dışı soruda tek bir sık sözcük
+    # ("yapılır", "var") isabet üretmez. Durak sözcükleri kavram sayılmaz; eş anlamlılar kavramlarıyla bir sayılır.
+    # Tanımlayıcı ve (yazılan sözcükle) eş ad isabetleri muaf. Yapıştırılmış uzun metinde (30+ kavram) uygulanmaz.
+    if 4 <= len(parsed.concepts) <= 30:
         weak = [r["page_id"] for r in rows if not r["matched"] and not r["alias_hit"]]
-        cover = _coverage(db, weak, parsed.expanded)
+        cover = _coverage(db, weak, parsed.concepts)
         rows = [r for r in rows if r["page_id"] not in cover or cover[r["page_id"]] >= 2]
     dense_res = dense_search(db, project_id, q) if dense else DenseResult("unavailable", [])
     rows = _fuse(db, project_id, rows, dense_res, kind)
