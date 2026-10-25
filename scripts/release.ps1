@@ -11,6 +11,11 @@
          vite dahil); ZIP'in SHA-256'sı dist\aday.json'a yazılır. Başta aynı commit için GitHub'da CI başlatılır (uçtan uca
          Playwright + temiz Windows Server'da çevrimdışı kurulum/yükseltme; yerelde yapılamayanlar) ve paralel koşar.
     2. ZIP'i ayrı bir klasöre aç, METIS-Baslat.exe'ye çift tıkla (kurulum/yükseltme, Chrome, sol menüde sürüm).
+       Ya da (bir kez yönetici scripts\deneme-yukseltme\kur.ps1 kurduysa) ajan UAC sorusu olmadan:
+       powershell -ExecutionPolicy Bypass -File scripts\release.ps1 -Dene
+         Aday ZIP'in özeti denetlenir; "METIS-Deneme-Yukseltme" görevi kurulu METIS'i bu ZIP'le yükseltir (başlatıcının
+         otomasyon kipi: çift tıklamadaki soru ve UAC adımı hariç aynı yükseltme); çalışan sürüm doğrulanır, sonuç
+         dist\aday.json'a ("deneme") yazılır.
     3. powershell -ExecutionPolicy Bypass -File scripts\release.ps1 -Yayimla
          Aday ZIP değişmemiş mi, commit hâlâ origin/main mi, o commit'te CI yeşil mi denetlenir; gh release create ile
          etiket (sunucu tarafında) ve release oluşturulur, yüklenen dosyanın özeti karşılaştırılır.
@@ -20,6 +25,7 @@
 [CmdletBinding()]
 param(
   [switch]$Derle,
+  [switch]$Dene,
   [switch]$Yayimla,
   [string]$PgBin = "C:\Program Files\PostgreSQL\16\bin"
 )
@@ -62,7 +68,40 @@ function Get-ReleaseTag {
   return $tag
 }
 
-if ($Derle -eq $Yayimla) { throw "-Derle ya da -Yayimla seç (biri)." }
+if (@(@($Derle, $Dene, $Yayimla) | Where-Object { $_ }).Count -ne 1) { throw "-Derle, -Dene ya da -Yayimla seç (biri)." }
+
+$TrialTask = "METIS-Deneme-Yukseltme"
+$TrialDir = Join-Path $env:ProgramData "METIS-Deneme\istek"
+
+if ($Dene) {
+  if (-not (Test-Path $Candidate)) { throw "dist\aday.json yok; önce -Derle." }
+  $info = Get-Content -Raw $Candidate | ConvertFrom-Json
+  $zip = Join-Path $Root "dist\$($info.zip)"
+  if ((Get-Sha256 $zip) -ne $info.sha256) { throw "ZIP derlemeden sonra değişmiş; yeniden -Derle." }
+  $ErrorActionPreference = "Continue"
+  schtasks /query /tn $TrialTask *> $null
+  $hasTask = $LASTEXITCODE -eq 0
+  $ErrorActionPreference = "Stop"
+  if (-not $hasTask) { throw "'$TrialTask' görevi yok. Bir kez yönetici PowerShell'de scripts\deneme-yukseltme\kur.ps1 çalıştır (ya da çift tıklamayla dene)." }
+  $resultFile = Join-Path $TrialDir "sonuc.json"
+  Remove-Item -Force $resultFile -ErrorAction SilentlyContinue
+  $request = [ordered]@{ zip = $zip; sha256 = $info.sha256 }
+  [IO.File]::WriteAllText((Join-Path $TrialDir "istek.json"), ($request | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
+  Invoke-Native schtasks @("/run", "/tn", $TrialTask) | Out-Null
+  Write-Host "==> deneme başladı ($($info.zip)): kurulu METIS bu ZIP'le yükseltiliyor (en çok 20 dk)" -ForegroundColor Cyan
+  $deadline = (Get-Date).AddMinutes(20)
+  $trial = $null
+  while (-not $trial -and (Get-Date) -lt $deadline) {
+    Start-Sleep -Seconds 5
+    if (Test-Path $resultFile) { try { $trial = Get-Content -Raw -Encoding UTF8 $resultFile | ConvertFrom-Json } catch { } }  # yazılırken okunduysa yeniden
+  }
+  if (-not $trial) { throw "Deneme 20 dakikada bitmedi. Günlük: $TrialDir\deneme.log" }
+  $info | Add-Member -NotePropertyName deneme -NotePropertyValue $trial -Force
+  [IO.File]::WriteAllText($Candidate, ($info | ConvertTo-Json -Depth 6), (New-Object Text.UTF8Encoding($false)))
+  if (-not $trial.basarili) { throw "Deneme başarısız: $($trial.hata). Günlük: $TrialDir\deneme.log ve $env:TEMP\METIS" }
+  Write-Host "Deneme başarılı: kurulu METIS $($trial.saglik_surumu) çalışıyor ($($trial.baslangic) → $($trial.bitis)). Sonra: scripts\release.ps1 -Yayimla" -ForegroundColor Green
+  exit 0
+}
 
 if ($Derle) {
   $commit = Assert-PushedMain
@@ -106,6 +145,11 @@ $tag = Get-ReleaseTag
 if ($tag -ne $info.tag) { throw "Aday $($info.tag), deploy/RELEASE $tag." }
 $zip = Join-Path $Root "dist\$($info.zip)"
 if ((Get-Sha256 $zip) -ne $info.sha256) { throw "ZIP denendikten sonra değişmiş; yeniden -Derle." }
+if ($info.PSObject.Properties["deneme"] -and $info.deneme.basarili) {
+  Write-Host "Deneme (-Dene): başarılı, çalışan sürüm $($info.deneme.saglik_surumu) ($($info.deneme.bitis))" -ForegroundColor Green
+} else {
+  Write-Host "Uyarı: bu aday için başarılı -Dene kaydı yok; çift tıklama denemesinin sonucunu PROGRESS'e yaz." -ForegroundColor Yellow
+}
 $green = (gh run list --workflow CI --commit $commit --json conclusion --jq '[.[] | select(.conclusion == \"success\")] | length').Trim()
 if ($green -eq "0") {
   $active = (gh run list --workflow CI --commit $commit --json status,databaseId --jq '[.[] | select(.status != \"completed\")][0].databaseId // \"\"').Trim()
