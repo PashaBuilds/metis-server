@@ -359,8 +359,13 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
   çıkmıştı (karesel yollar). Düzeltilenler: bakım çelişki taraması ve yayın öncesi kontrolde biçim gruplaması + iddia biçim
   özeti (`claims.shape_md5`, 0015; ICU ile küçültme — Windows yerel ayarının `lower`'ı "İ"yi küçültmüyordu, Python kuralıyla
   tutarlılık testli), yayın listesi revizyon dizini (0014), okunabilirlik süzgeci ve taslak not görünürlüğü SQL'de, bilgi
-  listesi gövdesiz, vektör matrisi artımlı tazeleme, kelime aramasında aday kümesi (116 aramada sonuç birebir aynı, ortanca
-  166 → 65 ms), soru sözcükleri kavram sayılmaz.
+  listesi gövdesiz, vektör matrisi artımlı tazeleme, soru sözcükleri kavram sayılmaz.
+- Kelime araması 20 bin sayfada soru başına ortanca 1,1–1,5 sn (44 soru; 1 bin 67 ms, 5 bin 286 ms). Maliyet: eşleşen her
+  bölümün sıralama puanı, aday belgelerin puanı, başlık parça eşleşmesi ve benzer sembol taraması (sorguya göre ~33 bin
+  bölüm, ~15 bin aday sayfa). "Önce aday kümesi" yeniden yazımı denendi (sonuçlar birebir aynı) ama eski/yeni dönüşümlü
+  ölçümde süzgeçsiz 44 soruda ortanca 1.460 → 1.337 ms, p90 2.297 → 3.042 ms: kazanç yok, **geri alındı**. İlk ölçtüğüm
+  "116 aramada ortanca 166 → 65 ms" tür süzgeçli (hızlı) ve süzgeçsiz (yavaş) aramaların karışık ortancasıydı, yanıltıcıydı.
+  Gerçek çözüm puanlanan bölüm sayısını sınırlamak (sıralama değişir; ölçümle karar) — sonraki iş.
 - 20 bin sayfa (238 bin bölüm, 240 bin iddia, düzeltilmiş kod): 5 sayfalık parti yayını p50 2,5 sn; örneklenen gerçek
   kontrol p50 13,1 sn (5 sayfa); tek sayfa kontrol ≈ 5,1 sn, yayın ≈ 4,1 sn; bakım taraması 51 sn (23 çift); sayfa ayrıntısı
   24 ms; bağlantılı bilgiler 260 ms; bilgi listesi 2,1 sn; API'de ilk vektör matrisi yüklemesi 14 sn (süreç başına bir kez).

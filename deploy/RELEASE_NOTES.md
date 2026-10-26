@@ -12,8 +12,6 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
   - Yayın listesinde revizyon dizini (şema 0014); okunabilirlik süzgeci ve taslak not görünürlüğü veritabanında; bilgi
     listesi gövdeleri yüklemez.
   - Vektör araması yayından sonra yalnız yeni bölümlerin vektörünü okur (tüm matris yeniden yüklenmez).
-  - Kelime araması aday sayfaları önce indeksten bulur: 20 bin sayfada 116 aramanın sonuçları birebir aynı, ortanca süre
-    166 → 65 ms.
 - Arama: soru sözcükleri (kaç, kadar, olmalı, gerekir, nelerdir…) kavram sayılmaz.
 - **Model zenginleştirmesi varsayılan kapalı** (şema 0016, ürün sahibinin kararı): kurgusal veride gerçek modelle
   (DeepSeek flash) aramaya ölçülebilir katkısı görülmedi; bölüm başına ≈ 2.100 token harcar. Hiç zenginleştirilmemiş
@@ -21,7 +19,9 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
   İnceleme politikası.
 - Vektör modeli paketinde havuzlama seçimi (`MODEL.json` `pooling`; bge-m3 gibi modeller için). e5-base değişmez.
 - **Bilinen sınırlar** (20 bin kurgusal sayfa, 6 çekirdekli geliştirme bilgisayarı; **gerçek içerikte ölçülmedi**):
-  geniş sorgular (adayların çoğu derlem) 1,5–3 sn; 5 sayfalık yayın ≈ 2,5 sn, tek sayfanın yayın öncesi kontrolü ≈ 5 sn.
+  kelime araması 20 bin sayfada soru başına ortanca ≈ 1,1–1,5 sn, geniş sorgularda 2–3 sn (1 bin sayfada 67 ms, 5 bin
+  sayfada 286 ms; eşleşen her bölüm puanlanıyor — sonraki iş); 5 sayfalık yayın ≈ 2,5 sn, tek sayfanın yayın öncesi
+  kontrolü ≈ 5 sn.
   Yayın listesi (her yayında tüm sayfalar) 40 milyon satır / 6,1 GB'a ulaştı; tutulma biçimi ürün sahibinin kararını
   bekliyor. Aynı kart ve konuda çok sayıda sayfa olduğunda doğru sayfa ilk 5'ten düşebiliyor (kart süzgeçli hibrit arama,
   doğru bilgi ilk 5'te: 1 bin sayfa 0,977 · 5 bin 0,909 · 20 bin 0,636). KURULUM'daki vektör gömme süresi ölçülen hızla

@@ -234,21 +234,6 @@ def search(
                  max(body) FILTER (WHERE dn = 1) AS best_body,
                  max(heading_path) FILTER (WHERE dn = 1) AS best_heading
           FROM ranked GROUP BY page_id
-        ),
-        -- Aday sayfalar önce bulunur, puan yalnız onlara hesaplanır: tam metin ve sembol koşulları GIN indeksinden; başlık,
-        -- eş ad ve benzer sembol yalnız dar sütunlardan. Tüm belgelerde büyük tsvector açılmaz (20 bin sayfada ~1 sn).
-        cand AS (
-          SELECT page_id FROM agg
-          UNION
-          SELECT d.page_id FROM search_documents d, q
-          WHERE d.project_id = :project_id
-            AND (d.symbols && CAST(:symbols AS text[]) OR d.tsv_simple @@ q.qsr OR d.tsv_turkish @@ q.qt)
-          UNION
-          SELECT d.page_id FROM search_documents d
-          WHERE d.project_id = :project_id
-            AND (d.title ILIKE ANY(CAST(:likes AS text[]))
-                 OR EXISTS (SELECT 1 FROM unnest(d.aliases) a2 WHERE lower(a2) = ANY(CAST(:words AS text[])))
-                 {"OR EXISTS (SELECT 1 FROM unnest(d.symbols) s, unnest(CAST(:symbols AS text[])) sym WHERE similarity(s, sym) > 0.45)" if fuzzy and parsed.symbols else ""})
         )
         SELECT d.page_id, d.revision_id, d.title, d.kind, d.scope,
                ARRAY(SELECT s FROM unnest(d.symbols) s WHERE s = ANY(CAST(:symbols AS text[]))) AS matched,
@@ -264,8 +249,13 @@ def search(
                CASE WHEN a.best_body IS NOT NULL
                     THEN ts_headline('turkish', a.best_body, q.qt, 'MaxWords=28, MinWords=12, StartSel=«, StopSel=»')
                     ELSE ts_headline('simple', d.content, q.qs, 'MaxWords=28, MinWords=12, StartSel=«, StopSel=»') END AS snippet
-        FROM cand JOIN search_documents d ON d.page_id = cand.page_id CROSS JOIN q LEFT JOIN agg a ON a.page_id = d.page_id
+        FROM search_documents d CROSS JOIN q LEFT JOIN agg a ON a.page_id = d.page_id
         WHERE d.project_id = :project_id
+          AND (a.page_id IS NOT NULL OR d.symbols && CAST(:symbols AS text[])
+               OR d.tsv_simple @@ q.qsr OR d.tsv_turkish @@ q.qt
+               OR d.title ILIKE ANY(CAST(:likes AS text[]))
+               OR EXISTS (SELECT 1 FROM unnest(d.aliases) a2 WHERE lower(a2) = ANY(CAST(:words AS text[])))
+               {"OR EXISTS (SELECT 1 FROM unnest(d.symbols) s, unnest(CAST(:symbols AS text[])) sym WHERE similarity(s, sym) > 0.45)" if fuzzy and parsed.symbols else ""})
           {"AND d.kind = :kind" if kind else ""}
         ORDER BY score DESC, d.title
         LIMIT 200
