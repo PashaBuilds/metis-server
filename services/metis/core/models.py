@@ -15,6 +15,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Computed,
     DateTime,
     Float,
     ForeignKey,
@@ -283,12 +284,20 @@ class PageRevision(Base):
     )
 
 
+def claim_shape_sql(col: str) -> str:
+    """İddianın "biçimi": küçük harf, sayılar # (Python `_strip_numbers` ile aynı kural). Çelişki adayları aynı biçimli
+    iddialardır; veritabanında özetiyle dizinlenir (büyük derlemde tüm iddiaları uygulamaya taşımamak için). Küçültme ICU
+    ile: sunucunun yerel ayarından bağımsız (Windows'taki varsayılan ayar "İ"yi küçültmez) ve Python `str.lower` ile aynı."""
+    return rf"""regexp_replace(regexp_replace(lower({col} COLLATE "und-x-icu"), '\d+([.,]\d+)?', '#', 'g'), '^\s+|\s+$', '', 'g')"""
+
+
 class Claim(Base):
     __tablename__ = "claims"
     id: Mapped[uuid.UUID] = pk()
     page_revision_id: Mapped[uuid.UUID] = fk("page_revisions.id")
     ord: Mapped[int] = mapped_column(Integer, nullable=False)
     statement: Mapped[str] = mapped_column(Text, nullable=False)
+    shape_md5: Mapped[str | None] = mapped_column(Text, Computed(f"md5({claim_shape_sql('statement')})", persisted=True), index=True)
     kind: Mapped[str] = mapped_column(String(30), nullable=False, default="expert_statement")
     support: Mapped[str] = mapped_column(String(20), nullable=False, default="not_reviewed")
     __table_args__ = (

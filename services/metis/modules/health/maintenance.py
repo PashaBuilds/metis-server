@@ -7,7 +7,7 @@ import re
 import uuid
 from datetime import timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from metis.core.db import transaction, utcnow
@@ -102,17 +102,28 @@ def deterministic_scan(db: Session, project_id: uuid.UUID, actor: uuid.UUID | No
 
 
 def _strip_numbers(text: str) -> str:
-    return re.sub(r"\d+(?:[.,]\d+)?", "#", text.casefold()).strip()
+    # str.lower: veritabanındaki biçim özetiyle (claims.shape_md5, ICU lower) aynı kural
+    return re.sub(r"\d+(?:[.,]\d+)?", "#", text.lower()).strip()
 
 
 def conflict_pairs(db: Session, project_id: uuid.UUID) -> list[dict]:
     """Örtüşen kapsamda aynı biçimli fakat farklı değerli iddia çiftleri (deterministik aday üretimi)."""
+    def base():  # noqa: ANN202
+        return (
+            select()
+            .select_from(Page)
+            .join(PageRevision, PageRevision.id == Page.published_revision_id)
+            .join(Claim, Claim.page_revision_id == PageRevision.id)
+            .join(ClaimEvidence, ClaimEvidence.claim_id == Claim.id)
+            .where(Page.project_id == project_id, Page.deleted_at.is_(None), Page.lifecycle == "active")
+        )
+
+    # Yalnız birden çok sayfada görülen biçimler (claims.shape_md5 dizini): büyük derlemde tüm iddiaları taşımamak için.
+    shared = base().add_columns(Claim.shape_md5).group_by(Claim.shape_md5).having(func.count(func.distinct(Page.id)) > 1)
     rows = db.execute(
-        select(Page.id, PageRevision.title, PageRevision.scope, Claim.statement, ClaimEvidence.evidence_id)
-        .join(PageRevision, PageRevision.id == Page.published_revision_id)
-        .join(Claim, Claim.page_revision_id == PageRevision.id)
-        .join(ClaimEvidence, ClaimEvidence.claim_id == Claim.id)
-        .where(Page.project_id == project_id, Page.deleted_at.is_(None), Page.lifecycle == "active")
+        base()
+        .add_columns(Page.id, PageRevision.title, PageRevision.scope, Claim.statement, ClaimEvidence.evidence_id)
+        .where(Claim.shape_md5.in_(shared))
     ).all()
     return pair_candidates(rows)
 

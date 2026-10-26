@@ -11,6 +11,7 @@ from __future__ import annotations
 import time
 import uuid
 
+from metis.core.models import claim_shape_sql
 from metis.modules.changes.prepublish import rule_candidates
 from metis.modules.health.maintenance import pair_candidates
 
@@ -72,3 +73,21 @@ def test_publication_manifest_is_indexed_by_revision(db):  # noqa: ANN001
 
     defs = db.scalars(text("SELECT indexdef FROM pg_indexes WHERE tablename = 'publication_pages'")).all()
     assert any("(revision_id)" in d for d in defs), defs
+
+
+def test_claim_shape_column_matches_python_rule(db):  # noqa: ANN001
+    """Yayın öncesi kontrol ve bakım taraması aday iddiaları veritabanındaki biçim özetiyle süzer; özet Python kuralıyla
+    (`_strip_numbers`) aynı olmalı, yoksa aday kaçar."""
+    import hashlib
+
+    from sqlalchemy import text
+
+    from metis.modules.health.maintenance import _strip_numbers
+
+    samples = [
+        "Saat 100 MHz.", "PERST# en az 100 ms aktif tutulur.", "3,3 V rayı ölçülür; akım 1.5 A.", "  Baştaki boşluk 5 \n",
+        "İZMİR'deki kartta ışık 2 kez yanar.", "IŞIK ve ığdır 7", "Gen3 x4 ile 2.9 GB/s", "Başlık\nikinci satır 12",
+    ]  # fmt: skip
+    for s in samples:
+        got = db.scalar(text(f"SELECT md5({claim_shape_sql('CAST(:s AS text)')})"), {"s": s})
+        assert got == hashlib.md5(_strip_numbers(s).encode("utf-8")).hexdigest(), s  # noqa: S324

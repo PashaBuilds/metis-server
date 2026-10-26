@@ -37,22 +37,27 @@ def _candidates(db, user: User, change: ChangeSet) -> dict:  # noqa: ANN001
     from metis.modules.search.service import search
 
     project_id = change.project_id
-    drafts = []
+    drafts, draft_revs = [], []
     for item in _items(db, change):
         if item.action != "upsert" or not item.proposed_revision_id:
             continue
         rev = db.get(PageRevision, item.proposed_revision_id)
         assert rev is not None
+        draft_revs.append(rev.id)
         claims = list(db.scalars(select(Claim.statement).where(Claim.page_revision_id == rev.id).order_by(Claim.ord)))
         drafts.append({"page_id": item.page_id, "title": rev.title, "summary": rev.summary, "body": rev.body_md, "scope": rev.scope, "claims": claims})
     if not drafts:
         return {"drafts": [], "rule": [], "similar": []}
     own_pages = {d["page_id"] for d in drafts}
+    # Yalnız taslak iddialarıyla aynı biçim özetini taşıyan yayın iddiaları okunur (claims.shape_md5 dizini; kesin kural
+    # rule_candidates'ta). Büyük derlemde tüm yayını her kontrolde uygulamaya taşımamak için.
+    shapes = select(Claim.shape_md5).where(Claim.page_revision_id.in_(draft_revs))
     rows = db.execute(
         select(Page.id, PageRevision.id, PageRevision.title, PageRevision.scope, Claim.statement)
         .join(PageRevision, PageRevision.id == Page.published_revision_id)
         .join(Claim, Claim.page_revision_id == PageRevision.id)
         .where(Page.project_id == project_id, Page.deleted_at.is_(None), Page.lifecycle == "active", Page.id.not_in(own_pages))
+        .where(Claim.shape_md5.in_(shapes))
     ).all()
     hidden = unreadable_revisions(db, user, project_id, [r[1] for r in rows])
     rule = rule_candidates(drafts, rows, hidden)

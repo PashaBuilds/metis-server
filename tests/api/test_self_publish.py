@@ -236,3 +236,12 @@ def test_model_check_ignores_pages_with_disjoint_scope(sp_model):
     ch = draft(a, pid, "UART hızı K2", [(SLOW, ev)], scope=k2)
     check = _check(a, ch["id"])
     assert check["model_status"] == "ok" and check["issues"] == []
+
+
+def test_rule_conflict_ignores_case_including_turkish_dotted_i(sp):  # noqa: ANN001
+    """Kural adayları veritabanında biçim özetiyle süzülür (ölçek): büyük/küçük harf farkı ve "İ" adayı kaçırmaz. (Türkçe
+    I/ı eşlemesi kuralda yoktur: "AÇILIŞ" küçültülünce "açiliş" olur; önceden de böyleydi.)"""
+    _self_publish(sp["contributor"], sp["pid"], "İzmir saati", "İzmir kartında SAAT 100 MHZ olur.")
+    ch = _draft(sp["contributor"], sp["pid"], "Açılış notu", "İzmir kartında saat 125 MHz olur.")
+    check = _check(sp["contributor"], ch["id"])
+    assert [(i["kind"], i["detected_by"], i["theirs"]) for i in check["issues"]] == [("conflict", "rule", "İzmir kartında SAAT 100 MHZ olur.")]
