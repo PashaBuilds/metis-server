@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 import uuid
 import zipfile
 from pathlib import Path
@@ -30,8 +31,16 @@ def empty_db():  # noqa: ANN201
     with psycopg.connect(ADMIN_DSN, autocommit=True) as conn:
         conn.execute(f'CREATE DATABASE "{name}"')
     yield with_dbname(get_settings().owner_database_url, name)
-    with psycopg.connect(ADMIN_DSN, autocommit=True) as conn:
-        conn.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+    # Geri yüklenen veritabanında autovacuum çalışıyor olabilir; test rolü onu sonlandıramaz, kısa süre sonra biter.
+    for attempt in range(20):
+        try:
+            with psycopg.connect(ADMIN_DSN, autocommit=True) as conn:
+                conn.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+            break
+        except psycopg.errors.InsufficientPrivilege:
+            if attempt == 19:
+                raise
+            time.sleep(1)
 
 
 def test_backup_restore_roundtrip_into_empty_db(populated, empty_db, tmp_path: Path) -> None:  # noqa: ANN001
