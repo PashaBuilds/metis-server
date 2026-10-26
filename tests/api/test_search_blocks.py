@@ -94,3 +94,11 @@ def test_english_function_words_do_not_count_as_concepts(corpus):  # noqa: ANN00
 def test_synonyms_count_once_and_aliases_need_typed_word(corpus):  # noqa: ANN001
     """'kesme' ve eş anlamlıları (interrupt, ISR) tek kavram: konu dışı uzun soruda tek kavram isabet üretmez."""
     assert _lexical(corpus["reader"], corpus["pid"], "Saç kesme randevusu bilmiyorum lütfen") == []
+
+
+def test_question_words_do_not_count_as_concepts(corpus):  # noqa: ANN001
+    """Model zenginleştirmesinin soruları kalıplıdır ("... kaç ... olmalı?"); soru/kip sözcükleri kavram sayılırsa konu dışı
+    soru iki "kavramla" isabet üretir (DeepSeek ile ölçek denemesi: "Araba lastiği basıncı kaç olmalı?")."""
+    _publish(corpus["contributor"], corpus["pid"], "Hizalama kuralı", "Tanımlayıcı tablosu kaç bayt olmalı? 64 bayt hizalı olmalıdır.")
+    assert _lexical(corpus["reader"], corpus["pid"], "Araba lastiği basıncı kaç olmalı?") == []
+    assert _lexical(corpus["reader"], corpus["pid"], "Tatil için ne kadar izin gerekir?") == []

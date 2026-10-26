@@ -34,6 +34,8 @@ STOP = {
     "acaba", "ama", "aslında", "az", "bazı", "belki", "biri", "birkaç", "birşey", "biz", "bu", "çok", "çünkü", "da",
     "daha", "de", "defa", "diye", "eğer", "en", "gibi", "hem", "hep", "hepsi", "her", "hiç", "ise", "kez", "ki", "kim",
     "nerde", "nerede", "nereye", "niçin", "niye", "sanki", "şey", "siz", "şu", "tüm", "ya", "yani",
+    # soru/kip kalıpları: model zenginleştirmesinin soruları bunlarla kurulur ("... kaç ... olmalı?")
+    "kaç", "kadar", "olmalı", "olmalıdır", "gerekir", "nelerdir", "midir", "mıdır", "mudur", "müdür",
     "the", "and", "how", "what", "a", "an", "is", "are", "was", "were", "be", "been", "of", "to", "in", "on", "at",
     "for", "by", "from", "as", "or", "it", "its", "this", "that", "with", "which", "who", "why", "does", "do", "there",
     "here",

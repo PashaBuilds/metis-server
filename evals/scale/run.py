@@ -415,7 +415,13 @@ def main() -> None:
     report_path = Path(a.out)
     report = json.loads(report_path.read_text(encoding="utf-8")) if report_path.is_file() and not a.reset else {"stages": {}}
     report["machine"] = {"cpu_count": os.cpu_count(), "platform": sys.platform}
-    generated = int(report.get("generated", 0))
+    from sqlalchemy import text
+
+    from metis.core.db import transaction
+
+    with transaction() as db:  # kesilen bir koşudan sonra: üreteç kaldığı sıradan sürer (aynı sayfa iki kez üretilmez)
+        last = db.scalar(text("SELECT max((regexp_match(title, '#(\\d+)$'))[1]::int) FROM page_revisions"))
+    generated = max(int(report.get("generated", 0)), (last + 1) if last is not None else 0)
     for target in [int(s) for s in a.stages.split(",")]:
         print(f"==> aşama {target} sayfa", flush=True)
         generated, load = _load(api, pid, target, generated)
