@@ -4,6 +4,33 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.24 — Büyük derlemde hız; model zenginleştirmesi varsayılan kapalı:**
+- Kurgusal 20 bin sayfalık derlemle (238 bin bölüm, 240 bin iddia) ölçek denemesi yapıldı; büyüdükçe karesel ya da tam
+  tarama yapan yollar düzeltildi:
+  - Bakım çelişki taraması ve yayın öncesi kontrol yalnız aynı biçimli iddiaları okur (iddia biçim özeti, şema 0015;
+    20 bin sayfada tarama 51 sn, arka planda).
+  - Yayın listesinde revizyon dizini (şema 0014); okunabilirlik süzgeci ve taslak not görünürlüğü veritabanında; bilgi
+    listesi gövdeleri yüklemez.
+  - Vektör araması yayından sonra yalnız yeni bölümlerin vektörünü okur (tüm matris yeniden yüklenmez).
+  - Kelime araması aday sayfaları önce indeksten bulur: 20 bin sayfada 116 aramanın sonuçları birebir aynı, ortanca süre
+    166 → 65 ms.
+- Arama: soru sözcükleri (kaç, kadar, olmalı, gerekir, nelerdir…) kavram sayılmaz.
+- **Model zenginleştirmesi varsayılan kapalı** (şema 0016, ürün sahibinin kararı): kurgusal veride gerçek modelle
+  (DeepSeek flash) aramaya ölçülebilir katkısı görülmedi; bölüm başına ≈ 2.100 token harcar. Hiç zenginleştirilmemiş
+  projeler yükseltmede kapanır (denetim kaydına yazılmaz; sürüm geri alınsa da kapalı kalır); açmak için Ayarlar →
+  İnceleme politikası.
+- Vektör modeli paketinde havuzlama seçimi (`MODEL.json` `pooling`; bge-m3 gibi modeller için). e5-base değişmez.
+- **Bilinen sınırlar** (20 bin kurgusal sayfa, 6 çekirdekli geliştirme bilgisayarı; **gerçek içerikte ölçülmedi**):
+  geniş sorgular (adayların çoğu derlem) 1,5–3 sn; 5 sayfalık yayın ≈ 2,5 sn, tek sayfanın yayın öncesi kontrolü ≈ 5 sn.
+  Yayın listesi (her yayında tüm sayfalar) 40 milyon satır / 6,1 GB'a ulaştı; tutulma biçimi ürün sahibinin kararını
+  bekliyor. Aynı kart ve konuda çok sayıda sayfa olduğunda doğru sayfa ilk 5'ten düşebiliyor (kart süzgeçli hibrit arama,
+  doğru bilgi ilk 5'te: 1 bin sayfa 0,977 · 5 bin 0,909 · 20 bin 0,636). KURULUM'daki vektör gömme süresi ölçülen hızla
+  düzeltildi (100 bin bölüm ≈ 1–2 saat).
+- Vektör modeli eklentisi (`METIS-vektor-modeli-e5-base-1.zip`, 2.0.20 ile aynı dosya) bu sürüme de eklendi.
+- Bu ZIP yerel Windows 10 bilgisayarda derlendi (testler dahil); aynı commit'te CI yeşil. Yayımlanmadan önce o
+  bilgisayarda kurulu METIS bu ZIP'le deneme göreviyle (`release.ps1 -Dene`) yükseltildi ve çalışan sürüm doğrulandı;
+  çift tıklamadaki soru/yönetici izni adımı ve Chrome bu yolda denenmez.
+
 **2.0.23 — Konu dışı soruda yanlış isabet yok:**
 - Arama artık uzun, doğal dille sorulmuş bir soruda tek bir sık sözcük ("yapılır", "var") yüzünden ilgisiz bilgi getirmez:
   dört ve daha fazla anlamlı sözcüklü soruda, yalnız metinle bulunan bilginin en az iki sözcüğü (eş anlamlısıyla) içermesi

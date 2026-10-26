@@ -349,3 +349,34 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
 - Bağımsız inceleme (opus): 2 önemli bulgu düzeltildi (durak sözcüklerinin kavram sayılması → İngilizce/karışık soruda doğru sayfanın kaybolması; eş anlamlı genişletmenin ve eş ad muafiyetinin kuralı aşması) + uzun metinde maliyet (2'de durur, 30+ kavramda uygulanmaz). Ertelenen: belge düzeyi `tsv_simple`'ın katlanmaması ('İ' içeren terimler; önceden de vardı). Bilinen sınır: Türkçe çok anlamlı sözcük ("saç kesme" / kesme = interrupt) iki kavramla eşleşen sayfayı getirebilir.
 - Sürüm 2.0.23 (6110877): `-Derle` (ZIP 70,8 MB, `sha256:13214520…ff5a`), CI 40234931243 yeşil (Linux + Windows). `-Dene`: görev kurulu değil (açık iletiyle durdu). **Kısmi deneme:** `C:\Kurulum\METIS-2.0.23`'te çift tıklama → soru (kurulu 2.0.22, paket 2.0.23) → Yes → yönetici izni onaylanmadı (UAC zaman aşımı) → kurulu 2.0.22 çalışır kaldı. Yükseltme denenmedi (kalıcı karara dayanan istisna; şema değişikliği yok). Vektör modeli eklentisi sürüme eklendi. **`v2.0.23` yayımlandı.**
 - **Ajanın ilk gerçek yükseltme denemesi (2026-10-26):** ürün sahibi `kur.ps1`'i yönetici olarak bir kez çalıştırdı (görev `METIS-Deneme-Yukseltme` kuruldu). `release.ps1 -Dene` kurulu 2.0.22'yi aynı aday ZIP'le (`sha256:13214520…ff5a`) UAC sorusu olmadan yükseltti (56 sn): yedek alındı (`metis-backup-20261026-032228.zip`), `/health/ready` sürüm 2.0.23 / şema 0013, iki servis çalışıyor, servis günlüklerinde hata yok. Böylece görev yolu da gerçek kurulumda denendi; sonraki sürümler `-Dene` ile denenir (çift tıklamadaki soru/UAC ve Chrome bu yolda yok).
+
+### Ölçek denemesi: 20 bin kurgusal sayfa (2026-10-26) — `v2.0.24`
+- Ürün sahibinin isteği: ölçekleme durumunu büyük veri setiyle görmek. Araç `evals/scale/` (kurgusal üreteç, gerçek API
+  üzerinden 5'lik partilerle yükleme: taslak → kontrol → yayın; her 20. partide gerçek yayın öncesi kontrol). Ayrı
+  veritabanları (`metisscale`, `metiscmp`); kurulu METIS'e dokunulmadı. Ölçümler bu geliştirme bilgisayarında (Ryzen 5
+  5600X, 16 GB), yer yer başka işlerle aynı anda: mutlak süreler yaklaşık.
+- Eski kodla (23e58d2) 1 bin / 5 bin sayfa taban ölçümü alındı; 11,5 bin sayfada 5 sayfalık parti yayını 13,2 sn'ye
+  çıkmıştı (karesel yollar). Düzeltilenler: bakım çelişki taraması ve yayın öncesi kontrolde biçim gruplaması + iddia biçim
+  özeti (`claims.shape_md5`, 0015; ICU ile küçültme — Windows yerel ayarının `lower`'ı "İ"yi küçültmüyordu, Python kuralıyla
+  tutarlılık testli), yayın listesi revizyon dizini (0014), okunabilirlik süzgeci ve taslak not görünürlüğü SQL'de, bilgi
+  listesi gövdesiz, vektör matrisi artımlı tazeleme, kelime aramasında aday kümesi (116 aramada sonuç birebir aynı, ortanca
+  166 → 65 ms), soru sözcükleri kavram sayılmaz.
+- 20 bin sayfa (238 bin bölüm, 240 bin iddia, düzeltilmiş kod): 5 sayfalık parti yayını p50 2,5 sn; örneklenen gerçek
+  kontrol p50 13,1 sn (5 sayfa); tek sayfa kontrol ≈ 5,1 sn, yayın ≈ 4,1 sn; bakım taraması 51 sn (23 çift); sayfa ayrıntısı
+  24 ms; bağlantılı bilgiler 260 ms; bilgi listesi 2,1 sn; API'de ilk vektör matrisi yüklemesi 14 sn (süreç başına bir kez).
+  Gömme 238 bin bölüm, 15–19 bölüm/sn (≈ 3,2 saat). Veritabanı 8,0 GB; bunun 6,1 GB'ı `publication_pages` (40 milyon satır):
+  her yayın tüm sayfaların listesini yazar (brief gereği) — **ürün sahibinin kararı bekleniyor** (olduğu gibi / yalnız değişen
+  sayfalar / sıkıştırma).
+- Kalite (44 kurgusal soru; kart süzgeçli hibrit, doğru bilgi ilk 5'te): 1 bin 0,977 · 5 bin 0,909 · 20 bin 0,636. Neden:
+  üreteç aynı kart ve konuda ≈ 1.200 sayfa üretiyor; başlığında konu adı geçen kurgusal sayfalar (ör. "DDR test prosedürü
+  (VPK120)"), cevabı ("iki kez denenir") içeren el yazımı sayfayı ilk 5'ten itiyor. Kısmen üreteç yapısı, kısmen gerçek
+  bir sıralama zayıflığı (başlık eşleşmesi özgül cevaptan ağır basıyor). 20 bin sayfada süzgeçsiz hibritte 1 konu dışı
+  soru ("Kahve makinesi…") 3 isabet verdi: bölüm sayısı arttıkça en yüksek konu dışı benzerlik yükseliyor; eşik küçük
+  derlemle ayarlıydı. İkisi de sonraki işte (yeniden sıralayıcı kıyası, ölçeğe göre eşik).
+- Zenginleştirme, gerçek modelle (DeepSeek flash, kurgusal 300 sayfa + iğne derlemi): 2.190 bölümden 2.144'ü
+  zenginleştirildi (%2,1 geçersiz), 376 çağrı, ≈ 730 bin token; kalite farkı ölçüm gürültüsü içinde (kart süzgeçli hibrit
+  ilk 5'te 0,977 → 0,977, MRR 0,939 → 0,932; süzgeçsiz hibrit ilk 5'te 0,818 → 0,841). Ürün sahibinin kararıyla
+  varsayılan kapalı (0016; hiç zenginleştirilmemiş projeler yükseltmede kapanır).
+- Vektör modeli kıyası başladı (`evals/scale/compare_models.py`; e5-base / multilingual-e5-large / bge-m3, bge-reranker-v2-m3
+  ile ve olmadan, 5 bin sayfada, model başına aynı kuralla eşik; hız ayrıca boşta). bge-m3 için `MODEL.json` `pooling: cls`.
+  Sonuç ayrı kayıt olarak yazılacak.
