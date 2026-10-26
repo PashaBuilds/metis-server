@@ -16,7 +16,7 @@ class ProjectOut(BaseModel):
     is_demo: bool
     review_policy: Literal["independent", "owner_review", "self_publish"]
     review_interval_days: int
-    enrichment_enabled: bool = True
+    enrichment_enabled: bool = False
     active_publication_id: uuid.UUID | None
     created_at: datetime
     my_roles: list[str]

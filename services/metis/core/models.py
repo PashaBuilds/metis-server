@@ -124,8 +124,8 @@ class Project(Base):
     # self_publish: yazar yayımlar (yayın öncesi otomatik kontrol); independent: başka bir inceleyici onaylar;
     # owner_review: eski "kişisel pilot incelemesi" (aktarılan veriler için geçerli kalır).
     review_policy: Mapped[str] = mapped_column(String(20), nullable=False, default="self_publish")
-    # Model zenginleştirmesi (bağlam + soru; yalnız yayımlanmış bloklar, model varsa): proje başına açık/kapalı.
-    enrichment_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Model zenginleştirmesi (bağlam + soru; yalnız yayımlanmış bloklar, model varsa): proje başına, varsayılan kapalı (0016).
+    enrichment_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
     review_interval_days: Mapped[int] = mapped_column(Integer, nullable=False, default=90)
     active_publication_id: Mapped[uuid.UUID | None] = mapped_column(
         UUIDPK, ForeignKey("publications.id", use_alter=True, name="fk_projects_active_publication"), nullable=True

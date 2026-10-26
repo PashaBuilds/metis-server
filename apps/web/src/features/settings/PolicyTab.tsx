@@ -77,12 +77,12 @@ function EnrichmentSetting() {
     mutationFn: (on: boolean) => api.patch<Schemas['ProjectOut']>(`/projects/${session.projectId}`, { enrichment_enabled: on }),
     onSuccess: (d) => {
       qc.setQueryData(['project', session.projectId], d);
-      toast.show(tr.settings.enrichmentSaved(d.enrichment_enabled ?? true));
+      toast.show(tr.settings.enrichmentSaved(d.enrichment_enabled ?? false));
     },
     onError: (e) => toast.show(messageOf(e), { tone: 'error' }),
   });
   if (!project.data) return null;
-  const on = m.isPending ? !!m.variables : project.data.enrichment_enabled !== false;
+  const on = m.isPending ? !!m.variables : project.data.enrichment_enabled === true;
   return (
     <div className={s.stack}>
       <h3 className={s.blockTitle}>{tr.settings.enrichment}</h3>

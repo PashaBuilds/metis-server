@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from metis.core.db import transaction
 from metis.core.models import PassageEnrichment, SearchPassage
@@ -29,10 +29,41 @@ def test_accept_filters_invented_identifiers():
     assert ctx == ""  # bağlam da blokta olmayan tanımlayıcı uyduramaz
 
 
+def test_enrichment_off_by_default(team):  # noqa: ANN001
+    """Ürün sahibinin kararı (2026-10-26): kurgusal ölçümde kazanç görülmedi, model token'ı harcar → proje açarsa çalışır."""
+    r = team["admin"].get(f"/api/v1/projects/{team['pid']}")
+    assert r.status_code == 200 and r.json()["enrichment_enabled"] is False
+    with transaction() as db:
+        default = db.scalar(
+            text("SELECT column_default FROM information_schema.columns WHERE table_name = 'projects' AND column_name = 'enrichment_enabled'")
+        )
+    assert default == "false"  # SQL ile açılan proje de kapalı başlar
+
+
+def test_upgrade_turns_off_only_never_enriched_projects(enrich):  # noqa: ANN001
+    """0016: zenginleştirmesi saklanmış proje açık kalır (bloklar zenginleştirmeyle indeksli); diğerleri kapanır."""
+    import importlib.util
+    from pathlib import Path
+
+    import metis
+
+    path = Path(metis.__file__).parent / "migrations" / "versions" / "0016_enrichment_off.py"
+    spec = importlib.util.spec_from_file_location("m0016", path)
+    mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    other = enrich["admin"].post("/api/v1/projects", json={"name": "Kurgusal ikinci proje"}).json()["id"]
+    assert _run_all() == 2
+    with transaction() as db:
+        db.execute(text("UPDATE projects SET enrichment_enabled = true WHERE id IN (:a, :b)"), {"a": enrich["pid"], "b": other})
+        db.execute(text(mod.FLIP))
+        flags = dict(db.execute(text("SELECT id::text, enrichment_enabled FROM projects WHERE id IN (:a, :b)"), {"a": enrich["pid"], "b": other}).all())
+    assert flags == {enrich["pid"]: True, other: False}
+
+
 @pytest.fixture
 def enrich(team, mock_llm):  # noqa: ANN001, ANN201
     pid = team["pid"]
-    assert team["admin"].patch(f"/api/v1/projects/{pid}", json={"review_policy": "self_publish"}).status_code == 200
+    assert team["admin"].patch(f"/api/v1/projects/{pid}", json={"review_policy": "self_publish", "enrichment_enabled": True}).status_code == 200
     make_demo(pid)  # kurgusal model yalnız kurgusal projede kullanılabilir
     prov = add_provider(team["admin"], ["fixture-reference"])
     qualify(team["admin"], model_id("fixture-reference", prov["id"]))

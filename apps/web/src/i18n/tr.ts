@@ -813,7 +813,7 @@ export const tr = {
     policyOwner: 'Kişisel pilot incelemesi',
     policyOwnerText: 'Tek kişilik pilotta yazar kendi kaydını onaylayabilir. Bu onaylar bilgi sayfasında “Yazarı kendisi onayladı” rozetiyle belirtilir.',
     enrichment: 'Model zenginleştirmesi',
-    enrichmentText: 'Şirket modeli varken yayımlanmış bölümlere kısa bir bağlam cümlesi ve "bu bölüm hangi soruları cevaplar" yazılır; arama bunları kullanır. Bilgi metnine, alıntıya ve Mentor cevabına girmez (kanıt değildir). Taslaklar modele gönderilmez.',
+    enrichmentText: 'Şirket modeli varken yayımlanmış bölümlere kısa bir bağlam cümlesi ve "bu bölüm hangi soruları cevaplar" yazılır; arama bunları kullanır. Bilgi metnine, alıntıya ve Mentor cevabına girmez (kanıt değildir). Taslaklar modele gönderilmez. Varsayılan kapalı: bölüm başına model kullanır ve kurgusal ölçümde aramaya ölçülebilir katkısı görülmedi.',
     enrichmentOn: 'Bu projede zenginleştirme açık',
     enrichmentSaved: (on: boolean) => (on ? 'Model zenginleştirmesi açıldı' : 'Model zenginleştirmesi kapatıldı'),
     policySaved: 'Yayın politikası kaydedildi',

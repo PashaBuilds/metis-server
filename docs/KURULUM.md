@@ -274,7 +274,8 @@ soruların doğru bölümü bulmasına yardım eder; yerel CPU'da, internetsiz �
 2. ZIP'i aç, klasöründe yönetici PowerShell ile: `powershell -ExecutionPolicy Bypass -File .\vektor-modeli-kur.ps1`
    (model `C:\METIS\models\multilingual-e5-base`'e kopyalanır, servisler yeniden başlar).
 3. **Ayarlar → Sistem durumu → Vektör arama**: önce "Hazırlanıyor: n/m bölüm" (worker yayımlanmış bölümleri arka planda
-   işler; bu bilgisayarda bölüm başına ≈ 18 ms, 100 bin bölüm ≈ 30 dk), sonra "Açık".
+   işler; 6 çekirdekli geliştirme bilgisayarında boşken ≈ 26 bölüm/sn, yük altında 15–19 bölüm/sn: 100 bin bölüm ≈ 1–2 saat,
+20 bin sayfalık kurgusal derlem (238 bin bölüm) ≈ 3 saat), sonra "Açık". METIS bu sırada kullanılabilir.
 4. Etkisini ölçmek için **Model laboratuvarı → Arama ölçümü**: "Vektör kanalı açık" işaretli ve işaretsiz iki koşu.
 
 Bellek: model her METIS sürecinde (2 API + worker) ≈ 300–500 MB; aranan her proje için API sürecinde bölüm başına ≈ 3 KB
