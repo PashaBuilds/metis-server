@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from metis.core.access import can_read_page_revision, require_member, unreadable_revisions
 from metis.core.audit import audit
@@ -43,7 +43,9 @@ from metis.modules.scopes.semantics import WILDCARD, matches_scope, normalize_sc
 UNSPECIFIED = "__belirlenmemis"
 
 
-def _active_rows(db: Session, user: User, project_id: uuid.UUID) -> list[tuple[Page, PageRevision]]:
+def _active_rows(db: Session, user: User, project_id: uuid.UUID, with_body: bool = True) -> list[tuple[Page, PageRevision]]:
+    """Aktif yayındaki okunabilir sayfalar. `with_body=False`: gövde yüklenmez (liste; büyük derlemde her istekte tüm
+    sayfa gövdelerini taşımamak için)."""
     project = db.get(Project, project_id)
     if not project or not project.active_publication_id:
         return []
@@ -56,6 +58,7 @@ def _active_rows(db: Session, user: User, project_id: uuid.UUID) -> list[tuple[P
             Page.deleted_at.is_(None),
             Page.lifecycle == "active",
         )
+        .options(*([] if with_body else [defer(PageRevision.body_md)]))
     ).all()
     hidden = unreadable_revisions(db, user, project_id, [r.id for _, r in rows])
     return [(p, r) for p, r in rows if r.id not in hidden]
@@ -124,7 +127,7 @@ def list_pages(
     limit: int,
 ) -> schemas.PageListOut:
     require_member(db, user, project_id)
-    rows = _active_rows(db, user, project_id)
+    rows = _active_rows(db, user, project_id, with_body=False)
     selector = {
         "yatt": yatt,
         "kart": kart,

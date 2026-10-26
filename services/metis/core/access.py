@@ -227,16 +227,24 @@ def unreadable_revisions(
     if not ids:
         return set()
     readable = readable_source_ids(db, user, project_id)
-    rows = db.execute(
-        select(Claim.page_revision_id, SourceRevision.source_id)
+    # Okunamayan = bu projenin okunamayan (silinmiş dahil) kaynağı ya da başka projenin kaynağı. Süzgeç veritabanında:
+    # büyük derlemde tüm iddia–kaynak satırlarını (12 bin sayfada 144 bin) uygulamaya taşımak bilgi listesini yavaşlatıyordu.
+    hidden = [
+        sid for sid in db.scalars(select(Source.id).where(Source.project_id == project_id)) if sid not in readable
+    ]
+    bad = (Source.project_id != project_id) | Source.id.in_(hidden) if hidden else Source.project_id != project_id
+    claims = (
+        select(Claim.page_revision_id)
         .join(ClaimEvidence, ClaimEvidence.claim_id == Claim.id)
         .join(Evidence, Evidence.id == ClaimEvidence.evidence_id)
         .join(SourceRevision, SourceRevision.id == Evidence.source_revision_id)
-        .where(Claim.page_revision_id.in_(ids))
-    ).all()
-    figure_rows = db.execute(
-        select(PageRevisionFigure.page_revision_id, SourceRevision.source_id)
+        .join(Source, Source.id == SourceRevision.source_id)
+        .where(Claim.page_revision_id.in_(ids), bad)
+    )
+    figures = (
+        select(PageRevisionFigure.page_revision_id)
         .join(SourceRevision, SourceRevision.id == PageRevisionFigure.source_revision_id)
-        .where(PageRevisionFigure.page_revision_id.in_(ids))
-    ).all()
-    return {rid for rid, sid in [*rows, *figure_rows] if sid not in readable}
+        .join(Source, Source.id == SourceRevision.source_id)
+        .where(PageRevisionFigure.page_revision_id.in_(ids), bad)
+    )
+    return set(db.scalars(claims.union(figures)))
