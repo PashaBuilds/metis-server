@@ -102,7 +102,16 @@ def _unpublished_note_sources(db: Session, project_id: uuid.UUID) -> set[uuid.UU
 
 def _note_draft_visible(db: Session, user: User, source_id: uuid.UUID, owner_id: uuid.UUID, project_id: uuid.UUID) -> bool:
     """Yayımlanmamış notun kaynağını yalnız yazarı, steward ve reviewer okur (bağımsız incelemede taslak açılabilsin)."""
-    if source_id not in _unpublished_note_sources(db, project_id) or owner_id == user.id:
+    if owner_id == user.id:
+        return True
+    # Yalnız bu kaynağa bakılır (note_source_id dizini); projedeki tüm taslak notları her kanıt için toplamak büyük
+    # derlemde yayın başına yüzlerce tam tarama demekti (ölçek denemesi).
+    draft = db.scalar(
+        select(Page.id)
+        .where(Page.project_id == project_id, Page.note_source_id == source_id, Page.published_revision_id.is_(None))
+        .limit(1)
+    )
+    if draft is None:
         return True
     return bool(effective_roles(db, user, project_id) & NOTE_DRAFT_READERS)
 

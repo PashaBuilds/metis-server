@@ -114,20 +114,35 @@ def conflict_pairs(db: Session, project_id: uuid.UUID) -> list[dict]:
         .join(ClaimEvidence, ClaimEvidence.claim_id == Claim.id)
         .where(Page.project_id == project_id, Page.deleted_at.is_(None), Page.lifecycle == "active")
     ).all()
-    seen: set[tuple] = set()
-    out = []
-    for i, a in enumerate(rows):
-        for b in rows[i + 1 :]:
-            if a[0] == b[0] or a[3] == b[3]:
-                continue
-            if _strip_numbers(a[3]) != _strip_numbers(b[3]):
-                continue
-            key = tuple(sorted([str(a[0]), str(b[0])])) + (_strip_numbers(a[3]),)
-            if key in seen:
-                continue
-            seen.add(key)
-            out.append({"a": {"page_id": a[0], "title": a[1], "scope": a[2], "statement": a[3], "evidence_id": a[4]}, "b": {"page_id": b[0], "title": b[1], "scope": b[2], "statement": b[3], "evidence_id": b[4]}})
-    return out
+    return pair_candidates(rows)
+
+
+def pair_candidates(rows: list) -> list[dict]:
+    """(page_id, title, scope, statement, evidence_id) satırlarından aday çiftler. Satırlar biçime göre gruplanır (yalnız
+    aynı biçimliler karşılaştırılır: büyük derlemde doğrusal); sıra, satır sırasıyla iç içe döngünün sırasıdır."""
+    groups: dict[str, list[int]] = {}
+    for i, r in enumerate(rows):
+        groups.setdefault(_strip_numbers(r[3]), []).append(i)
+    found: list[tuple[int, int]] = []
+    for shape, idx in groups.items():
+        if len(idx) < 2:
+            continue
+        seen: set[tuple] = set()
+        for x, i in enumerate(idx):
+            a = rows[i]
+            for j in idx[x + 1 :]:
+                b = rows[j]
+                if a[0] == b[0] or a[3] == b[3]:
+                    continue
+                key = (*sorted([str(a[0]), str(b[0])]), shape)
+                if key not in seen:
+                    seen.add(key)
+                    found.append((i, j))
+    found.sort()
+    return [
+        {"a": {"page_id": a[0], "title": a[1], "scope": a[2], "statement": a[3], "evidence_id": a[4]}, "b": {"page_id": b[0], "title": b[1], "scope": b[2], "statement": b[3], "evidence_id": b[4]}}
+        for a, b in ((rows[i], rows[j]) for i, j in found)
+    ]
 
 
 def run_maintenance_job(ctx) -> None:  # noqa: ANN001

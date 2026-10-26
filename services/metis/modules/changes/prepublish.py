@@ -55,18 +55,7 @@ def _candidates(db, user: User, change: ChangeSet) -> dict:  # noqa: ANN001
         .where(Page.project_id == project_id, Page.deleted_at.is_(None), Page.lifecycle == "active", Page.id.not_in(own_pages))
     ).all()
     hidden = unreadable_revisions(db, user, project_id, [r[1] for r in rows])
-    rule, seen = [], set()
-    for d in drafts:
-        for ours in d["claims"]:
-            shape = _strip_numbers(ours)
-            for page_id, rev_id, title, scope, theirs in rows:
-                if rev_id in hidden or theirs == ours or _strip_numbers(theirs) != shape or not overlaps(d["scope"], scope):
-                    continue
-                key = (page_id, shape)
-                if key in seen:
-                    continue
-                seen.add(key)
-                rule.append({"draft": d["title"], "draft_scope": d["scope"], "ours": ours, "page_id": page_id, "page_title": title, "scope": scope, "theirs": theirs})
+    rule = rule_candidates(drafts, rows, hidden)
     similar = []
     for d in drafts:
         hits = search(db, user, project_id, f"{d['title']} {d['summary']}"[:400], None, None, MAX_SIMILAR + len(own_pages)).hits
@@ -75,6 +64,26 @@ def _candidates(db, user: User, change: ChangeSet) -> dict:  # noqa: ANN001
             statements = list(db.scalars(select(Claim.statement).where(Claim.page_revision_id == h.revision_id).order_by(Claim.ord)))
             similar.append({"draft": d, "page_id": h.page_id, "page_title": h.title, "statements": statements})
     return {"drafts": drafts, "rule": rule, "similar": similar}
+
+
+def rule_candidates(drafts: list[dict], rows: list, hidden: set) -> list[dict]:
+    """Kural adayları: taslak iddiasıyla aynı biçimli (sayılar #), farklı metinli, örtüşen kapsamlı yayındaki iddialar;
+    sayfa + biçim başına bir aday. Yayındaki iddialar bir kez biçime göre dizinlenir (büyük derlemde her taslak iddiası
+    için tüm yayını taramaz); sıra taslak → iddia → yayın sırasıdır."""
+    by_shape: dict[str, list] = {}
+    for r in rows:
+        if r[1] not in hidden:
+            by_shape.setdefault(_strip_numbers(r[4]), []).append(r)
+    rule, seen = [], set()
+    for d in drafts:
+        for ours in d["claims"]:
+            shape = _strip_numbers(ours)
+            for page_id, _rev_id, title, scope, theirs in by_shape.get(shape, []):
+                if theirs == ours or not overlaps(d["scope"], scope) or (page_id, shape) in seen:
+                    continue
+                seen.add((page_id, shape))
+                rule.append({"draft": d["title"], "draft_scope": d["scope"], "ours": ours, "page_id": page_id, "page_title": title, "scope": scope, "theirs": theirs})
+    return rule
 
 
 def rule_check(db, user: User, change: ChangeSet) -> schemas.PrepublishCheckOut:  # noqa: ANN001

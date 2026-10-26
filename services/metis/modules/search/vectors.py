@@ -2,7 +2,7 @@
 
 Vektör saklama: `passage_vectors` (model + gömülen metnin sha256'sı → float16; hesaplanamayan blok boş işaretle).
 Sorguda proje matrisi süreç belleğinde float32 tutulur (en çok 8 proje). `search_state.version` (yayın) değişince hemen,
-`vectors_version` (yeni vektörler) değişince en çok dakikada bir yeniden yüklenir. Benzerlik eşikleri modelin
+`vectors_version` (yeni vektörler) değişince en çok dakikada bir tazelenir; tazelemede yalnız yeni blokların vektörü okunur. Benzerlik eşikleri modelin
 `MODEL.json`'undadır: `min_score` altı yok sayılır; yalnız vektörle bulunan sayfa `admit_score`'u geçmelidir (konu dışı
 soruda "kanıt yok" korunur). Okunabilirlik, kapsam ve tür süzgeci arama katmanındadır.
 """
@@ -138,6 +138,52 @@ def _fresh(entry: dict | None, version: int, vectors_version: int) -> bool:
     return entry["vectors_version"] == vectors_version or time.monotonic() - entry["loaded_at"] < VECTOR_RELOAD_S
 
 
+last_refresh: dict = {}  # son tazelemede okunan vektör sayısı (ölçek testi ve tanı için)
+
+
+def _refresh(db: Session, project_id: uuid.UUID, model_id: str, old: dict | None) -> dict:
+    """Projenin güncel bloklarına göre matrisi kurar. Önceki matristeki vektörler (aynı metin özeti) yeniden okunmaz;
+    veritabanından yalnız yeni blokların vektörü gelir — her yayında tüm proje vektörlerini taşımak büyük derlemde
+    (230 bin blok ≈ 350 MB) yayından sonraki ilk aramayı saniyelerce bekletiyordu."""
+    rows = db.execute(
+        text("SELECT page_id, claim_id, is_heading, embed_sha256 FROM search_passages WHERE project_id = :p AND embed_sha256 IS NOT NULL"),
+        {"p": project_id},
+    ).all()
+    old_row: dict[str, int] = old["hash_row"] if old else {}
+    need = sorted({r.embed_sha256 for r in rows if r.embed_sha256 not in old_row})
+    fresh: dict[str, np.ndarray] = {}
+    for i in range(0, len(need), 5000):
+        for h, v in db.execute(
+            text("SELECT text_sha256, vector FROM passage_vectors WHERE model_id = :m AND text_sha256 = ANY(:hs) AND length(vector) > 0"),
+            {"m": model_id, "hs": need[i : i + 5000]},
+        ):
+            fresh[h] = np.frombuffer(v, dtype=np.float16)
+    keep = [r for r in rows if r.embed_sha256 in old_row or r.embed_sha256 in fresh]
+    matrix = None
+    if keep:
+        dim = old["matrix"].shape[1] if old and old["matrix"] is not None else next(iter(fresh.values())).shape[0]
+        # float32: sorguda dönüştürme yok (500 bin × 768 ≈ 1,5 GB'a kadar; KURULUM.md bellek notu)
+        matrix = np.empty((len(keep), dim), dtype=np.float32)
+        from_old = np.array([r.embed_sha256 in old_row for r in keep], dtype=bool)
+        if from_old.any():
+            matrix[from_old] = old["matrix"][np.array([old_row[r.embed_sha256] for r in keep if r.embed_sha256 in old_row])]  # type: ignore[index]
+        if not from_old.all():
+            matrix[~from_old] = np.vstack([fresh[r.embed_sha256] for r in keep if r.embed_sha256 not in old_row]).astype(np.float32)
+    last_refresh.update(fetched=len(fresh), rows=len(keep))
+    return {
+        "page_ids": [r.page_id for r in keep],
+        "claim_ids": [r.claim_id for r in keep],
+        "is_heading": np.array([bool(r.is_heading) for r in keep], dtype=bool),
+        "hash_row": {r.embed_sha256: i for i, r in enumerate(keep)},
+        "matrix": matrix,
+        "partial": len(keep) < len(rows) or _unhashed(db, project_id),
+    }
+
+
+def _unhashed(db: Session, project_id: uuid.UUID) -> bool:
+    return db.scalar(text("SELECT 1 FROM search_passages WHERE project_id = :p AND embed_sha256 IS NULL LIMIT 1"), {"p": project_id}) is not None
+
+
 def _matrix(db: Session, project_id: uuid.UUID, model_id: str) -> dict:
     st = db.execute(select(SearchState.version, SearchState.vectors_version).where(SearchState.project_id == project_id)).first()
     version, vversion = (st.version, st.vectors_version) if st else (0, 0)
@@ -153,29 +199,8 @@ def _matrix(db: Session, project_id: uuid.UUID, model_id: str) -> dict:
             entry = _cache.get(key)
             if _fresh(entry, version, vversion):
                 return entry  # type: ignore[return-value]
-        rows = db.execute(
-            text(
-                """
-                SELECT sp.page_id, sp.claim_id, sp.is_heading, pv.vector
-                FROM search_passages sp
-                JOIN passage_vectors pv ON pv.model_id = :m AND pv.text_sha256 = sp.embed_sha256
-                WHERE sp.project_id = :p AND length(pv.vector) > 0
-                """
-            ),
-            {"m": model_id, "p": project_id},
-        ).all()
-        total = db.scalar(text("SELECT count(*) FROM search_passages WHERE project_id = :p"), {"p": project_id}) or 0
-        entry = {
-            "version": version,
-            "vectors_version": vversion,
-            "loaded_at": time.monotonic(),
-            "page_ids": [r.page_id for r in rows],
-            "claim_ids": [r.claim_id for r in rows],
-            "is_heading": np.array([bool(r.is_heading) for r in rows], dtype=bool),
-            # float32: sorguda dönüştürme yok (500 bin × 768 ≈ 1,5 GB'a kadar; KURULUM.md bellek notu)
-            "matrix": np.vstack([np.frombuffer(r.vector, dtype=np.float16) for r in rows]).astype(np.float32) if rows else None,
-            "partial": len(rows) < total,
-        }
+        entry = _refresh(db, project_id, model_id, entry)
+        entry.update(version=version, vectors_version=vversion, loaded_at=time.monotonic())
         with _cache_lock:
             _cache[key] = entry
             _cache.move_to_end(key)

@@ -132,3 +132,15 @@ def test_eval_can_compare_channels(hybrid):  # noqa: ANN001
     off = a.post(f"/api/v1/projects/{pid}/search-eval/runs", json={"note": "kapalı", "dense": False}).json()["metrics"]
     assert on["dense"] is True and off["dense"] is False
     assert on["recall_at_5"] == 1.0 and off["recall_at_5"] == 0.0
+
+
+def test_publish_refreshes_matrix_incrementally(hybrid):  # noqa: ANN001
+    """Ölçek: her yayından sonra tüm proje vektörleri yeniden okunmaz (20 bin sayfada ~230 bin blok); yalnız yeni bloklar."""
+    from metis.modules.search import vectors
+
+    _search(hybrid["reader"], hybrid["pid"], "meşgul bekleme döngüsü kuralı")
+    assert vectors.last_refresh["fetched"] > 20  # ilk yükleme: tüm bloklar
+    _publish(hybrid["contributor"], hybrid["pid"], "Kurgusal yeni not", "Yeni kurgusal bilgi.")
+    _embed_all()
+    out = _search(hybrid["reader"], hybrid["pid"], "kurgusal yeni bilgi")
+    assert vectors.last_refresh["fetched"] == 1 and out["dense"] == "available"

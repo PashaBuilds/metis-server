@@ -480,7 +480,7 @@ class PublicationPage(Base):
     __tablename__ = "publication_pages"
     publication_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("publications.id"), primary_key=True)
     page_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("pages.id"), primary_key=True, index=True)
-    revision_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("page_revisions.id"), nullable=False)
+    revision_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("page_revisions.id"), nullable=False, index=True)
 
 
 class PublicationRelation(Base):
