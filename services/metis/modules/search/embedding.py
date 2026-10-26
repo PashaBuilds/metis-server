@@ -1,7 +1,8 @@
 """Yerel gömme (embedding) modeli: ONNX Runtime + tokenizers, CPU, internetsiz. Tasarım bölüm 6.
 
 Model ayrı eklenti ZIP'iyle gelir (`METIS_EMBEDDING_MODEL_DIR`, varsayılan `<METIS kökü>/models/multilingual-e5-base`).
-Dizin: `MODEL.json` (`id`, `dim`, `query_prefix`, `passage_prefix`, `max_tokens`, `onnx`), `tokenizer.json`, ONNX dosyası.
+Dizin: `MODEL.json` (`id`, `dim`, `query_prefix`, `passage_prefix`, `max_tokens`, `onnx`, isteğe bağlı `pooling`:
+`mean` varsayılan, bge-m3 için `cls`), `tokenizer.json`, ONNX dosyası.
 Model yoksa ya da yüklenemezse METIS çökmez: arama yalnız kelime kanalıyla sürer (`embedder_status` nedenini söyler).
 Süreç başına bir kez yüklenir (API süreçleri sorgu, worker bloklar için).
 """
@@ -32,6 +33,18 @@ def model_dir() -> Path:
     return get_settings().data_dir.parent / "models" / "multilingual-e5-base"
 
 
+def pool(out: np.ndarray, mask: np.ndarray, pooling: str) -> np.ndarray:
+    """Belirteç vektörlerinden birim metin vektörü: `mean` (e5 ailesi, dolgu hariç ortalama) ya da `cls` (bge-m3)."""
+    if pooling == "mean":
+        vec = (out * mask[..., None]).sum(axis=1) / np.maximum(mask.sum(axis=1, keepdims=True), 1)
+    elif pooling == "cls":
+        vec = out[:, 0, :]
+    else:
+        raise ValueError(f"unknown pooling {pooling!r}")
+    norm = np.linalg.norm(vec, axis=1, keepdims=True)
+    return (vec / np.maximum(norm, 1e-12)).astype(np.float32)
+
+
 @dataclass
 class Embedder:
     model_id: str
@@ -45,6 +58,7 @@ class Embedder:
     _session: object
     _tokenizer: object
     _inputs: set[str]
+    pooling: str = "mean"
 
     def embed(self, texts: list[str], kind: Literal["query", "passage"]) -> np.ndarray:
         prefix = self.query_prefix if kind == "query" else self.passage_prefix
@@ -53,9 +67,7 @@ class Embedder:
         mask = np.array([e.attention_mask for e in enc], dtype=np.int64)
         feeds = {"input_ids": ids, "attention_mask": mask, "token_type_ids": np.zeros_like(ids)}
         out = self._session.run(None, {k: v for k, v in feeds.items() if k in self._inputs})[0]  # type: ignore[attr-defined]
-        vec = (out * mask[..., None]).sum(axis=1) / np.maximum(mask.sum(axis=1, keepdims=True), 1)
-        norm = np.linalg.norm(vec, axis=1, keepdims=True)
-        return (vec / np.maximum(norm, 1e-12)).astype(np.float32)
+        return pool(out, mask, self.pooling)
 
 
 def _load(path: Path) -> Embedder:
@@ -79,6 +91,7 @@ def _load(path: Path) -> Embedder:
         _session=session,
         _tokenizer=tokenizer,
         _inputs={i.name for i in session.get_inputs()},
+        pooling=str(meta.get("pooling", "mean")),
     )
     probe = emb.embed(["kontrol"], "query")  # yanlış çıktı biçimli model "hazır" görünmesin
     if probe.shape != (1, emb.dim) or not np.isfinite(probe).all():
