@@ -4498,7 +4498,7 @@
             "type": "string"
           },
           "enrichment_enabled": {
-            "default": true,
+            "default": false,
             "title": "Enrichment Enabled",
             "type": "boolean"
           },

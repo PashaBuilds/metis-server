@@ -3511,7 +3511,7 @@ export interface components {
             description: string;
             /**
              * Enrichment Enabled
-             * @default true
+             * @default false
              */
             enrichment_enabled: boolean;
             /**
