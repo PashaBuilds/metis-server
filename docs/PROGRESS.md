@@ -385,3 +385,16 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
 - Vektör modeli kıyası başladı (`evals/scale/compare_models.py`; e5-base / multilingual-e5-large / bge-m3, bge-reranker-v2-m3
   ile ve olmadan, 5 bin sayfada, model başına aynı kuralla eşik; hız ayrıca boşta). bge-m3 için `MODEL.json` `pooling: cls`.
   Sonuç ayrı kayıt olarak yazılacak.
+- Bağımsız inceleme (opus): 1 önemli (okunabilirlik süzgecinde `in_()` listeleri: ~33 bin sayfada PostgreSQL'in 65535
+  parametre sınırı → dizi parametresi, test 40 bin revizyon) + küçük bulgular düzeltildi (biçimde µ/μ, ß/ss, ς/σ yeniden
+  birleşir — 0015 yayımlanmadan düzeltildi; ICU'suz PostgreSQL'de ön süzgeç kendiliğinden kapanır; havuzlama model
+  kimliğinde; matris tazelemede parça parça kopya; alan listesi gövdesiz). 0016'nın denetim kaydı yazmaması ve geri
+  alınmaması sürüm notunda.
+- `-Derle` ilk denemede `test_backup_restore_includes_attachment_blobs` sökümünde düştü (yoğun makinede geri yüklenen
+  veritabanında autovacuum; test rolü sonlandıramaz) → ana test veritabanındaki bekle/yeniden dene döngüsü bu fikstüre de
+  eklendi. Ayrıca `git revert` dosyayı CRLF yazdı; `release.ps1`'in git'i (msys, autocrlf yok) çalışma ağacını kirli gördü
+  → dosya dizinden geri yüklendi.
+- Sürüm 2.0.24 (b31e53c): `-Derle` (ZIP 70,8 MB, `sha256:4d196ef2…2347`), CI 40402364765 yeşil (Linux + Windows).
+  `-Dene`: kurulu 2.0.23 → 2.0.24 görevle yükseltildi (yedek `metis-backup-20261026-213642.zip`, `/health/live` 2.0.24,
+  `app\current` → 2.0.24); çift tıklama sorusu/UAC ve Chrome bu yolda denenmedi. `-Yayimla`: GitHub sürümü v2.0.24;
+  vektör modeli eklentisi (2.0.20 ile aynı dosya) ikinci dosya olarak eklendi.
