@@ -23,7 +23,7 @@ from metis.core.models import ChangeSet, Claim, Page, PageRevision, Project, Pro
 from metis.llm import contracts, prompts
 from metis.llm.client import ModelClient
 from metis.modules.changes import schemas
-from metis.modules.health.maintenance import _strip_numbers
+from metis.modules.health.maintenance import _strip_numbers, shape_prefilter
 from metis.modules.scopes.semantics import overlaps
 
 MAX_RULE_JUDGE = 5
@@ -51,14 +51,15 @@ def _candidates(db, user: User, change: ChangeSet) -> dict:  # noqa: ANN001
     own_pages = {d["page_id"] for d in drafts}
     # Yalnız taslak iddialarıyla aynı biçim özetini taşıyan yayın iddiaları okunur (claims.shape_md5 dizini; kesin kural
     # rule_candidates'ta). Büyük derlemde tüm yayını her kontrolde uygulamaya taşımamak için.
-    shapes = select(Claim.shape_md5).where(Claim.page_revision_id.in_(draft_revs))
-    rows = db.execute(
+    q = (
         select(Page.id, PageRevision.id, PageRevision.title, PageRevision.scope, Claim.statement)
         .join(PageRevision, PageRevision.id == Page.published_revision_id)
         .join(Claim, Claim.page_revision_id == PageRevision.id)
         .where(Page.project_id == project_id, Page.deleted_at.is_(None), Page.lifecycle == "active", Page.id.not_in(own_pages))
-        .where(Claim.shape_md5.in_(shapes))
-    ).all()
+    )
+    if shape_prefilter(db):
+        q = q.where(Claim.shape_md5.in_(select(Claim.shape_md5).where(Claim.page_revision_id.in_(draft_revs))))
+    rows = db.execute(q).all()
     hidden = unreadable_revisions(db, user, project_id, [r[1] for r in rows])
     rule = rule_candidates(drafts, rows, hidden)
     similar = []

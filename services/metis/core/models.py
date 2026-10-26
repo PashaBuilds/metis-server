@@ -288,7 +288,7 @@ def claim_shape_sql(col: str) -> str:
     """İddianın "biçimi": küçük harf, sayılar # (Python `_strip_numbers` ile aynı kural). Çelişki adayları aynı biçimli
     iddialardır; veritabanında özetiyle dizinlenir (büyük derlemde tüm iddiaları uygulamaya taşımamak için). Küçültme ICU
     ile: sunucunun yerel ayarından bağımsız (Windows'taki varsayılan ayar "İ"yi küçültmez) ve Python `str.lower` ile aynı."""
-    return rf"""regexp_replace(regexp_replace(lower({col} COLLATE "und-x-icu"), '\d+([.,]\d+)?', '#', 'g'), '^\s+|\s+$', '', 'g')"""
+    return rf"""regexp_replace(regexp_replace(translate(replace(lower({col} COLLATE "und-x-icu"), 'ß', 'ss'), 'µς', 'μσ'), '\d+([.,]\d+)?', '#', 'g'), '^\s+|\s+$', '', 'g')"""
 
 
 class Claim(Base):

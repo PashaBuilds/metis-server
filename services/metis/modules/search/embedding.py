@@ -33,6 +33,11 @@ def model_dir() -> Path:
     return get_settings().data_dir.parent / "models" / "multilingual-e5-base"
 
 
+def effective_model_id(model_id: str, pooling: str) -> str:
+    """Vektörlerin saklandığı kimlik: havuzlama değişirse eski vektörler kullanılmaz (varsayılan `mean` kimliği değiştirmez)."""
+    return model_id if pooling == "mean" else f"{model_id}#{pooling}"
+
+
 def pool(out: np.ndarray, mask: np.ndarray, pooling: str) -> np.ndarray:
     """Belirteç vektörlerinden birim metin vektörü: `mean` (e5 ailesi, dolgu hariç ortalama) ya da `cls` (bge-m3)."""
     if pooling == "mean":
@@ -82,7 +87,7 @@ def _load(path: Path) -> Embedder:
     tokenizer.enable_truncation(int(meta.get("max_tokens", 512)))
     tokenizer.enable_padding()
     emb = Embedder(
-        model_id=str(meta["id"]),
+        model_id=effective_model_id(str(meta["id"]), str(meta.get("pooling", "mean"))),
         dim=int(meta["dim"]),
         query_prefix=str(meta.get("query_prefix", "query: ")),
         passage_prefix=str(meta.get("passage_prefix", "passage: ")),

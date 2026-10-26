@@ -10,7 +10,9 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterable
 
-from sqlalchemy import select
+from sqlalchemy import any_, bindparam, select
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Session
 
 from metis.core.errors import AppError
@@ -232,19 +234,23 @@ def unreadable_revisions(
     hidden = [
         sid for sid in db.scalars(select(Source.id).where(Source.project_id == project_id)) if sid not in readable
     ]
-    bad = (Source.project_id != project_id) | Source.id.in_(hidden) if hidden else Source.project_id != project_id
+    # Listeler tek dizi parametresi olarak gider: `in_()` her öğe için ayrı parametre açar ve on binlerce revizyonda
+    # PostgreSQL'in 65535 parametre sınırı aşılır.
+    ids_p = bindparam("ids", ids, type_=ARRAY(PG_UUID(as_uuid=True)))
+    hidden_p = bindparam("hidden", hidden, type_=ARRAY(PG_UUID(as_uuid=True)))
+    bad = (Source.project_id != project_id) | (Source.id == any_(hidden_p))
     claims = (
         select(Claim.page_revision_id)
         .join(ClaimEvidence, ClaimEvidence.claim_id == Claim.id)
         .join(Evidence, Evidence.id == ClaimEvidence.evidence_id)
         .join(SourceRevision, SourceRevision.id == Evidence.source_revision_id)
         .join(Source, Source.id == SourceRevision.source_id)
-        .where(Claim.page_revision_id.in_(ids), bad)
+        .where(Claim.page_revision_id == any_(ids_p), bad)
     )
     figures = (
         select(PageRevisionFigure.page_revision_id)
         .join(SourceRevision, SourceRevision.id == PageRevisionFigure.source_revision_id)
         .join(Source, Source.id == SourceRevision.source_id)
-        .where(PageRevisionFigure.page_revision_id.in_(ids), bad)
+        .where(PageRevisionFigure.page_revision_id == any_(ids_p), bad)
     )
     return set(db.scalars(claims.union(figures)))

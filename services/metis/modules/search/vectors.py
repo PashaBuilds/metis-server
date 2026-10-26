@@ -165,8 +165,11 @@ def _refresh(db: Session, project_id: uuid.UUID, model_id: str, old: dict | None
         # float32: sorguda dönüştürme yok (500 bin × 768 ≈ 1,5 GB'a kadar; KURULUM.md bellek notu)
         matrix = np.empty((len(keep), dim), dtype=np.float32)
         from_old = np.array([r.embed_sha256 in old_row for r in keep], dtype=bool)
-        if from_old.any():
-            matrix[from_old] = old["matrix"][np.array([old_row[r.embed_sha256] for r in keep if r.embed_sha256 in old_row])]  # type: ignore[index]
+        if from_old.any():  # parça parça: eski matris önbellekteyken tam bir ara kopya belleği üç katına çıkarırdı
+            dst = np.flatnonzero(from_old)
+            src = np.array([old_row[r.embed_sha256] for r in keep if r.embed_sha256 in old_row])
+            for i in range(0, len(dst), 20_000):
+                matrix[dst[i : i + 20_000]] = old["matrix"][src[i : i + 20_000]]  # type: ignore[index]
         if not from_old.all():
             matrix[~from_old] = np.vstack([fresh[r.embed_sha256] for r in keep if r.embed_sha256 not in old_row]).astype(np.float32)
     last_refresh.update(fetched=len(fresh), rows=len(keep))

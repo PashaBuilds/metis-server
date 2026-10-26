@@ -91,3 +91,19 @@ def test_claim_shape_column_matches_python_rule(db):  # noqa: ANN001
     for s in samples:
         got = db.scalar(text(f"SELECT md5({claim_shape_sql('CAST(:s AS text)')})"), {"s": s})
         assert got == hashlib.md5(_strip_numbers(s).encode("utf-8")).hexdigest(), s  # noqa: S324
+
+
+def test_shape_unifies_micro_sign_sharp_s_and_final_sigma(db):  # noqa: ANN001
+    """casefold'un birleştirdiği yazımlar (µ/μ, ß/ss, ς/σ) aynı biçim sayılır; donanım belgelerinde mikro işareti ile
+    Yunan mu karışık yazılır ("100 µs" ve "200 μs" çelişki adayıdır)."""
+    from sqlalchemy import text
+
+    from metis.modules.health.maintenance import _strip_numbers
+
+    assert _strip_numbers("reset 100 µs") == _strip_numbers("reset 200 μs")
+    assert _strip_numbers("Straße 5") == _strip_numbers("STRASSE 6")
+    assert _strip_numbers("λόγος 1") == _strip_numbers("λόγοσ 2")
+    for s in ("reset 100 µs", "Straße ẞ 5", "λόγος 1", "ΣΊΣΥΦΟΣ 3"):
+        got = db.scalar(text(f"SELECT {claim_shape_sql('CAST(:s AS text)')}"), {"s": s})
+        assert got == _strip_numbers(s), s
+

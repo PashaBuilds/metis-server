@@ -3,11 +3,12 @@ isteğe bağlı model destekli havuz denetimi (çelişki adayları). Tek bakım 
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from datetime import timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from metis.core.db import transaction, utcnow
@@ -101,9 +102,34 @@ def deterministic_scan(db: Session, project_id: uuid.UUID, actor: uuid.UUID | No
     return counts
 
 
+_FOLD = str.maketrans({"µ": "μ", "ς": "σ"})
+
+
 def _strip_numbers(text: str) -> str:
-    # str.lower: veritabanındaki biçim özetiyle (claims.shape_md5, ICU lower) aynı kural
-    return re.sub(r"\d+(?:[.,]\d+)?", "#", text.lower()).strip()
+    # Veritabanındaki biçim özetiyle (claims.shape_md5: ICU lower + aynı eşlemeler) aynı kural. casefold'un birleştirdiği
+    # mikro işareti/Yunan mu, ß/ss ve son sigma da birleşir ("100 µs" ile "200 μs" aynı biçim).
+    return re.sub(r"\d+(?:[.,]\d+)?", "#", text.lower().replace("ß", "ss").translate(_FOLD)).strip()
+
+
+log = logging.getLogger("metis.maintenance")
+_prefilter: list[bool] = []
+
+
+def shape_prefilter(db: Session) -> bool:
+    """claims.shape_md5 Python kuralıyla birebir mi? 0015 ICU'suz PostgreSQL'de yerel ayarın `lower`'ına düşer ("İ" gibi
+    harflerde özet farklı olur); o zaman ön süzgeç kullanılmaz, aday kuralı tüm iddialarda Python'da uygulanır."""
+    if not _prefilter:
+        expr = db.scalar(
+            text(
+                """SELECT pg_get_expr(d.adbin, d.adrelid) FROM pg_attrdef d
+                   JOIN pg_attribute a ON a.attrelid = d.adrelid AND a.attnum = d.adnum
+                   WHERE d.adrelid = 'claims'::regclass AND a.attname = 'shape_md5'"""
+            )
+        )
+        _prefilter.append(bool(expr and "und-x-icu" in expr))
+        if not _prefilter[0]:
+            log.warning("claims.shape_md5 without ICU collation: shape prefilter disabled")
+    return _prefilter[0]
 
 
 def conflict_pairs(db: Session, project_id: uuid.UUID) -> list[dict]:
@@ -119,12 +145,11 @@ def conflict_pairs(db: Session, project_id: uuid.UUID) -> list[dict]:
         )
 
     # Yalnız birden çok sayfada görülen biçimler (claims.shape_md5 dizini): büyük derlemde tüm iddiaları taşımamak için.
-    shared = base().add_columns(Claim.shape_md5).group_by(Claim.shape_md5).having(func.count(func.distinct(Page.id)) > 1)
-    rows = db.execute(
-        base()
-        .add_columns(Page.id, PageRevision.title, PageRevision.scope, Claim.statement, ClaimEvidence.evidence_id)
-        .where(Claim.shape_md5.in_(shared))
-    ).all()
+    q = base().add_columns(Page.id, PageRevision.title, PageRevision.scope, Claim.statement, ClaimEvidence.evidence_id)
+    if shape_prefilter(db):
+        shared = base().add_columns(Claim.shape_md5).group_by(Claim.shape_md5).having(func.count(func.distinct(Page.id)) > 1)
+        q = q.where(Claim.shape_md5.in_(shared))
+    rows = db.execute(q).all()
     return pair_candidates(rows)
 
 

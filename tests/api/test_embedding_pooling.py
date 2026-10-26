@@ -27,6 +27,14 @@ def test_cls_pooling_uses_first_token():
     assert np.allclose(vec[0], [0.6, 0.8])
 
 
+def test_pooling_is_part_of_model_identity():
+    """Aynı `id` ile havuzlaması değiştirilen modelin eski (başka havuzlamalı) vektörleri kullanılmamalı."""
+    from metis.modules.search.embedding import effective_model_id
+
+    assert effective_model_id("e5@1", "mean") == "e5@1"  # mevcut kurulumların vektörleri geçerli kalır
+    assert effective_model_id("e5@1", "cls") == "e5@1#cls"
+
+
 def test_unknown_pooling_is_rejected():
     out, mask = _batch()
     with pytest.raises(ValueError):

@@ -82,7 +82,7 @@ def _counts(db: Session, revision_ids: list[uuid.UUID]) -> dict[uuid.UUID, tuple
 
 def domains(db: Session, user: User, project_id: uuid.UUID) -> list[schemas.DomainRow]:
     require_member(db, user, project_id)
-    rows = _active_rows(db, user, project_id)
+    rows = _active_rows(db, user, project_id, with_body=False)
     catalog = db.scalars(
         select(ScopeValue.value).where(
             ScopeValue.project_id == project_id, ScopeValue.dimension == "domain", ScopeValue.deleted_at.is_(None)

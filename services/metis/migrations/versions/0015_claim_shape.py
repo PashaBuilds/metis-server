@@ -19,12 +19,14 @@ depends_on = None
 
 
 # metis.core.models.claim_shape_sql("statement") ile aynı (migration uygulama koduna bağlı kalmasın diye sabit)
-SHAPE = r"""regexp_replace(regexp_replace(lower(statement COLLATE "und-x-icu"), '\d+([.,]\d+)?', '#', 'g'), '^\s+|\s+$', '', 'g')"""
+SHAPE = r"""regexp_replace(regexp_replace(translate(replace(lower(statement COLLATE "und-x-icu"), 'ß', 'ss'), 'µς', 'μσ'), '\d+([.,]\d+)?', '#', 'g'), '^\s+|\s+$', '', 'g')"""
 
 
 def upgrade() -> None:
     shape = SHAPE
     if not op.get_bind().scalar(sa.text("SELECT 1 FROM pg_collation WHERE collname = 'und-x-icu'")):
+        # Uygulama bunu görür (maintenance.shape_prefilter) ve ön süzgeci kullanmaz: sonuç aynı, yalnız daha yavaş.
+        print("UYARI: PostgreSQL'de ICU yok; iddia biçim özeti yerel ayarla hesaplanır, ön süzgeç kapalı kalır.")  # noqa: T201
         shape = shape.replace(' COLLATE "und-x-icu"', "")
     # Tablo yeniden yazılır; satır tetikleyicileri (revizyon değişmezliği) çalışmaz, içerik değişmez.
     op.execute(f"ALTER TABLE claims ADD COLUMN shape_md5 text GENERATED ALWAYS AS (md5({shape})) STORED")
