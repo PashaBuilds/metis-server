@@ -201,6 +201,32 @@ sormadan Windows oturumuyla otomatik giriş (Kerberos), iç içe grup üyeliği,
    testinde en kötü Mentor cevabı ≈10 sn); model yanıt vermezse 60 sn'de kesilir ve kullanıcıya "model kullanılamıyor"
    denir. Art arda 3 bağlantı hatasında model 60 sn dinlenmeye alınır, varsa diğer uygun model kullanılır.
 
+### 7a. Kişisel API anahtarı (2.0.28'den beri)
+
+Herkes modelleri **kendi API anahtarıyla** kullanır (ürün sahibinin kararı): Mentor cevapları, yayın öncesi kontrol ve
+kişinin başlattığı Metis görevleri (taslak hazırla / geliştir, elle başlatılan bakım taraması) o kişinin anahtarıyla
+çağrılır. 7. bölümde yöneticinin sağlayıcıya girdiği anahtar **ortak anahtardır**: model testi ve benchmark (kalite
+kapısı yalnız onunla ölçülür), zamanlanmış bakım ve arama zenginleştirmesi onunla çalışır. Yönetici kişisel anahtar
+eklemediyse kendi sorularında da ortak anahtarı (kendi anahtarını) kullanır.
+
+1. Her kullanıcı **Ayarlar → Anahtarım**'da sağlayıcının yanındaki **Anahtar ekle** ile kendi anahtarını girer; kayıtta
+   kısa bir deneme isteği gönderilir ("Çalışıyor" / "Reddedildi"). Anahtar şifreli saklanır (kişiye bağlı), hiçbir
+   ekranda, logda ya da denetim kaydında görünmez; **Dene** ile yeniden sınanır, **Anahtarı sil** ile kaldırılır.
+2. Anahtarı olmayan kişi Mentor'da cevap üretemez: arama yine çalışır, ilgili yayımlanmış bölümler gösterilir ve
+   "Anahtarım" bağlantısı çıkar. Yayın öncesi kontrol yalnız kurallarla yapılır; Metis görevi başlatılamaz.
+3. Yanlış ya da süresi dolmuş kişisel anahtar yalnız o kişiyi etkiler (modelin hata sayacını artırmaz). Önbellek kişiye
+   özeldir: kimse başkasının anahtarıyla üretilmiş cevabı kendi anahtarı olmadan almaz.
+4. **Kullanım:** Anahtarım sekmesinde herkes son 30 günün kendi çağrı ve token sayılarını görür; yönetici aynı sekmede
+   kişi başına yalnız toplamları görür (soruların içeriği görünmez). "Sistem" satırı ortak anahtarla yapılan arka plan
+   işleridir.
+5. Yükseltmeden sonra kişisel anahtar eklenene kadar yönetici dışındaki kullanıcılar Mentor'da model kullanamaz; ekibe
+   duyurun.
+
+Mentor'da (2.0.28) **Cevap: Model yazsın / Yalnız arama** seçimi ve **Bekleme süresi** (varsayılan = sağlayıcının
+süresi, 30 sn – 10 dk) vardır; son seçim kişi başına saklanır. Cevap ekranında aramanın bulduğu birebir alıntılar
+("Arama": kelime + vektör + yeniden sıralayıcı, hangileri kullanıldıysa) ile modelin yazdığı kısım ("Model", model adı ve
+süre) ayrı başlıklarla gösterilir.
+
 ## 8. Yedek ve geri yükleme
 
 - Otomatik: "METIS gece yedeği" (her gece 02:15, 14 gün saklanır) ve "METIS geri yükleme tatbikatı" (pazar 03:30;

@@ -7,6 +7,7 @@ import { tr } from '@/i18n/tr';
 import { AppearanceTab } from './AppearanceTab';
 import { DirectoryTab } from './DirectoryTab';
 import { ExternalTab } from './ExternalTab';
+import { KeysTab } from './KeysTab';
 import { MembersTab } from './MembersTab';
 import { ExportTab, ScheduleTab, SystemTab } from './OpsTabs';
 import { PolicyTab } from './PolicyTab';
@@ -34,6 +35,7 @@ const TABS: SettingsTab[] = [
   { key: 'kapsam', label: tr.settings.tabs.kapsam!, render: () => <ScopesTab />, visible: (s) => s.roles.has('contributor') || s.roles.has('steward') },
   { key: 'bakim', label: tr.settings.tabs.bakim!, render: () => <ScheduleTab />, visible: (s) => s.roles.has('steward') },
   { key: 'sistem', label: tr.settings.tabs.sistem!, render: () => <SystemTab />, visible: admin },
+  { key: 'anahtarim', label: tr.settings.tabs.anahtarim!, render: () => <KeysTab /> },
   { key: 'disa-aktar', label: tr.settings.tabs['disa-aktar']!, render: () => <ExportTab /> },
   { key: 'gorunum', label: tr.settings.tabs.gorunum!, render: () => <AppearanceTab /> },
 ];

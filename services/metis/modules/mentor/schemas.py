@@ -16,6 +16,10 @@ class AskIn(BaseModel):
     scope: ScopeIn | None = None
     level: Literal["short", "steps", "detailed"] = "short"
     model_id: uuid.UUID | None = None
+    # 2.0.28: kapalıysa model çağrılmaz, yalnız aramanın bulduğu bölümler gösterilir. Süre: modelin cevap için toplam
+    # bekleme süresi (sn); boşsa sağlayıcının süresi. Son seçim kişi başına saklanır (ön yüz tercihi).
+    use_model: bool = True
+    timeout_s: int | None = Field(default=None, ge=15, le=600)
 
 
 class Citation(BaseModel):
@@ -76,6 +80,8 @@ class AnswerOut(BaseModel):
     related_passages: list[RelatedPassage] = []
     # Vektör araması: partial (bir kısmı henüz hazırlanıyor) | error (model yüklenemedi) | yok
     dense_note: str | None = None
+    # 2.0.28: dense (vektör kanalı durumu), reranked (yeniden sıralandı mı), use_model, timeout_s; eski cevaplarda yok.
+    retrieval: dict | None = None
     unknowns: list[str]
     conflict_sides: list[ConflictSide]
     conflict_finding_id: uuid.UUID | None

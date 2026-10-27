@@ -234,7 +234,14 @@ def scan_now(db: Session, user: User, project_id: uuid.UUID, data: ScanIn) -> uu
         ok, reason = eligibility(db, m, db.get(Project, project_id)) if m else (False, "not_found")
         if not ok:
             raise AppError("MODEL_NOT_ELIGIBLE", "model not eligible", reason=reason)
+        # Elle başlatılan tarama başlatanın anahtarıyla (2.0.28); zamanlanmış tarama ortak anahtarla.
+        from metis.modules.keys.service import key_for
+
+        key = key_for(db, user, m.provider_id)  # type: ignore[union-attr]
+        if key is None:
+            raise AppError("PERSONAL_KEY_MISSING", "add your own API key for this model's provider", provider_id=str(m.provider_id))  # type: ignore[union-attr]
         inputs["model_id"] = str(data.model_id)
+        inputs["key_source"] = key.source
     job = Job(project_id=project_id, requester_id=user.id, kind="maintenance", title="Bakım taraması", inputs=inputs, state="queued", priority=30, model_id=data.model_id)
     db.add(job)
     db.flush()

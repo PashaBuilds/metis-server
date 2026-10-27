@@ -44,8 +44,9 @@ from metis.core.models import (
     User,
 )
 from metis.llm import contracts, prompts
-from metis.llm.client import ModelClient
+from metis.llm.client import PERSONAL_KEY_ERRORS, KeyRef, ModelClient
 from metis.llm.validators import valid_source_selection, validate_answer
+from metis.modules.keys.service import key_for
 from metis.modules.lab.service import eligibility, route
 from metis.modules.mentor import schemas
 from metis.modules.scopes.semantics import DIMENSIONS, matches_scope, mismatched_dimensions, normalize_scope
@@ -224,6 +225,15 @@ def _conflict_sides(db: Session, user: User, finding: Finding) -> list[schemas.C
     return sides
 
 
+def _failure_reason(error: str | None) -> str:
+    """Model çağrısı başarısız: süre doldu, kişisel anahtar reddedildi ya da başka bir çağrı hatası."""
+    if error in ("BUDGET_EXCEEDED", "TIMEOUT"):
+        return "timeout"
+    if error in PERSONAL_KEY_ERRORS:
+        return "personal_key_rejected"
+    return "call_failed"
+
+
 def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emit = _noop) -> schemas.AnswerOut:
     started = time.perf_counter()
     timings: dict[str, Any] = {"retrieval_ms": None, "rerank_ms": None, "selection_ms": None, "generation_ms": None, "validation_ms": None, "total_ms": None}
@@ -246,6 +256,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
     }
     bundle: list[dict] = []
     dense_note: str | None = None
+    dense_state: str | None = None  # available | partial | unavailable (ekranda "nasıl bulundu" için)
     pending: list[tuple[schemas.RelatedPage, list[dict], list[str]]] = []  # pakete aday sayfalar (arama sırasıyla)
     passages: list[dict] = []  # model yokken gösterilecek ilgili yayımlanmış bölümler (cevap değildir)
     candidate_revisions: list[uuid.UUID] = []
@@ -272,6 +283,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 found = search(db, user, project_id, req.question, None, None, max(TOP_K * 2, rerank.CANDIDATES) if ranker else TOP_K * 2)
                 hits = found.hits
                 dense_note = _dense_note(found.dense)
+                dense_state = found.dense
             except AppError:
                 raise
             except Exception:  # noqa: BLE001 — arama hatası "bilgi yok" sayılmaz
@@ -339,20 +351,29 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                     state["decision"] = "MODEL_UNAVAILABLE"
 
         model = provider = None
-        if state["decision"] == "MODEL_UNAVAILABLE":
+        key: KeyRef | None = None
+        if state["decision"] == "MODEL_UNAVAILABLE" and not req.use_model:
+            # Kullanıcı modeli kapattı (2.0.28): yalnız aramanın bulduğu bölümler gösterilir, model çağrılmaz.
+            state["model_unavailable_reason"] = "model_off"
+        elif state["decision"] == "MODEL_UNAVAILABLE":
+            # Herkes kendi anahtarıyla (2.0.28): seçilen ya da yönlendirilen model kişinin anahtarı olan sağlayıcıdan.
             if req.model_id:
                 model = db.get(Model, req.model_id)
                 ok, reason = eligibility(db, model, project) if model else (False, "not_found")
+                if ok and model is not None and key_for(db, user, model.provider_id) is None:
+                    ok, reason = False, "personal_key_missing"
                 if not ok:
                     state["model_unavailable_reason"] = reason
                     model = None
             else:
-                model, reasons = route(db, project)
+                model, reasons = route(db, project, user)
                 if model is None:
-                    state["model_unavailable_reason"] = next((r["reason"] for r in reasons), "no_models")
-            _, reasons = route(db, project)
+                    missing = any(r["reason"] == "personal_key_missing" for r in reasons)
+                    state["model_unavailable_reason"] = "personal_key_missing" if missing else next((r["reason"] for r in reasons), "no_models")
+            _, reasons = route(db, project, user)
             state["alternatives"] = [{"id": r["model_id"], "display_name": r["display_name"]} for r in reasons if r["eligible"] and (not req.model_id or r["model_id"] != str(req.model_id))]
             if model is not None:
+                key = key_for(db, user, model.provider_id)
                 provider = db.get(Provider, model.provider_id)
                 state["model"] = {"id": str(model.id), "display_name": model.display_name, "remote_id": model.remote_id, "provider": provider.name if provider else "", "is_fixture": model.is_fixture}
                 # Alternatif = kullanılan modelden başkası (çağrı başarısız olursa aynı model önerilmez).
@@ -367,9 +388,15 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
         bundle, pending_conflict = [], None
 
     # ---------------------------------------------------------------- model çağrıları (oturum dışı)
-    if model is not None and provider is not None:
+    if model is not None and provider is not None and key is not None:
         client = ModelClient()
         emit("progress", {"step": "generating"})
+        # Kullanıcının seçtiği bekleme süresi iki model çağrısının (kaynak seçimi + cevap) toplamıdır.
+        deadline = time.perf_counter() + req.timeout_s if req.timeout_s else None
+
+        def left() -> float | None:
+            return max(0.001, deadline - time.perf_counter()) if deadline else None
+
         pages = list(dict.fromkeys(b["page_id"] for b in bundle))
         if len(pages) > SELECTION_THRESHOLD or pending_conflict is not None:
             t0 = time.perf_counter()
@@ -378,11 +405,11 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 "scope": selector,
                 "pages": [{"page_id": p, "title": next(b["page_title"] for b in bundle if b["page_id"] == p), "statements": [b["statement"] for b in bundle if b["page_id"] == p][:20]} for p in pages],
             }
-            sel = client.call(model, provider, prompt_id=prompts.SOURCE_SELECTION, payload=payload, schema=contracts.SourceSelection, validator=lambda o: valid_source_selection(o, pages), purpose="mentor")
+            sel = client.call(model, provider, prompt_id=prompts.SOURCE_SELECTION, payload=payload, schema=contracts.SourceSelection, validator=lambda o: valid_source_selection(o, pages), purpose="mentor", key=key, budget_s=left())
             timings["selection_ms"] = round((time.perf_counter() - t0) * 1000, 2)
             if not sel.ok:
                 state["error"] = sel.error
-                state["model_unavailable_reason"] = "call_failed"
+                state["model_unavailable_reason"] = _failure_reason(sel.error)
                 bundle = []
             else:
                 verdicts = {r["page_id"]: r["relevance"] for r in sel.output["reviews"]}
@@ -404,13 +431,13 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 "conflict": False,
                 "evidence": [{k: b[k] for k in ("claim_id", "evidence_id", "statement", "scope")} for b in bundle],
             }
-            res = client.call(model, provider, prompt_id=prompts.EVIDENCE, payload=payload, schema=contracts.EvidenceAnswer, purpose="mentor", cache=True)
+            res = client.call(model, provider, prompt_id=prompts.EVIDENCE, payload=payload, schema=contracts.EvidenceAnswer, purpose="mentor", cache=True, key=key, budget_s=left())
             timings["generation_ms"] = round((time.perf_counter() - t1) * 1000, 2)
             if not res.ok:
                 state["decision"] = "VALIDATION_FAILED" if res.error in ("INVALID_RESPONSE", "VALIDATION") else "MODEL_UNAVAILABLE"
                 state["error"] = res.error
                 if state["decision"] == "MODEL_UNAVAILABLE":
-                    state["model_unavailable_reason"] = "call_failed"
+                    state["model_unavailable_reason"] = _failure_reason(res.error)
             else:
                 emit("progress", {"step": "verifying"})
                 t2 = time.perf_counter()
@@ -482,6 +509,13 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 "explanation_dropped_all": bool(state["dropped"]) and not state["explanation"] and bool(state["citations"]),
                 "related_passages": passages if state["decision"] == "MODEL_UNAVAILABLE" else [],
                 "dense_note": dense_note,
+                # Cevabın hangi kısmı aramadan, hangisi modelden: ekranda açıkça ayrılır (2.0.28).
+                "retrieval": {
+                    "dense": dense_state,
+                    "reranked": timings.get("rerank_ms") is not None and not timings.get("rerank_error"),
+                    "use_model": req.use_model,
+                    "timeout_s": req.timeout_s,
+                },
             },
         )
         db.add(answer)
@@ -538,6 +572,7 @@ def answer_out(db: Session, user: User, answer: Answer) -> schemas.AnswerOut:
         related=[schemas.RelatedPage(**r) for r in d.get("related", [])],
         related_passages=passages,
         dense_note=d.get("dense_note"),
+        retrieval=d.get("retrieval"),
         unknowns=d.get("unknowns", []),
         conflict_sides=[schemas.ConflictSide(**c) for c in d.get("conflict_sides", [])],
         conflict_finding_id=uuid.UUID(d["conflict_finding_id"]) if d.get("conflict_finding_id") else None,

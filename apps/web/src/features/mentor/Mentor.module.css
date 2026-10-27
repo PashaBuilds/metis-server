@@ -774,3 +774,28 @@
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
+
+/* 2.0.28: cevabın kaynağı (arama / model) açıkça etiketlenir. Kanıt değil: altın kullanılmaz. */
+.originTag {
+  display: inline-block;
+  margin-right: var(--s2);
+  padding: 1px 8px;
+  border: 1px solid var(--cizgi-guclu);
+  border-radius: var(--r-chip);
+  color: var(--soluk);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 2px;
+}
+
+.timeoutSelect {
+  min-width: 140px;
+}
+
+.keyLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1, 4px);
+  font-size: var(--fs-14);
+}

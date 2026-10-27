@@ -955,6 +955,9 @@ class ModelCall(Base):
     cached_from: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, nullable=True)
     job_id: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, nullable=True, index=True)
     answer_id: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, nullable=True, index=True)
+    # Kimin adına (kullanım dökümü): kişisel anahtarla ya da yönetici ortak anahtarla çağıran kişi; sistem işinde boş.
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    key_source: Mapped[str] = mapped_column(String(10), nullable=False, default="shared")  # personal | shared
     created_at: Mapped[datetime] = ts()
 
 
@@ -1031,6 +1034,23 @@ class IdempotencyKey(Base):
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     result_ref: Mapped[str] = mapped_column(String(80), nullable=False)
     created_at: Mapped[datetime] = ts()
+
+
+class UserProviderKey(Base):
+    """Kişisel API anahtarı (2.0.28, ürün sahibinin kararı): herkes modelleri kendi anahtarıyla çağırır. Sağlayıcının
+    kendi anahtarı (yöneticinin) ortak anahtardır: benchmark, zamanlanmış bakım ve arama zenginleştirmesi onunla çalışır.
+    AES-GCM şifreli, AAD kişi + sağlayıcı; anahtar hiçbir yanıtta dönmez."""
+
+    __tablename__ = "user_provider_keys"
+    user_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    provider_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("providers.id", ondelete="CASCADE"), primary_key=True)
+    secret_enc: Mapped[str] = mapped_column(Text, nullable=False)
+    secret_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = ts()
+    updated_at: Mapped[datetime] = ts()
+    checked_at: Mapped[datetime | None] = ts(nullable=True)
+    check_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    check_error: Mapped[str | None] = mapped_column(String(60), nullable=True)
 
 
 class UserPreference(Base):

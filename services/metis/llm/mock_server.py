@@ -24,6 +24,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from metis.llm import prompts
 from metis.llm.mock_logic import respond
 
+# Testler için: gelen her isteğin anahtarı (kişisel anahtarın gerçekten gönderildiğini doğrulamak; 2.0.28).
+SEEN_AUTH: list[str] = []
+
 KNOWN = [
     "fixture-reference",
     "fixture-liar",
@@ -86,6 +89,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.path.rstrip("/").endswith("/chat/completions") or self.path.count("/v1/") > 1:
             self._send(404, {"error": {"message": "not found"}})
             return
+        SEEN_AUTH.append(self.headers.get("Authorization") or "")
         if self.headers.get("Authorization") == "Bearer wrong-key":
             self._send(401, {"error": {"message": "invalid api key"}})
             return

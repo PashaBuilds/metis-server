@@ -39,7 +39,7 @@ def run_refine(ctx: JobContext) -> None:
     with transaction() as db:
         job = ctx.guard(db)
         requester = ctx.requester(db)
-        model, provider = load_model(db, job)
+        model, provider = load_model(db, job, ctx)
         change = changes.accessible_change(db, requester, uuid.UUID(job.inputs["draft_change_id"]))
         if change.state not in ("draft", "in_review") or change.hash != job.inputs.get("draft_hash"):
             raise JobFailed("DRAFT_CHANGED", "Seçilen taslak değişti; güncel taslakla yeniden başlat.")

@@ -21,14 +21,32 @@ from sqlalchemy import delete, func, select
 from metis.core.config import get_settings
 from metis.core.db import transaction, utcnow
 from metis.core.errors import AppError
-from metis.core.models import Model, ModelCache, ModelCall, Provider, ProviderSlot
-from metis.core.security import decrypt_secret, validate_endpoint
+from metis.core.models import Model, ModelCache, ModelCall, Provider, ProviderSlot, UserProviderKey
+from metis.core.security import decrypt_secret, user_key_aad, validate_endpoint
 from metis.core.util import hash_json
 from metis.llm import prompts
 from metis.llm.transport import TransportError, completions_url, post_completion
 
 DEFAULT_PROFILE = {"json_mode": "json_object", "thinking": "default", "probed": False}
 RETRYABLE_HTTP = {"HTTP_429", "HTTP_500", "HTTP_502", "HTTP_503", "HTTP_504"}
+# Kişisel anahtarın kendi sorunu (eksik, reddedildi): modelin devre kesicisini açmaz, başkasını etkilemez.
+PERSONAL_KEY_ERRORS = {"PERSONAL_KEY_MISSING", "HTTP_401", "HTTP_403", "SECRET_STORE_UNAVAILABLE"}
+
+
+@dataclass(frozen=True)
+class KeyRef:
+    """Çağrının anahtarı. `personal`: kişinin kendi anahtarı (user_provider_keys); değilse sağlayıcının ortak anahtarı
+    (yöneticinin). `user_id`: kimin adına (kullanım dökümü); sistem işinde (zenginleştirme, benchmark) boş."""
+
+    user_id: uuid.UUID | None = None
+    personal: bool = False
+
+    @property
+    def source(self) -> str:
+        return "personal" if self.personal else "shared"
+
+
+SHARED = KeyRef()
 
 
 @dataclass
@@ -95,10 +113,11 @@ def _release_slot(slot_id: uuid.UUID) -> None:
         db.execute(delete(ProviderSlot).where(ProviderSlot.id == slot_id))
 
 
-def _record_outcome(model_id: uuid.UUID, ok: bool, error: str | None, purpose: str = "") -> None:
+def _record_outcome(model_id: uuid.UUID, ok: bool, error: str | None, purpose: str = "", personal: bool = False) -> None:
     """Devre kesici: art arda 3 bağlantı hatası → 60 sn bekleme. Doğrulama hataları devreyi açmaz. Arka plan
-    zenginleştirmesinin hataları da açmaz (Mentor'u etkilemesin; zenginleştirme kendi geri çekilmesini yapar)."""
-    if not ok and purpose == "enrichment":
+    zenginleştirmesinin hataları da açmaz (Mentor'u etkilemesin; zenginleştirme kendi geri çekilmesini yapar). Kişisel
+    anahtarın reddedilmesi de açmaz: bir kişinin yanlış anahtarı modeli herkese kapatmaz."""
+    if not ok and (purpose == "enrichment" or (personal and error in PERSONAL_KEY_ERRORS)):
         return
     with transaction() as db:
         model = db.get(Model, model_id, with_for_update=True)
@@ -131,7 +150,11 @@ class ModelClient:
         job_id: uuid.UUID | None = None,
         answer_id: uuid.UUID | None = None,
         profile_override: dict | None = None,
+        key: KeyRef = SHARED,
+        budget_s: float | None = None,
     ) -> CallResult:
+        """`timeout_s` sağlayıcının süresini yalnız kısaltır; `budget_s` onun yerine geçer (Mentor'da kullanıcının seçtiği
+        bekleme süresi, 2.0.28)."""
         if not 1 <= max_tokens <= 16000 or repairs not in (0, 1, 2):
             raise ValueError("invalid model call budget")
         prompt = prompts.load(prompt_id)
@@ -139,6 +162,12 @@ class ModelClient:
         if purpose in ("benchmark", "probe"):
             cache = False  # benchmark ve probe cache kullanmaz
         messages, shape = build_messages(prompt.text, payload, schema, profile)
+        ref = key
+        personal: tuple[str, int] | None = None
+        if ref.personal:
+            with transaction() as db:
+                row = db.get(UserProviderKey, (ref.user_id, provider.id))
+                personal = (row.secret_enc, row.secret_version) if row else None
         key = hash_json(
             {
                 "prompt": prompt.id,
@@ -153,10 +182,15 @@ class ModelClient:
                 "secret_version": provider.secret_version,
                 "max_tokens": max_tokens,
                 "profile": profile,
+                # Önbellek anahtar sahibine özel: kimse başkasının anahtarıyla ödenmiş cevabı kendi anahtarı olmadan almaz.
+                **({"key": f"user:{ref.user_id}:{personal[1] if personal else 0}"} if ref.personal else {}),
             }
         )
-        budget = float(min(provider.timeout_s, timeout_s or provider.timeout_s))
+        budget = float(budget_s) if budget_s else float(min(provider.timeout_s, timeout_s or provider.timeout_s))
         started = time.perf_counter()
+        log = {"user_id": ref.user_id, "key_source": ref.source}
+        if ref.personal and personal is None:
+            return self._fail(model, prompt, purpose, key, job_id, answer_id, "PERSONAL_KEY_MISSING", started, log)
 
         if cache:
             with transaction() as db:
@@ -172,7 +206,7 @@ class ModelClient:
                     if valid:  # cache'ten gelen çıktı da yeniden doğrulanır
                         call = ModelCall(
                             model_id=model.id, prompt_id=prompt.id, prompt_version=prompt.version, purpose=purpose, input_hash=key,
-                            state="cached", parsed_output=output, cached_from=hit.call_id, job_id=job_id, answer_id=answer_id, latency_ms=0,
+                            state="cached", parsed_output=output, cached_from=hit.call_id, job_id=job_id, answer_id=answer_id, latency_ms=0, **log,
                         )
                         db.add(call)
                         db.flush()
@@ -182,25 +216,31 @@ class ModelClient:
         try:
             try:
                 url = completions_url(validate_endpoint(provider.base_url))
-                secret = decrypt_secret(provider.secret_enc) if provider.secret_enc else ""
+                if personal is not None:
+                    try:
+                        secret = decrypt_secret(personal[0], aad=user_key_aad(ref.user_id, provider.id))
+                    except Exception as exc:  # noqa: BLE001 — bozuk ya da başka satırdan kopyalanmış şifreli değer
+                        raise AppError("SECRET_STORE_UNAVAILABLE", "personal key cannot be decrypted") from exc
+                else:
+                    secret = decrypt_secret(provider.secret_enc) if provider.secret_enc else ""
             except AppError as exc:
-                return self._fail(model, prompt, purpose, key, job_id, answer_id, exc.code, started)
+                return self._fail(model, prompt, purpose, key, job_id, answer_id, exc.code, started, log)
             except TransportError as exc:
-                return self._fail(model, prompt, purpose, key, job_id, answer_id, exc.code, started)
+                return self._fail(model, prompt, purpose, key, job_id, answer_id, exc.code, started, log)
             slot = _acquire_slot(provider.id, provider.max_concurrency, budget)
             if slot is None:
-                return self._fail(model, prompt, purpose, key, job_id, answer_id, "PROVIDER_BUSY", started)
+                return self._fail(model, prompt, purpose, key, job_id, answer_id, "PROVIDER_BUSY", started, log)
             attempt = 0
             http_retries = 0
             current = list(messages)
             while True:
                 left = budget - (time.perf_counter() - started)
                 if left <= 0:
-                    return self._fail(model, prompt, purpose, key, job_id, answer_id, "BUDGET_EXCEEDED", started)
+                    return self._fail(model, prompt, purpose, key, job_id, answer_id, "BUDGET_EXCEEDED", started, log)
                 with transaction() as db:
                     call = ModelCall(
                         model_id=model.id, prompt_id=prompt.id, prompt_version=prompt.version, purpose=purpose, input_hash=key,
-                        state="running", attempt=attempt, job_id=job_id, answer_id=answer_id,
+                        state="running", attempt=attempt, job_id=job_id, answer_id=answer_id, **log,
                     )
                     db.add(call)
                     db.flush()
@@ -258,21 +298,21 @@ class ModelClient:
                     attempt += 1
                     time.sleep(min(2.0, 0.25 * (2**http_retries)) * (0.5 + random.random()))
                     continue
-                _record_outcome(model.id, False, error, purpose)
+                _record_outcome(model.id, False, error, purpose, ref.personal)
                 return CallResult(ok=False, error=error, call_id=call_id, latency_ms=round((time.perf_counter() - started) * 1000, 2), usage=usage, raw=raw_text)
         finally:
             if slot is not None:
                 _release_slot(slot)
 
-    def _fail(self, model, prompt, purpose, key, job_id, answer_id, code, started) -> CallResult:  # noqa: ANN001
+    def _fail(self, model, prompt, purpose, key, job_id, answer_id, code, started, log) -> CallResult:  # noqa: ANN001
         with transaction() as db:
             call = ModelCall(
                 model_id=model.id, prompt_id=prompt.id, prompt_version=prompt.version, purpose=purpose, input_hash=key,
-                state="failed", error=code, job_id=job_id, answer_id=answer_id, latency_ms=0,
+                state="failed", error=code, job_id=job_id, answer_id=answer_id, latency_ms=0, **log,
             )
             db.add(call)
             db.flush()
             call_id = call.id
         if code not in ("PROVIDER_BUSY", "BUDGET_EXCEEDED"):
-            _record_outcome(model.id, False, code, purpose)
+            _record_outcome(model.id, False, code, purpose, log["key_source"] == "personal")
         return CallResult(ok=False, error=code, call_id=call_id, latency_ms=round((time.perf_counter() - started) * 1000, 2))

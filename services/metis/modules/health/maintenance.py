@@ -190,7 +190,7 @@ def run_maintenance_job(ctx) -> None:  # noqa: ANN001
         use_model = bool(job.inputs.get("model_id"))
         model = provider = None
         if use_model:
-            model, provider = load_model(db, job)
+            model, provider = load_model(db, job, ctx)
     ctx.step("scan")
     with transaction() as db:
         ctx.guard(db)

@@ -60,6 +60,9 @@ def add_event(db: Session, job_id: uuid.UUID, kind: str, **data: object) -> None
     db.add(JobEvent(job_id=job_id, kind=kind, data={k: (str(v) if isinstance(v, uuid.UUID) else v) for k, v in data.items()}))
 
 
+from metis.modules.keys.service import key_for  # noqa: E402
+
+
 def _model_ok(db: Session, model_id: uuid.UUID | None, project: Project) -> Model:
     from metis.modules.lab.service import eligibility
 
@@ -81,7 +84,11 @@ def enqueue(db: Session, user: User, project_id: uuid.UUID, data: JobCreateIn) -
     project = db.get(Project, project_id)
     assert project is not None
     model = _model_ok(db, data.model_id, project)
-    inputs: dict = {"model_id": str(model.id), "instructions": data.instructions.strip()}
+    # Görev başlatanın kişisel anahtarıyla çalışır (2.0.28); yönetici kişisel anahtar eklemediyse ortak anahtarla.
+    key = key_for(db, user, model.provider_id)
+    if key is None:
+        raise AppError("PERSONAL_KEY_MISSING", "add your own API key for this model's provider", provider_id=str(model.provider_id))
+    inputs: dict = {"model_id": str(model.id), "instructions": data.instructions.strip(), "key_source": key.source}
     if data.kind == "prepare_draft":
         if not data.source_revision_ids:
             raise AppError("VALIDATION_ERROR", "source revisions required", fields=[{"field": "source_revision_ids", "type": "missing"}])

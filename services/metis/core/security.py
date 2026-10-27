@@ -107,22 +107,27 @@ def generate_master_key() -> str:
 AAD = b"metis-v2-provider-secret"
 
 
-def encrypt_secret(secret: str, key: bytes | None = None) -> str:
-    """v2 biçimi: 'v2:' + b64(nonce12 ‖ ciphertext+tag), AAD sabit."""
+def encrypt_secret(secret: str, key: bytes | None = None, aad: bytes = AAD) -> str:
+    """v2 biçimi: 'v2:' + b64(nonce12 ‖ ciphertext+tag). Sağlayıcı anahtarında AAD sabit; kişisel anahtarda AAD kişiye ve
+    sağlayıcıya bağlıdır (`user_key_aad`): şifreli değer başka satıra kopyalanırsa çözülmez."""
     if not secret:
         return ""
     nonce = os.urandom(12)
-    ct = AESGCM(key or load_master_key()).encrypt(nonce, secret.encode(), AAD)
+    ct = AESGCM(key or load_master_key()).encrypt(nonce, secret.encode(), aad)
     return "v2:" + base64.b64encode(nonce + ct).decode()
 
 
-def decrypt_secret(value: str, key: bytes | None = None) -> str:
+def decrypt_secret(value: str, key: bytes | None = None, aad: bytes = AAD) -> str:
     if not value:
         return ""
     if not value.startswith("v2:"):
         raise AppError("SECRET_STORE_UNAVAILABLE", "unknown secret format")
     raw = base64.b64decode(value[3:])
-    return AESGCM(key or load_master_key()).decrypt(raw[:12], raw[12:], AAD).decode()
+    return AESGCM(key or load_master_key()).decrypt(raw[:12], raw[12:], aad).decode()
+
+
+def user_key_aad(user_id: object, provider_id: object) -> bytes:
+    return f"metis-v2-user-key:{user_id}:{provider_id}".encode()
 
 
 def decrypt_legacy_v1_secret(value: str, legacy_key: bytes) -> str:

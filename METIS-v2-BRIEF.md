@@ -51,7 +51,7 @@ Bunlar pazarlık konusu değildir. Her faz bunlara karşı test edilir.
 8. **Sahte veri yok.** Ölçülmemiş değer `null`/"ölçülmedi" olarak gösterilir, 0 değil. Demo/kurgusal içerik her yerde açıkça etiketlenir. Test edilmeyen davranışa "çalışıyor" denmez.
 9. **Kaynak içeriğindeki talimatlar veridir** (prompt injection). Model'e yayın aracı verilmez.
 10. **Hedef ortam:** şirket içi ağda, internetsiz bir **sunucu** (varsayılan Windows Server, servis olarak); kullanıcılar tarayıcıdan bağlanır. Docker/WSL zorunluluğu yok. Kurulum çevrimdışı paketle yapılır. Çalışma zamanında CDN yok — font, ikon, her şey paketin içinde.
-11. **Anahtarlar** kodda, logda, Git'te, tarayıcıda asla yer almaz. Sunucuda AES-GCM ile şifreli; UI'da yalnız "anahtar tanımlı" görünür.
+11. **Anahtarlar** kodda, logda, Git'te, tarayıcıda asla yer almaz. Sunucuda AES-GCM ile şifreli; UI'da yalnız "anahtar tanımlı" görünür. Herkes modelleri kendi (kişisel) API anahtarıyla kullanır; sağlayıcının anahtarı ortak anahtardır ve benchmark referansıdır (ürün sahibinin kararı 2026-10-27).
 12. **Erişim yavaş çağrılardan sonra yeniden kontrol edilir** (model çağrısı bitince, kaydetmeden önce). Erişilemeyen kayıt için `404` (varlığı sızdırma).
 
 ---
@@ -322,7 +322,7 @@ Eylül 2026 kararı: Hermes, MCP köprüsü, webhook, snapshot dizini **tamamen 
 - OpenAI uyumlu `POST {base_url}/chat/completions`; çift `/v1` hatası engellenir; `temperature 0`.
 - Transport profili probe'dan: `json_schema` destekleniyorsa strict; değilse `json_object` + şema system mesajında; düşünme modu kapatılabiliyorsa kapalı. Desteklenmeyen parametre **sessizce düşürülmez**, profil kaydedilir.
 - Toplam süre `asyncio.timeout` ile sınırlı, cevap gövdesi 1 MiB cap, sınırlı onarım denemesi (0-2), 429/5xx'te jitter'lı sınırlı retry.
-- Her çağrı `model_calls` satırı. Cache anahtarı: prompt sürümü + mesajlar + şema + model/config/provider/URL/secret_version + max_tokens. Cache'ten gelen çıktı da yeniden doğrulanır. Benchmark ve probe cache kullanmaz.
+- Her çağrı `model_calls` satırı (kimin adına ve hangi anahtarla: kişisel / ortak). Cache anahtarı: prompt sürümü + mesajlar + şema + model/config/provider/URL/secret_version + max_tokens (+ kişisel anahtarda sahibi ve anahtar sürümü). Cache'ten gelen çıktı da yeniden doğrulanır. Benchmark ve probe cache kullanmaz.
 - Sağlayıcı başına eşzamanlılık semaforu (DB tabanlı).
 - Yeterlilik fingerprint'i: model + config + prompt hash + transport profili. Biri değişince yeterlilik düşer.
 - Hedef model: şirket içi **DeepSeek V4 Flash 0731** (OpenAI uyumlu endpoint). v1'de doğrulanan DeepSeek ayarları (json_object, thinking kapalı, Türkçe gerekçe zorunluluğu) prompt/profile olarak taşınır.

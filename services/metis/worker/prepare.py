@@ -27,7 +27,7 @@ from metis.core.models import (
 )
 from metis.core.util import fingerprint
 from metis.llm import contracts, prompts
-from metis.llm.client import ModelClient
+from metis.llm.client import SHARED, KeyRef, ModelClient
 from metis.modules.changes import schemas as cs
 from metis.modules.changes import service as changes
 from metis.modules.lab.service import eligibility
@@ -46,8 +46,18 @@ from metis.worker.runtime import (
 KIND_FOR_SOURCE = {"note": "concept", "code": "component", "document": "procedure", "test": "validation", "table": "table", "image": "concept"}
 
 
-def load_model(db, job) -> tuple[Model, Provider]:  # noqa: ANN001
-    from metis.core.models import Project
+def job_key(job) -> KeyRef:  # noqa: ANN001
+    """Kişinin başlattığı görev onun anahtarıyla (2.0.28); zamanlanmış bakım ve eski görevler ortak anahtarla (sistem işi)."""
+    source = (job.inputs or {}).get("key_source")
+    if source == "personal":
+        return KeyRef(user_id=job.requester_id, personal=True)
+    if source == "shared":
+        return KeyRef(user_id=job.requester_id, personal=False)
+    return SHARED
+
+
+def load_model(db, job, ctx=None) -> tuple[Model, Provider]:  # noqa: ANN001
+    from metis.core.models import Project, UserProviderKey
 
     model = db.get(Model, uuid.UUID(job.inputs["model_id"])) if job.inputs.get("model_id") else None
     project = db.get(Project, job.project_id)
@@ -57,6 +67,11 @@ def load_model(db, job) -> tuple[Model, Provider]:  # noqa: ANN001
     if not ok:
         raise JobFailed("MODEL_UNAVAILABLE", f"Seçilen model artık kullanılamıyor ({reason}). Başka bir modelle yeniden dene.")
     provider = db.get(Provider, model.provider_id)
+    key = job_key(job)
+    if key.personal and db.get(UserProviderKey, (key.user_id, model.provider_id)) is None:
+        raise JobFailed("PERSONAL_KEY_MISSING", "Görevi başlatanın bu modelin sağlayıcısında kişisel API anahtarı yok (kaldırılmış). Ayarlar → Anahtarım'dan ekleyip yeniden başlat.")
+    if ctx is not None:
+        ctx.key = key
     db.expunge(model)
     db.expunge(provider)
     return model, provider  # type: ignore[return-value]
@@ -85,7 +100,7 @@ def text_chunks(text: str, size: int = EXTRACT_CHUNK_CHARS) -> list[str]:
 
 def call(ctx: JobContext, model, provider, prompt_id, payload, schema, validator=None, output_tokens=2000):  # noqa: ANN001, ANN201
     ctx.reserve(payload, output_tokens)
-    res = ModelClient().call(model, provider, prompt_id=prompt_id, payload=payload, schema=schema, validator=validator, purpose="worker", job_id=ctx.job_id, max_tokens=output_tokens)
+    res = ModelClient().call(model, provider, prompt_id=prompt_id, payload=payload, schema=schema, validator=validator, purpose="worker", job_id=ctx.job_id, max_tokens=output_tokens, key=ctx.key)
     ctx.note_call(res.call_id)
     if not res.ok:
         code = "INVALID_MODEL_OUTPUT" if res.error in ("INVALID_RESPONSE", "VALIDATION") else "MODEL_ERROR"
@@ -105,7 +120,7 @@ def run_prepare(ctx: JobContext) -> None:
     with transaction() as db:
         job = ctx.guard(db)
         requester = ctx.requester(db)
-        model, provider = load_model(db, job)
+        model, provider = load_model(db, job, ctx)
         rev_ids = [uuid.UUID(r) for r in job.inputs.get("source_revision_ids", [])]
         if len(rev_ids) > MAX_SOURCES:
             raise BudgetExceeded("sources")

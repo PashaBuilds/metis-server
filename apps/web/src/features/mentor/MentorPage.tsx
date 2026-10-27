@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Check, CornerDownLeft, Loader2, MessagesSquare, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Button, ConfirmDialog, EmptyState, IconButton, Segmented, SkeletonRows, useToast } from '@/design/primitives';
+import { Button, ConfirmDialog, EmptyState, IconButton, Segmented, Select, SkeletonRows, useToast } from '@/design/primitives';
 import { PageHeader } from '@/app/Shell';
 import { ScopeChips } from '@/app/ScopeBar';
 import { scopeIsEmpty, useSession } from '@/app/session';
@@ -21,6 +21,9 @@ const route = getRouteApi('/app/mentor');
 type Level = 'short' | 'steps' | 'detailed';
 const LEVELS: Level[] = ['short', 'steps', 'detailed'];
 const asLevel = (v: string | undefined): Level => (LEVELS as string[]).includes(v ?? '') ? (v as Level) : 'short';
+type Mode = 'model' | 'search';
+/** Modelin cevap için bekleme süresi seçenekleri (sn); boş = sağlayıcının süresi. Son seçim kişi başına saklanır. */
+const TIMEOUTS = [30, 60, 90, 120, 180, 300, 600];
 
 type Related = Schemas['RelatedPage'];
 type Step = 'searching' | 'ranking' | 'generating' | 'verifying';
@@ -42,8 +45,11 @@ export function MentorPage() {
   const models = useAvailableModels(pid);
   const modelList = models.data ?? [];
   const savedModel = session.pref<string | null>('mentor_model_id', null);
+  const useModel = session.pref<boolean>('mentor_use_model', true) !== false;
+  const timeoutS = session.pref<number | null>('mentor_timeout_s', null);
   const questionId = useId();
   const modelFieldId = useId();
+  const timeoutFieldId = useId();
 
   const [question, setQuestion] = useState(search.q ?? '');
   const [level, setLevel] = useState<Level>(asLevel(search.level));
@@ -63,6 +69,8 @@ export function MentorPage() {
       level: asLevel(search.level),
       model_id: search.model || null,
       scope: scopeIsEmpty(session.scope) ? null : session.scope,
+      use_model: useModel,
+      timeout_s: useModel ? timeoutS : null,
     };
     setQuestion(search.q);
     setLevel(asLevel(search.level));
@@ -205,7 +213,34 @@ export function MentorPage() {
               </span>
               <Segmented<Level> label={tr.mentor.level} value={level} onChange={setLevel} options={LEVELS.map((l) => ({ value: l, label: tr.mentor.levels[l] }))} />
             </div>
-            {modelList.length > 0 && (
+            <div className={s.control}>
+              <span className={s.label}>{tr.mentor.answerMode}</span>
+              <Segmented<Mode>
+                label={tr.mentor.answerMode}
+                value={useModel ? 'model' : 'search'}
+                onChange={(v) => session.setPref('mentor_use_model', v === 'model')}
+                options={[
+                  { value: 'model', label: tr.mentor.modeModel },
+                  { value: 'search', label: tr.mentor.modeSearch },
+                ]}
+              />
+            </div>
+            {useModel && (
+              <div className={s.control}>
+                <label htmlFor={timeoutFieldId} className={s.label}>
+                  {tr.mentor.timeout}
+                </label>
+                <Select id={timeoutFieldId} className={s.timeoutSelect} value={timeoutS ? String(timeoutS) : ''} onChange={(e) => session.setPref('mentor_timeout_s', e.target.value ? Number(e.target.value) : null)}>
+                  <option value="">{tr.mentor.timeoutDefault}</option>
+                  {TIMEOUTS.map((t) => (
+                    <option key={t} value={t}>
+                      {tr.mentor.timeoutOption(t)}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
+            {useModel && modelList.length > 0 && (
               <div className={s.control}>
                 <label htmlFor={modelFieldId} className={s.label}>
                   {tr.models.label}

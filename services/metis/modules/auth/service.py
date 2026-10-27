@@ -195,6 +195,8 @@ PREFERENCE_KEYS = {
     "active_project_id",
     "active_scope",
     "mentor_model_id",
+    "mentor_use_model",
+    "mentor_timeout_s",
     "updates_seen_at",
     "filters.library",
     "filters.records",

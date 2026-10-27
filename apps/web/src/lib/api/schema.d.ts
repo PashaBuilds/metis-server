@@ -764,6 +764,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Keys */
+        get: operations["my_keys_api_v1_me_keys_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/keys/{provider_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Key */
+        put: operations["set_key_api_v1_me_keys__provider_id__put"];
+        post?: never;
+        /** Delete Key */
+        delete: operations["delete_key_api_v1_me_keys__provider_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/keys/{provider_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Key */
+        post: operations["check_key_api_v1_me_keys__provider_id__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Usage */
+        get: operations["my_usage_api_v1_me_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/models": {
         parameters: {
             query?: never;
@@ -1690,6 +1759,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/usage/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Usage By User */
+        get: operations["usage_by_user_api_v1_usage_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -1847,6 +1933,10 @@ export interface components {
              * @default []
              */
             related_passages: components["schemas"]["RelatedPassage"][];
+            /** Retrieval */
+            retrieval?: {
+                [key: string]: unknown;
+            } | null;
             /** Scope */
             scope: {
                 [key: string]: unknown;
@@ -1871,6 +1961,13 @@ export interface components {
             /** Question */
             question: string;
             scope?: components["schemas"]["ScopeIn"] | null;
+            /** Timeout S */
+            timeout_s?: number | null;
+            /**
+             * Use Model
+             * @default true
+             */
+            use_model: boolean;
         };
         /**
          * AttachmentOut
@@ -3027,12 +3124,28 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** KeyCheckOut */
+        KeyCheckOut: {
+            /** Error */
+            error: string | null;
+            /** Latency Ms */
+            latency_ms: number;
+            /** Model */
+            model: string;
+            /** Ok */
+            ok: boolean;
+        };
         /** KeyIn */
         KeyIn: {
             /**
              * Api Key
              * @default
              */
+            api_key: string;
+        };
+        /** KeySetIn */
+        KeySetIn: {
+            /** Api Key */
             api_key: string;
         };
         /** LoginInput */
@@ -3240,6 +3353,37 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** MyKeyOut */
+        MyKeyOut: {
+            /** Check Error */
+            check_error: string | null;
+            /** Check Ok */
+            check_ok: boolean | null;
+            /** Checked At */
+            checked_at: string | null;
+            /** Has Key */
+            has_key: boolean;
+            /** Models */
+            models: string[];
+            /**
+             * Provider Id
+             * Format: uuid
+             */
+            provider_id: string;
+            /** Provider Name */
+            provider_name: string;
+            /** Updated At */
+            updated_at: string | null;
+            /** Uses Shared */
+            uses_shared: boolean;
+        };
+        /** MyUsageOut */
+        MyUsageOut: {
+            /** Days */
+            days: number;
+            /** Rows */
+            rows: components["schemas"]["UsageRow"][];
+        };
         /** OptionOut */
         OptionOut: {
             /** Evidence */
@@ -3389,7 +3533,8 @@ export interface components {
         };
         /**
          * PrepublishCheckOut
-         * @description Yayın öncesi kontrol. model_status: ok | not_configured (uygun model yok) | failed (model yanıt vermedi).
+         * @description Yayın öncesi kontrol. model_status: ok | not_configured (uygun model yok) | personal_key_missing (kişinin uygun
+         *     modelin sağlayıcısında anahtarı yok) | failed (model yanıt vermedi).
          */
         PrepublishCheckOut: {
             /**
@@ -3407,7 +3552,7 @@ export interface components {
              * Model Status
              * @enum {string}
              */
-            model_status: "ok" | "not_configured" | "failed";
+            model_status: "ok" | "not_configured" | "personal_key_missing" | "failed";
         };
         /** PrepublishIssue */
         PrepublishIssue: {
@@ -4386,6 +4531,28 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** UsageByUserOut */
+        UsageByUserOut: {
+            /** Days */
+            days: number;
+            /** Rows */
+            rows: components["schemas"]["UserUsageRow"][];
+        };
+        /** UsageRow */
+        UsageRow: {
+            /** Cached */
+            cached: number;
+            /** Calls */
+            calls: number;
+            /** Completion Tokens */
+            completion_tokens: number;
+            /** Key Source */
+            key_source: string;
+            /** Prompt Tokens */
+            prompt_tokens: number;
+            /** Purpose */
+            purpose: string;
+        };
         /** UserCreateInput */
         UserCreateInput: {
             /** Display Name */
@@ -4443,6 +4610,21 @@ export interface components {
             is_admin?: boolean | null;
             /** Temporary Password */
             temporary_password?: string | null;
+        };
+        /** UserUsageRow */
+        UserUsageRow: {
+            /** Calls */
+            calls: number;
+            /** Completion Tokens */
+            completion_tokens: number;
+            /** Key Source */
+            key_source: string;
+            /** Name */
+            name: string | null;
+            /** Prompt Tokens */
+            prompt_tokens: number;
+            /** User Id */
+            user_id: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -6098,6 +6280,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_keys_api_v1_me_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyKeyOut"][];
+                };
+            };
+        };
+    };
+    set_key_api_v1_me_keys__provider_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeySetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_key_api_v1_me_keys__provider_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_key_api_v1_me_keys__provider_id__check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyCheckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_usage_api_v1_me_usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyUsageOut"];
                 };
             };
         };
@@ -8271,6 +8586,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemStatus"];
+                };
+            };
+        };
+    };
+    usage_by_user_api_v1_usage_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageByUserOut"];
                 };
             };
         };

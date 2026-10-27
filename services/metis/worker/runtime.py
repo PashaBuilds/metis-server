@@ -21,6 +21,7 @@ from metis.core.access import can_read_source, require_member
 from metis.core.db import transaction, utcnow
 from metis.core.errors import AppError
 from metis.core.models import Job, JobMessage, ModelCall, Source, SourceRevision, User
+from metis.llm.client import SHARED, KeyRef
 from metis.modules.jobs.service import add_event
 
 MAX_STEPS = 20
@@ -107,6 +108,8 @@ class JobContext:
     fence: int
     worker_id: str
     kind: str
+    # Görevin model anahtarı (2.0.28): başlatanın kişisel anahtarı ya da ortak anahtar; `prepare.load_model` atar.
+    key: KeyRef = SHARED
 
     def guard(self, db: Session, extend: bool = True, authorize: bool = True) -> Job:
         job = db.scalar(select(Job).where(Job.id == self.job_id).with_for_update())

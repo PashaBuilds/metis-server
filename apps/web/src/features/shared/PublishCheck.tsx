@@ -94,7 +94,7 @@ const KIND_ORDER = { conflict: 0, duplicate: 1, overlap: 2 } as const;
 function PublishCheckDialog({ check, error, busy, onBack, onPublish }: { check: Check | null; error: string | null; busy: boolean; onBack: () => void; onPublish: () => void }) {
   const issues = [...(check?.issues ?? [])].sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
   const modelNote =
-    check?.model_status === 'ok' ? tr.publishCheck.modelOk(check.model_name ?? '') : check?.model_status === 'failed' ? tr.publishCheck.modelFailed : tr.publishCheck.modelMissing;
+    check?.model_status === 'ok' ? tr.publishCheck.modelOk(check.model_name ?? '') : check?.model_status === 'failed' ? tr.publishCheck.modelFailed : check?.model_status === 'personal_key_missing' ? tr.publishCheck.modelNoKey : tr.publishCheck.modelMissing;
   return (
     <Dialog
       open={!!check}

@@ -518,3 +518,44 @@
     margin-left: 0;
   }
 }
+
+/* Anahtarım (2.0.28) */
+.keyRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.keyForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  max-width: 520px;
+  padding: var(--s3);
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-panel);
+}
+
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.usageTable {
+  border-collapse: collapse;
+  font-size: var(--fs-14);
+  font-variant-numeric: tabular-nums;
+}
+
+.usageTable th,
+.usageTable td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--cizgi);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.usageTable th {
+  color: var(--soluk);
+  font-weight: 600;
+}

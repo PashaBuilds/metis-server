@@ -109,11 +109,16 @@ def _p50(db: Session, model: Model, provider: Provider) -> float | None:
     return statistics.median(lat) if lat else None
 
 
-def route(db: Session, project: Project) -> tuple[Model | None, list[dict]]:
-    """Deterministik routing: uygun modeller arasında en düşük benchmark p50; eşitlikte ad/id."""
+def route(db: Session, project: Project, user: User | None = None) -> tuple[Model | None, list[dict]]:
+    """Deterministik routing: uygun modeller arasında en düşük benchmark p50; eşitlikte ad/id. `user` verilirse yalnız
+    kişinin anahtarı olan (yöneticide ortak anahtar) sağlayıcıların modelleri seçilir (2.0.28)."""
+    from metis.modules.keys.service import key_for
+
     reasons, candidates = [], []
     for model in db.scalars(select(Model).where(Model.deleted_at.is_(None)).order_by(Model.display_name, Model.id)):
         ok, reason = eligibility(db, model, project)
+        if ok and user is not None and key_for(db, user, model.provider_id) is None:
+            ok, reason = False, "personal_key_missing"
         reasons.append({"model_id": str(model.id), "display_name": model.display_name, "eligible": ok, "reason": reason})
         if ok:
             provider = db.get(Provider, model.provider_id)
@@ -126,8 +131,12 @@ def available_models(db: Session, user: User, project_id: uuid.UUID) -> list[dic
     require_member(db, user, project_id)
     project = db.get(Project, project_id)
     out = []
+    from metis.modules.keys.service import key_for
+
     for model in db.scalars(select(Model).where(Model.deleted_at.is_(None)).order_by(Model.display_name)):
         ok, reason = eligibility(db, model, project)
+        if ok and key_for(db, user, model.provider_id) is None:
+            ok, reason = False, "personal_key_missing"
         out.append({"id": str(model.id), "display_name": model.display_name, "eligible": ok, "reason": reason, "is_fixture": model.is_fixture})
     return out
 

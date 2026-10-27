@@ -52,6 +52,7 @@ CATALOG: dict[str, tuple[int, bool]] = {
     "INLINE_IMAGE_MISSING": (422, False),
     "INLINE_IMAGE_NOT_IMAGE": (422, False),
     "INLINE_IMAGE_FORM": (422, False),
+    "PERSONAL_KEY_MISSING": (422, False),
     "INVALID_ENDPOINT": (422, False),
     "ENDPOINT_NOT_ALLOWED": (422, False),
     "ENDPOINT_IN_USE": (409, False),

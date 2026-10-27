@@ -4,6 +4,26 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.28 — Herkes kendi API anahtarıyla; Mentor'da model aç/kapa ve bekleme süresi:**
+- **Kişisel API anahtarı (ürün sahibinin kararı):** Ayarlar → **Anahtarım**'da herkes kendi anahtarını girer; Mentor,
+  yayın öncesi kontrol ve kişinin başlattığı Metis görevleri o anahtarla çağrılır. Yöneticinin sağlayıcıya girdiği
+  anahtar ortak anahtar olarak kalır: model testi ve benchmark (kalite kapısı yalnız onunla ölçülür), zamanlanmış bakım ve
+  arama zenginleştirmesi onunla çalışır. Yönetici kişisel anahtar eklemediyse kendi sorularında ortak anahtarı kullanır.
+- **Anahtarı olmayan kişi model kullanamaz:** Mentor aramanın bulduğu bölümleri gösterir ve "Anahtarım"a yönlendirir;
+  yayın öncesi kontrol yalnız kurallarla yapılır; Metis görevi başlatılamaz. **Yükseltmeden sonra yönetici dışındaki
+  herkesin anahtarını eklemesi gerekir; ekibe duyurun.**
+- Anahtar şifreli saklanır (kişiye ve sağlayıcıya bağlı), hiçbir ekranda / logda görünmez; kayıtta kısa bir deneme
+  isteğiyle sınanır. Yanlış kişisel anahtar yalnız o kişiyi etkiler (modeli herkese kapatmaz). Önbellek kişiye özel.
+- **Kullanım:** herkes son 30 günün kendi çağrı ve token sayılarını görür; yönetici kişi başına yalnız toplamları görür
+  (soru içerikleri görünmez).
+- **Mentor:** "Cevap: Model yazsın / Yalnız arama" seçimi ve **Bekleme süresi** (varsayılan sağlayıcının süresi; 30 sn –
+  10 dk); son seçim kişi başına saklanır. Süre dolarsa "model seçtiğin süre içinde cevap vermedi" denir ve aramanın
+  bulduğu bölümler gösterilir.
+- Cevap ekranı kaynağı açıkça ayırır: **Arama** etiketli bölüm bilgi havuzundan birebir alıntılardır (kelime, vektör ve
+  yeniden sıralayıcı — hangileri kullanıldıysa); **Model** etiketli bölüm modelin bu alıntılara dayanarak yazdığı
+  cevaptır (model adı ve süre).
+- Şema 0018: `user_provider_keys` tablosu; `model_calls`'a kimin adına / hangi anahtar. Eski çağrılar "ortak" sayılır.
+
 **2.0.27 — Notta tablo ve görsel:**
 - **Tablo:** taslak notunun üstündeki **Tablo** düğmesi satır ve sütun kutularıyla tablo ekler; imleç tablonun içindeyse
   aynı düğme o tabloyu düzenler (satır/sütun ekle, sil). Excel'den kopyalanan hücreler notun içine Ctrl+V ile

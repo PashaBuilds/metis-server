@@ -25,6 +25,7 @@ MODULES = [
     "export",
     "feedback",
     "external",
+    "keys",
 ]
 
 

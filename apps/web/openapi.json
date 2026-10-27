@@ -303,6 +303,18 @@
             "title": "Related Passages",
             "type": "array"
           },
+          "retrieval": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retrieval"
+          },
           "scope": {
             "additionalProperties": true,
             "title": "Scope",
@@ -388,6 +400,24 @@
                 "type": "null"
               }
             ]
+          },
+          "timeout_s": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 15.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout S"
+          },
+          "use_model": {
+            "default": true,
+            "title": "Use Model",
+            "type": "boolean"
           }
         },
         "required": [
@@ -3295,6 +3325,41 @@
         "title": "JobRow",
         "type": "object"
       },
+      "KeyCheckOut": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "error",
+          "latency_ms",
+          "model"
+        ],
+        "title": "KeyCheckOut",
+        "type": "object"
+      },
       "KeyIn": {
         "properties": {
           "api_key": {
@@ -3305,6 +3370,21 @@
           }
         },
         "title": "KeyIn",
+        "type": "object"
+      },
+      "KeySetIn": {
+        "properties": {
+          "api_key": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Api Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_key"
+        ],
+        "title": "KeySetIn",
         "type": "object"
       },
       "LoginInput": {
@@ -3820,6 +3900,114 @@
         "title": "ModelRow",
         "type": "object"
       },
+      "MyKeyOut": {
+        "properties": {
+          "check_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Check Error"
+          },
+          "check_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Check Ok"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "has_key": {
+            "title": "Has Key",
+            "type": "boolean"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Models",
+            "type": "array"
+          },
+          "provider_id": {
+            "format": "uuid",
+            "title": "Provider Id",
+            "type": "string"
+          },
+          "provider_name": {
+            "title": "Provider Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "uses_shared": {
+            "title": "Uses Shared",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "provider_id",
+          "provider_name",
+          "models",
+          "has_key",
+          "updated_at",
+          "checked_at",
+          "check_ok",
+          "check_error",
+          "uses_shared"
+        ],
+        "title": "MyKeyOut",
+        "type": "object"
+      },
+      "MyUsageOut": {
+        "properties": {
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/UsageRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "days",
+          "rows"
+        ],
+        "title": "MyUsageOut",
+        "type": "object"
+      },
       "OptionOut": {
         "properties": {
           "evidence": {
@@ -4244,7 +4432,7 @@
         "type": "object"
       },
       "PrepublishCheckOut": {
-        "description": "Yayın öncesi kontrol. model_status: ok | not_configured (uygun model yok) | failed (model yanıt vermedi).",
+        "description": "Yayın öncesi kontrol. model_status: ok | not_configured (uygun model yok) | personal_key_missing (kişinin uygun\nmodelin sağlayıcısında anahtarı yok) | failed (model yanıt vermedi).",
         "properties": {
           "checked_at": {
             "format": "date-time",
@@ -4277,6 +4465,7 @@
             "enum": [
               "ok",
               "not_configured",
+              "personal_key_missing",
               "failed"
             ],
             "title": "Model Status",
@@ -6443,6 +6632,65 @@
         "title": "UpdatedPage",
         "type": "object"
       },
+      "UsageByUserOut": {
+        "properties": {
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/UserUsageRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "days",
+          "rows"
+        ],
+        "title": "UsageByUserOut",
+        "type": "object"
+      },
+      "UsageRow": {
+        "properties": {
+          "cached": {
+            "title": "Cached",
+            "type": "integer"
+          },
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "completion_tokens": {
+            "title": "Completion Tokens",
+            "type": "integer"
+          },
+          "key_source": {
+            "title": "Key Source",
+            "type": "string"
+          },
+          "prompt_tokens": {
+            "title": "Prompt Tokens",
+            "type": "integer"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose",
+          "key_source",
+          "calls",
+          "cached",
+          "prompt_tokens",
+          "completion_tokens"
+        ],
+        "title": "UsageRow",
+        "type": "object"
+      },
       "UserCreateInput": {
         "properties": {
           "display_name": {
@@ -6585,6 +6833,59 @@
           }
         },
         "title": "UserUpdateInput",
+        "type": "object"
+      },
+      "UserUsageRow": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "completion_tokens": {
+            "title": "Completion Tokens",
+            "type": "integer"
+          },
+          "key_source": {
+            "title": "Key Source",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "prompt_tokens": {
+            "title": "Prompt Tokens",
+            "type": "integer"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "key_source",
+          "calls",
+          "prompt_tokens",
+          "completion_tokens"
+        ],
+        "title": "UserUsageRow",
         "type": "object"
       },
       "ValidationError": {
@@ -8852,6 +9153,175 @@
         "summary": "Retry",
         "tags": [
           "jobs"
+        ]
+      }
+    },
+    "/api/v1/me/keys": {
+      "get": {
+        "operationId": "my_keys_api_v1_me_keys_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MyKeyOut"
+                  },
+                  "title": "Response My Keys Api V1 Me Keys Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "My Keys",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/me/keys/{provider_id}": {
+      "delete": {
+        "operationId": "delete_key_api_v1_me_keys__provider_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Provider Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Key",
+        "tags": [
+          "keys"
+        ]
+      },
+      "put": {
+        "operationId": "set_key_api_v1_me_keys__provider_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Provider Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeySetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Key",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/me/keys/{provider_id}/check": {
+      "post": {
+        "operationId": "check_key_api_v1_me_keys__provider_id__check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Provider Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyCheckOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Key",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/me/usage": {
+      "get": {
+        "operationId": "my_usage_api_v1_me_usage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyUsageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "My Usage",
+        "tags": [
+          "keys"
         ]
       }
     },
@@ -12334,6 +12804,27 @@
         "summary": "System Status",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/usage/users": {
+      "get": {
+        "operationId": "usage_by_user_api_v1_usage_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageByUserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Usage By User",
+        "tags": [
+          "keys"
         ]
       }
     },

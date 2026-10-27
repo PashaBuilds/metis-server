@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { ChevronRight, GitFork, RotateCcw, SlidersHorizontal, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { ChevronRight, GitFork, KeyRound, RotateCcw, SlidersHorizontal, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { Button } from '@/design/primitives';
 import { EvidenceStripe, ViaMark, type IzTarget } from '@/design/iz';
@@ -118,14 +118,21 @@ export function AnswerView({ answer, live, onReask }: Props) {
       {answered ? (
         <>
           {explanation && (
-            <section className={s.block} aria-label={tr.mentor.explanation}>
+            <section className={s.block} aria-labelledby="answer-model">
+              <h3 id="answer-model" className={s.blockTitle}>
+                <span className={s.originTag}>{tr.mentor.originModel}</span>
+                {tr.mentor.modelPart}
+              </h3>
+              <p className={s.hint}>{tr.mentor.modelPartLead(modelName(answer), seconds(answer.timings.generation_ms))}</p>
               <div className="reading">{explanation}</div>
             </section>
           )}
           <section className={s.block} aria-labelledby="answer-quotes">
             <h3 id="answer-quotes" className={s.blockTitle}>
-              {tr.mentor.quotes}
+              <span className={s.originTag}>{tr.mentor.originSearch}</span>
+              {tr.mentor.searchPart}
             </h3>
+            <p className={s.hint}>{tr.mentor.searchPartLead(searchHow(answer))}</p>
             <ol className={s.quotes}>
               {answer.citations.map((c) => (
                 <li key={c.n} className={s.quote}>
@@ -180,16 +187,37 @@ export function AnswerView({ answer, live, onReask }: Props) {
   );
 }
 
+/** Cevabın aramadan gelen kısmı nasıl bulundu (kelime / vektör / yeniden sıralayıcı); eski cevaplarda bilinmez. */
+function searchHow(answer: Answer): string {
+  const r = answer.retrieval as { dense?: string | null; reranked?: boolean } | null | undefined;
+  if (!r) return tr.mentor.searchHowUnknown;
+  const parts = [tr.mentor.searchLexical];
+  if (r.dense === 'available' || r.dense === 'partial') parts.push(tr.mentor.searchVector);
+  if (r.reranked) parts.push(tr.mentor.searchReranked);
+  return parts.join(' + ');
+}
+
+function modelName(answer: Answer): string {
+  const m = answer.model as { display_name?: unknown } | null;
+  return m && typeof m.display_name === 'string' ? m.display_name : tr.mentor.modelUnknown;
+}
+
+function seconds(ms: unknown): string | null {
+  return typeof ms === 'number' ? (ms / 1000).toLocaleString('tr-TR', { maximumFractionDigits: 1 }) : null;
+}
+
 function Abstain({ answer, onReask }: { answer: Answer; onReask: (modelId: string | null) => void }) {
   const session = useSession();
   const d = answer.decision;
+  const reason = answer.model_unavailable_reason;
+  const keyIssue = reason === 'personal_key_missing' || reason === 'personal_key_rejected';
   const alternatives = answer.alternatives.filter(isAlt);
-  let message = tr.decisionMessages[d] ?? '';
+  let message = d === 'MODEL_UNAVAILABLE' && reason === 'model_off' ? tr.mentor.modelOffMessage : tr.decisionMessages[d] ?? '';
   if (d === 'NEEDS_SCOPE') {
     const dims = answer.needs_scope_dimensions.map((x) => tr.scope.dims[x] ?? x);
     message = dims.length ? tr.mentor.needsScope(dims.join(', ')) : tr.mentor.needsScopeGeneric;
   }
-  const tone = d === 'NO_EVIDENCE' ? 'bilgi' : d === 'NEEDS_SCOPE' ? 'dikkat' : 'celiski';
+  const tone = d === 'NO_EVIDENCE' || reason === 'model_off' ? 'bilgi' : d === 'NEEDS_SCOPE' || keyIssue ? 'dikkat' : 'celiski';
   return (
     <div className={s.abstain}>
       <Banner
@@ -199,6 +227,21 @@ function Abstain({ answer, onReask }: { answer: Answer; onReask: (modelId: strin
             <Button size="sm" icon={<SlidersHorizontal size={15} aria-hidden />} onClick={() => window.dispatchEvent(new CustomEvent('metis:open-scope'))}>
               {tr.mentor.changeScope}
             </Button>
+          ) : d === 'MODEL_UNAVAILABLE' && reason === 'model_off' ? (
+            <Button
+              size="sm"
+              icon={<RotateCcw size={15} aria-hidden />}
+              onClick={() => {
+                session.setPref('mentor_use_model', true);
+                onReask(null);
+              }}
+            >
+              {tr.mentor.askWithModel}
+            </Button>
+          ) : d === 'MODEL_UNAVAILABLE' && keyIssue ? (
+            <Link to="/ayarlar" search={{ tab: 'anahtarim' }} className={s.keyLink}>
+              <KeyRound size={15} aria-hidden /> {tr.mentor.openKeys}
+            </Link>
           ) : d === 'RETRIEVAL_UNAVAILABLE' || d === 'MODEL_UNAVAILABLE' || d === 'VALIDATION_FAILED' ? (
             <Button size="sm" icon={<RotateCcw size={15} aria-hidden />} onClick={() => onReask(answer.model && typeof answer.model.id === 'string' ? answer.model.id : null)}>
               {tr.mentor.askAgain}
@@ -207,15 +250,17 @@ function Abstain({ answer, onReask }: { answer: Answer; onReask: (modelId: strin
         }
       >
         <p>{message}</p>
-        {d === 'MODEL_UNAVAILABLE' && answer.model_unavailable_reason && <p className={s.reason}>{tr.mentor.modelReason(modelReason(answer.model_unavailable_reason))}</p>}
+        {d === 'MODEL_UNAVAILABLE' && reason && reason !== 'model_off' && <p className={s.reason}>{tr.mentor.modelReason(modelReason(reason))}</p>}
+        {d === 'MODEL_UNAVAILABLE' && reason === 'timeout' && <p className={s.reason}>{tr.mentor.timeoutHint}</p>}
       </Banner>
 
       {d === 'MODEL_UNAVAILABLE' && (answer.related_passages ?? []).length > 0 && (
         <section className={s.block} aria-labelledby="answer-passages">
           <h3 id="answer-passages" className={s.blockTitle}>
+            <span className={s.originTag}>{tr.mentor.originSearch}</span>
             {tr.mentor.passagesTitle}
           </h3>
-          <p className={s.hint}>{tr.mentor.passagesLead}</p>
+          <p className={s.hint}>{reason === 'model_off' ? tr.mentor.passagesLeadOff(searchHow(answer)) : tr.mentor.passagesLead}</p>
           <ol className={s.passages}>
             {(answer.related_passages ?? []).map((p) => (
               <li key={p.claim_id}>

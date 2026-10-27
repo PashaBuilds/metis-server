@@ -21,9 +21,10 @@ from metis.core.db import transaction, utcnow
 from metis.core.errors import AppError
 from metis.core.models import ChangeSet, Claim, Page, PageRevision, Project, Provider, User
 from metis.llm import contracts, prompts
-from metis.llm.client import ModelClient
+from metis.llm.client import SHARED, ModelClient
 from metis.modules.changes import schemas
 from metis.modules.health.maintenance import _strip_numbers, shape_prefilter
+from metis.modules.keys.service import key_for
 from metis.modules.knowledge.figures import strip_inline_images
 from metis.modules.scopes.semantics import overlaps
 
@@ -120,7 +121,10 @@ def run_check(user_id: uuid.UUID, change_id: uuid.UUID) -> schemas.PrepublishChe
         assert project is not None
         change_hash = change.hash
         cand = _candidates(db, user, change)
-        model, _reasons = route(db, project)
+        # Kişinin kendi anahtarıyla (2.0.28): anahtarı olmayan kişide kontrol kurallarla yapılır.
+        model, reasons = route(db, project, user)
+        key_missing = model is None and any(r["reason"] == "personal_key_missing" for r in reasons)
+        key = key_for(db, user, model.provider_id) if model else None
         provider = db.get(Provider, model.provider_id) if model else None
         model_name = model.display_name if model else None
         if model is not None:
@@ -129,7 +133,7 @@ def run_check(user_id: uuid.UUID, change_id: uuid.UUID) -> schemas.PrepublishChe
             db.expunge(provider)
 
     issues: list[dict] = []
-    status = "not_configured" if model is None or provider is None else "ok"
+    status = ("personal_key_missing" if key_missing else "not_configured") if model is None or provider is None or key is None else "ok"
     client = ModelClient()
     # 2) Kural adayları: model varsa değerlendirir, yoksa olası çelişki olarak bildirilir.
     for c in cand["rule"][:MAX_RULE_JUDGE] if status == "ok" else cand["rule"]:
@@ -137,7 +141,7 @@ def run_check(user_id: uuid.UUID, change_id: uuid.UUID) -> schemas.PrepublishChe
         if status == "ok":
             left = {"subject": c["draft"], "attribute": "değer", "value": c["ours"], "quote": c["ours"], "scope": {**c["draft_scope"], "condition": ""}}
             right = {"subject": c["page_title"], "attribute": "değer", "value": c["theirs"], "quote": c["theirs"], "scope": {**c["scope"], "condition": ""}}
-            res = client.call(model, provider, prompt_id=prompts.CLAIM_CONFLICT, payload={"kayit_a": left, "kayit_b": right}, schema=contracts.ClaimJudgement, purpose="prepublish", max_tokens=800, timeout_s=CALL_TIMEOUT_S)
+            res = client.call(model, provider, prompt_id=prompts.CLAIM_CONFLICT, payload={"kayit_a": left, "kayit_b": right}, schema=contracts.ClaimJudgement, purpose="prepublish", max_tokens=800, timeout_s=CALL_TIMEOUT_S, key=key or SHARED)
             if not res.ok:
                 status = "failed"
             else:
@@ -148,7 +152,7 @@ def run_check(user_id: uuid.UUID, change_id: uuid.UUID) -> schemas.PrepublishChe
     if status == "ok":
         for s in cand["similar"]:
             d = s["draft"]
-            res = client.call(model, provider, prompt_id=prompts.PAGE_DIFF, payload={"kayit_a": "\n".join([d["title"], d["summary"], *d["claims"]])[:8000], "kayit_b": "\n".join([s["page_title"], *s["statements"]])[:8000]}, schema=contracts.PageDiff, purpose="prepublish", max_tokens=1000, timeout_s=CALL_TIMEOUT_S)
+            res = client.call(model, provider, prompt_id=prompts.PAGE_DIFF, payload={"kayit_a": "\n".join([d["title"], d["summary"], *d["claims"]])[:8000], "kayit_b": "\n".join([s["page_title"], *s["statements"]])[:8000]}, schema=contracts.PageDiff, purpose="prepublish", max_tokens=1000, timeout_s=CALL_TIMEOUT_S, key=key or SHARED)
             if not res.ok:
                 status = "failed"
                 break

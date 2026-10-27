@@ -101,10 +101,11 @@ class PrepublishIssue(BaseModel):
 
 
 class PrepublishCheckOut(BaseModel):
-    """Yayın öncesi kontrol. model_status: ok | not_configured (uygun model yok) | failed (model yanıt vermedi)."""
+    """Yayın öncesi kontrol. model_status: ok | not_configured (uygun model yok) | personal_key_missing (kişinin uygun
+    modelin sağlayıcısında anahtarı yok) | failed (model yanıt vermedi)."""
 
     hash: str
-    model_status: Literal["ok", "not_configured", "failed"]
+    model_status: Literal["ok", "not_configured", "personal_key_missing", "failed"]
     model_name: str | None
     issues: list[PrepublishIssue]
     checked_at: datetime

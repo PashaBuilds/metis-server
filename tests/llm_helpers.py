@@ -17,10 +17,30 @@ def make_demo(project_id: str) -> None:
         db.execute(update(Project).where(Project.id == uuid.UUID(project_id)).values(is_demo=True))
 
 
-def add_provider(admin, models: list[str], url: str = MOCK_URL, key: str = "kurgusal-anahtar-123") -> dict:  # noqa: ANN001
+def add_provider(admin, models: list[str], url: str = MOCK_URL, key: str = "kurgusal-anahtar-123", personal_keys: bool = True) -> dict:  # noqa: ANN001
+    """Sağlayıcıyı ekler. 2.0.28'den beri herkes modeli kendi anahtarıyla kullanır: `personal_keys` o an var olan her
+    insan kullanıcıya kurgusal kişisel anahtar yazar (mevcut testler aynı davranışla sürsün; anahtarsız durum ayrı testte)."""
     r = admin.post("/api/v1/providers", json={"name": "Kurgusal sağlayıcı", "base_url": url, "api_key": key, "model_ids": models, "timeout_s": 20})
     assert r.status_code == 201, r.text
-    return r.json()
+    prov = r.json()
+    if personal_keys:
+        give_personal_keys(prov["id"])
+    return prov
+
+
+def personal_key_value(user_id: object) -> str:
+    return f"kisisel-anahtar-{str(user_id)[:8]}"
+
+
+def give_personal_keys(provider_id: str) -> None:
+    from metis.core.models import User, UserProviderKey
+    from metis.core.security import encrypt_secret, user_key_aad
+
+    pid = uuid.UUID(provider_id)
+    with transaction() as db:
+        for uid in db.scalars(select(User.id).where(User.kind == "human")):
+            if db.get(UserProviderKey, (uid, pid)) is None:
+                db.add(UserProviderKey(user_id=uid, provider_id=pid, secret_enc=encrypt_secret(personal_key_value(uid), aad=user_key_aad(uid, pid))))
 
 
 def model_id(remote_id: str, provider_id: str | None = None) -> str:
