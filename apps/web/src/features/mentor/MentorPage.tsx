@@ -45,8 +45,18 @@ export function MentorPage() {
   const models = useAvailableModels(pid);
   const modelList = models.data ?? [];
   const savedModel = session.pref<string | null>('mentor_model_id', null);
-  const useModel = session.pref<boolean>('mentor_use_model', true) !== false;
-  const timeoutS = session.pref<number | null>('mentor_timeout_s', null);
+  // Seçim hemen yerelde geçerli olur (tercih sunucuya yazılırken araya giren /me yenilemesi eski değeri geri getirebilir),
+  // ayrıca kişi başına saklanır.
+  const [modeChoice, setModeChoice] = useState<boolean | null>(null);
+  const [timeoutChoice, setTimeoutChoice] = useState<number | null | undefined>(undefined);
+  const useModel = modeChoice ?? session.pref<boolean>('mentor_use_model', true) !== false;
+  const savedTimeout = session.pref<number | null>('mentor_timeout_s', null);
+  // Saklanan değer seçeneklerden biri değilse (eski/bozuk) varsayılan kullanılır: sunucu aralık dışını reddeder.
+  const timeoutS = timeoutChoice !== undefined ? timeoutChoice : savedTimeout !== null && TIMEOUTS.includes(savedTimeout) ? savedTimeout : null;
+  const chooseMode = (on: boolean) => {
+    setModeChoice(on);
+    session.setPref('mentor_use_model', on);
+  };
   const questionId = useId();
   const modelFieldId = useId();
   const timeoutFieldId = useId();
@@ -218,7 +228,7 @@ export function MentorPage() {
               <Segmented<Mode>
                 label={tr.mentor.answerMode}
                 value={useModel ? 'model' : 'search'}
-                onChange={(v) => session.setPref('mentor_use_model', v === 'model')}
+                onChange={(v) => chooseMode(v === 'model')}
                 options={[
                   { value: 'model', label: tr.mentor.modeModel },
                   { value: 'search', label: tr.mentor.modeSearch },
@@ -230,7 +240,12 @@ export function MentorPage() {
                 <label htmlFor={timeoutFieldId} className={s.label}>
                   {tr.mentor.timeout}
                 </label>
-                <Select id={timeoutFieldId} className={s.timeoutSelect} value={timeoutS ? String(timeoutS) : ''} onChange={(e) => session.setPref('mentor_timeout_s', e.target.value ? Number(e.target.value) : null)}>
+                <Select id={timeoutFieldId} className={s.timeoutSelect} value={timeoutS ? String(timeoutS) : ''} onChange={(e) => {
+                    const v = e.target.value ? Number(e.target.value) : null;
+                    setTimeoutChoice(v);
+                    session.setPref('mentor_timeout_s', v);
+                  }}
+                >
                   <option value="">{tr.mentor.timeoutDefault}</option>
                   {TIMEOUTS.map((t) => (
                     <option key={t} value={t}>
@@ -268,7 +283,18 @@ export function MentorPage() {
               {run.message}
             </Banner>
           )}
-          {!streaming && shown && <AnswerView key={shown.id} answer={shown} live={!!liveAnswer} onReask={reask} />}
+          {!streaming && shown && (
+            <AnswerView
+              key={shown.id}
+              answer={shown}
+              live={!!liveAnswer}
+              onReask={reask}
+              onAskWithModel={() => {
+                chooseMode(true);
+                reask(null);
+              }}
+            />
+          )}
           {!streaming && search.answer && !shown && stored.isLoading && <SkeletonRows rows={4} />}
           {!streaming && search.answer && stored.isError && <Banner tone="dikkat">{tr.mentor.answerMissing}</Banner>}
           {!streaming && !search.answer && run.phase === 'idle' && !search.q && (

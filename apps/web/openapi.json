@@ -3940,6 +3940,10 @@
             "title": "Has Key",
             "type": "boolean"
           },
+          "key_required": {
+            "title": "Key Required",
+            "type": "boolean"
+          },
           "models": {
             "items": {
               "type": "string"
@@ -3978,6 +3982,7 @@
           "provider_name",
           "models",
           "has_key",
+          "key_required",
           "updated_at",
           "checked_at",
           "check_ok",
@@ -7001,7 +7006,7 @@
   },
   "info": {
     "title": "METIS API",
-    "version": "2.0.27"
+    "version": "2.0.28"
   },
   "openapi": "3.1.0",
   "paths": {

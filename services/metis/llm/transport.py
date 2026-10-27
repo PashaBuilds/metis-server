@@ -70,6 +70,9 @@ def post_completion(url: str, headers: dict[str, str], payload: dict, seconds: f
         return asyncio.run(_post(url, headers, payload, max(0.001, seconds), ca_bundle))
     except TransportError:
         raise
+    except (UnicodeEncodeError, httpx.LocalProtocolError):
+        # Başlığa yazılamayan anahtar (satır sonu, ASCII dışı karakter). Asıl hata anahtarı içerir: zincirlenmez.
+        raise TransportError("INVALID_KEY_FORMAT") from None
     except (TimeoutError, httpx.TimeoutException) as exc:
         raise TransportError("TIMEOUT") from exc
     except httpx.ConnectError as exc:

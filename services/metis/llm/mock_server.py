@@ -11,7 +11,7 @@ Model kimlikleri:
   fixture-no-schema          — response_format=json_schema isteğine 400 döner
   fixture-no-thinking        — 'thinking' parametresine 400 döner
   fixture-one-slip           — tek vakada kapsam ihlali (yüksek ortalama + 1 kritik hata)
-'Authorization: Bearer wrong-key' → 401.
+'Authorization: Bearer wrong-key' → 401; 'Bearer quota-key' → 429 (kotası dolmuş kişisel anahtar).
 """
 
 from __future__ import annotations
@@ -92,6 +92,9 @@ class Handler(BaseHTTPRequestHandler):
         SEEN_AUTH.append(self.headers.get("Authorization") or "")
         if self.headers.get("Authorization") == "Bearer wrong-key":
             self._send(401, {"error": {"message": "invalid api key"}})
+            return
+        if self.headers.get("Authorization") == "Bearer quota-key":
+            self._send(429, {"error": {"message": "insufficient quota"}})
             return
         try:
             body = json.loads(raw)

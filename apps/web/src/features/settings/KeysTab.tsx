@@ -37,13 +37,18 @@ export function KeysTab() {
       toast.show(tr.keys.saved);
       check.mutate(provider);
     },
-    onError: (e) => setError(e instanceof ApiError && e.code === 'VALIDATION_ERROR' ? tr.keys.tooShort : messageOf(e)),
+    onError: (e) => {
+      const kind = e instanceof ApiError ? e.fieldErrors().api_key : undefined;
+      setError(kind === 'invalid_chars' ? tr.keys.invalidChars : e instanceof ApiError && e.code === 'VALIDATION_ERROR' ? tr.keys.tooShort : messageOf(e));
+    },
   });
   const check = useMutation({
     mutationFn: (provider: string) => api.post<Check>(`/me/keys/${provider}/check`),
     onSuccess: (r, provider) => {
       setChecks((c) => ({ ...c, [provider]: r }));
       refresh();
+      void qc.invalidateQueries({ queryKey: ['me-usage'] });
+      void qc.invalidateQueries({ queryKey: ['usage-users'] });
     },
     onError: (e, provider) => setChecks((c) => ({ ...c, [provider]: messageOf(e) })),
   });
@@ -82,7 +87,7 @@ export function KeysTab() {
                       {k.models.length ? tr.keys.models(k.models.join(', ')) : tr.keys.noModels}
                       {k.updated_at && ` · ${tr.keys.updated(formatDateTime(k.updated_at))}`}
                     </div>
-                    {k.uses_shared && <div className={s.hint}>{tr.keys.adminShared}</div>}
+                    {k.uses_shared && <div className={s.hint}>{k.key_required ? tr.keys.adminShared : tr.keys.notRequired}</div>}
                   </div>
                   {k.has_key && (
                     <Button size="sm" variant="ghost" loading={check.isPending && check.variables === k.provider_id} onClick={() => check.mutate(k.provider_id)}>
@@ -113,7 +118,7 @@ export function KeysTab() {
                   >
                     <Field label={tr.keys.field(k.provider_name || tr.keys.unnamed)} hint={tr.keys.fieldHint} error={error}>
                       {({ id, describedBy }) => (
-                        <Input id={id} aria-describedby={describedBy} type="password" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="new-password" spellCheck={false} />
+                        <Input id={id} aria-describedby={describedBy} type="password" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="new-password" spellCheck={false} autoFocus />
                       )}
                     </Field>
                     <div className={s.pwRow}>
@@ -153,12 +158,16 @@ export function KeysTab() {
 
 function keyError(code: string | null | undefined): string {
   if (code === 'HTTP_401' || code === 'HTTP_403') return tr.keys.rejected;
-  return errorMessage(code ?? 'INTERNAL');
+  if (code === 'CONNECTION_FAILED' || code === 'TLS_FAILED' || code === 'TIMEOUT' || code === 'PROVIDER_BUSY') return tr.keys.unreachable;
+  return code ? tr.keys.otherError(code) : errorMessage('INTERNAL');
 }
 
 function KeyBadge({ k }: { k: MyKey }) {
+  if (!k.has_key && !k.key_required) return <StatusBadge size="sm" tone="onay" label={tr.keys.notRequiredBadge} />;
   if (!k.has_key) return <StatusBadge size="sm" tone={k.uses_shared ? 'onay' : 'taslak'} label={k.uses_shared ? tr.keys.sharedBadge : tr.keys.noneBadge} />;
-  if (k.check_ok === false) return <StatusBadge size="sm" tone="celiski" label={tr.keys.rejectedBadge} />;
+  if (k.check_ok === false && (k.check_error === 'HTTP_401' || k.check_error === 'HTTP_403')) return <StatusBadge size="sm" tone="celiski" label={tr.keys.rejectedBadge} />;
+  // Bağlantı sorunu anahtarın geçersiz olduğunu göstermez.
+  if (k.check_ok === false) return <StatusBadge size="sm" tone="dikkat" label={tr.keys.failedBadge} />;
   return <StatusBadge size="sm" tone="onay" label={k.check_ok ? tr.keys.okBadge : tr.keys.savedBadge} />;
 }
 

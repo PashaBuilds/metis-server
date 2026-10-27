@@ -216,3 +216,72 @@ def test_preferences_store_mentor_choices(env):
     assert c.put("/api/v1/preferences/mentor_use_model", json={"value": False}).status_code in (200, 204)
     prefs = c.get("/api/v1/auth/me").json()["preferences"]
     assert prefs["mentor_timeout_s"] == 180 and prefs["mentor_use_model"] is False
+
+
+# ---------------------------------------------------------------- inceleme bulguları (2.0.28)
+
+
+@pytest.mark.parametrize("bad", ["aaaa\nbbbb-anahtar", "anahtar-ıııııı", "anahtar​gizli1", "iki parca anahtar"])
+def test_malformed_key_rejected(env, bad):
+    r = env["reader"].put(f"/api/v1/me/keys/{env['provider_id']}", json={"api_key": bad})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_personal_quota_and_timeout_do_not_open_circuit(env):
+    env["reader"].put(f"/api/v1/me/keys/{env['provider_id']}", json={"api_key": "quota-key"})
+    for _ in range(4):
+        out = ask(env["reader"], env["pid"], model_id=env["model_id"])
+        assert out["decision"] == "MODEL_UNAVAILABLE"
+    assert env["reader"].post(f"/api/v1/me/keys/{env['provider_id']}/check").json()["ok"] is False
+    with transaction() as db:
+        m = db.get(Model, uuid.UUID(env["model_id"]))
+        assert m.failures == 0 and m.circuit_until is None
+
+
+def test_key_check_leaves_circuit_alone(env):
+    with transaction() as db:
+        db.get(Model, uuid.UUID(env["model_id"])).failures = 2
+    assert env["reader"].post(f"/api/v1/me/keys/{env['provider_id']}/check").json()["ok"] is True
+    with transaction() as db:
+        assert db.get(Model, uuid.UUID(env["model_id"])).failures == 2
+
+
+def test_rejected_body_not_stored(env):
+    env["reader"].put(f"/api/v1/me/keys/{env['provider_id']}", json={"api_key": "wrong-key"})
+    ask(env["reader"], env["pid"], model_id=env["model_id"])
+    with transaction() as db:
+        raws = [r for (r,) in db.execute(select(ModelCall.raw_output).where(ModelCall.error == "HTTP_401"))]
+    assert raws and all(r == "" for r in raws)
+
+
+def test_keyless_provider_needs_no_personal_key(team, mock_llm):
+    """Anahtar istemeyen (yerel) model sunucusu: ortak anahtar boşsa kişisel anahtar istenmez."""
+    make_demo(team["pid"])
+    publish_note(team["contributor"], team["reviewer"], team["pid"], "SPI saat bölücü", SPI, [SPI])
+    prov = add_provider(team["admin"], ["fixture-reference"], key="", personal_keys=False)
+    qualify(team["admin"], model_id("fixture-reference", prov["id"]))
+    out = ask(team["reader"], team["pid"])
+    assert out["decision"] == "SUPPORTED", out
+    row = next(k for k in team["reader"].get("/api/v1/me/keys").json() if k["provider_id"] == prov["id"])
+    assert row["key_required"] is False
+
+
+def test_failure_reason_respects_key_source():
+    from metis.modules.mentor.service import _failure_reason
+
+    assert _failure_reason("HTTP_401", personal=True) == "personal_key_rejected"
+    assert _failure_reason("HTTP_401", personal=False) == "call_failed"
+
+
+def test_usage_tolerates_non_integer_token_counts(env):
+    ask(env["reader"], env["pid"])
+    with transaction() as db:
+        db.execute(text("UPDATE model_calls SET usage = '{\"prompt_tokens\": 12.0, \"completion_tokens\": \"x\"}'::jsonb"))
+    assert env["reader"].get("/api/v1/me/usage").status_code == 200
+    assert env["admin"].get("/api/v1/usage/users").status_code == 200
+
+
+def test_delete_provider_removes_personal_keys(env):
+    assert env["admin"].delete(f"/api/v1/providers/{env['provider_id']}").status_code in (200, 204)
+    with transaction() as db:
+        assert db.execute(text("SELECT count(*) FROM user_provider_keys")).scalar() == 0

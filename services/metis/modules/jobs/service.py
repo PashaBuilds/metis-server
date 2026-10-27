@@ -200,6 +200,13 @@ def retry(db: Session, user: User, job_id: uuid.UUID) -> Job:
         select(Job.id).where(Job.project_id == job.project_id, Job.input_fingerprint == job.input_fingerprint, Job.state.in_(ACTIVE), Job.id != job.id)
     ):
         raise AppError("INVALID_STATE", "an identical job is already active")
+    # Yeniden başlatan kendi anahtarıyla öder (başkasının kişisel anahtarı harcanmaz; anahtarsız kişi ortak anahtara kaçamaz).
+    if job.model_id is not None and job.kind in ("prepare_draft", "refine_draft", "maintenance") and not (job.inputs or {}).get("scheduled"):
+        model = db.get(Model, job.model_id)
+        key = key_for(db, user, model.provider_id) if model is not None else None
+        if key is None:
+            raise AppError("PERSONAL_KEY_MISSING", "add your own API key for this model's provider", provider_id=str(model.provider_id) if model else None)
+        job.inputs = {**(job.inputs or {}), "key_user_id": str(user.id), "key_source": key.source}
     job.state = "queued"
     job.fence += 1
     job.attempt = 0

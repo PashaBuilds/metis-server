@@ -52,9 +52,11 @@ def upgrade() -> None:
     op.add_column("model_calls", sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True))
     op.add_column("model_calls", sa.Column("key_source", sa.String(10), nullable=False, server_default="shared"))
     op.create_index("ix_model_calls_user_id", "model_calls", ["user_id"])
+    op.create_index("ix_model_calls_created_at", "model_calls", ["created_at"])
 
 
 def downgrade() -> None:
+    op.drop_index("ix_model_calls_created_at", table_name="model_calls")
     op.drop_index("ix_model_calls_user_id", table_name="model_calls")
     op.drop_column("model_calls", "key_source")
     op.drop_column("model_calls", "user_id")

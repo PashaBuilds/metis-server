@@ -543,3 +543,44 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
   METIS zaten 2.0.27'deydi (ilk adayla yükseltilmişti), bu adayla deneme 5 sn sürdü — yeniden kurulum yapılmadığı
   anlaşılıyor; iki aday arasında uygulama kodu aynı, yalnız testler ve CI değişti. Çift tıklama sorusu/UAC ve Chrome bu
   yolda denenmedi. `-Yayimla`: GitHub sürümü v2.0.27 (model paketleri 2.0.25 / 2.0.26 sürüm sayfalarında).
+
+## Kişisel API anahtarı + Mentor'da model aç/kapa, bekleme süresi (2026-10-27) — v2.0.28
+
+- Ürün sahibinin kararları (2026-10-27): herkes modelleri kendi API anahtarıyla kullanır, benchmark referansı ürün
+  sahibinin (yöneticinin) anahtarı; anahtarı olmayan kişi model kullanamaz (arama çalışır); kişinin başlattığı işler onun
+  anahtarıyla, arama zenginleştirmesi / zamanlanmış bakım / benchmark ortak anahtarla; kişi kendi kullanımını, yönetici
+  kişi başına yalnız toplamları görür. Ayrıca: Mentor'da modeli kullanıp kullanmama seçimi, vektör aramasıyla bulunan
+  ve modelin yazdığı kısmın açıkça ayrılması, kullanıcının seçtiği ve kişi başına saklanan bekleme süresi.
+- Şema 0018: `user_provider_keys` (AES-GCM, AAD kişi + sağlayıcı), `model_calls.user_id` + `key_source`, `created_at`
+  dizini. `ModelClient.call(key=KeyRef, budget_s=)`: kişisel anahtar yoksa çağrı yapılmaz (`PERSONAL_KEY_MISSING`),
+  önbellek anahtar sahibine özel, reddedilen anahtarın yanıt gövdesi saklanmaz. Kullanıcının süresi sağlayıcının süresinin
+  yerine geçer ama sıra bekleme sağlayıcının süresini aşmaz; Mentor'da kaynak seçimi sürenin en çok yarısını kullanır;
+  istemci ayrılınca (yeniden sorma) ikinci model çağrısı yapılmaz.
+- Yönetici kişisel anahtar eklemediyse ortak anahtarla (kendi anahtarı). Ortak anahtarı boş (anahtar istemeyen yerel
+  model sunucusu) sağlayıcıda kişisel anahtar istenmez — internetsiz kurulumda herkes boşuna anahtar girmesin (inceleme
+  sorusu; ürün sahibine bildirildi).
+- Görev anahtarı çalışma anında: başlatanın (yeniden başlatıldıysa yeniden başlatanın) kişisel anahtarı; zamanlanmış
+  bakım (`inputs.scheduled`) ortak anahtar; yükseltme öncesinden kalan görev ortak anahtara düşmez.
+- Ön yüz: Ayarlar → Anahtarım (ekle / değiştir / dene / sil, durum rozeti, kullanımım, yöneticiye kişi başına döküm);
+  Mentor: "Cevap: Model yazsın / Yalnız arama", "Bekleme süresi" (varsayılan, 30 sn – 10 dk), son seçim kişi başına;
+  cevapta "Model" (modelin yazdığı, model adı + süre) ve "Arama" (birebir alıntılar; kelime / vektör / yeniden
+  sıralayıcı) etiketli bölümler; anahtar sorunu → "Anahtarım" bağlantısı; model kapalı → "Modelle yazdır".
+- Testler: kişisel anahtar (şifreli, dönmez, başka satıra kopyalanınca çözülmez), Mentor kişisel anahtarı gönderir
+  (sahte model sunucusu gelen anahtarı kaydeder), anahtarsız → yalnız bölümler, yönetici ortak anahtar, reddedilen /
+  kotası dolmuş anahtar devre kesiciyi açmaz, anahtar denemesi devreye dokunmaz, önbellek kişiye özel, model kapalı,
+  süre sınırları, görev kişisel anahtarla / anahtar silinince başarısız / eski görev ortak anahtara düşmez / yeniden
+  başlatanın anahtarı / zamanlanmış bakım ortak, kullanım dökümü (sayı olmayan token değeri bozmaz), sağlayıcı silinince
+  anahtarlar silinir, anahtarsız sağlayıcı. Geliştirme çalışma ağacında tam takım geçti (inceleme düzeltmelerinden önce).
+- Tarayıcıda (geliştirme sunucusu, kurgusal veri, sahte model sunucusu): anahtar ekle → dene (kapalı sunucuda "Denenemedi",
+  açıkken "Çalışıyor"), kullanım tablosu, yöneticiye kişi başına döküm; Mentor "Model" / "Arama" bölümleri, 2 dk süre
+  saklandı, "Yalnız arama" ve "Modelle yazdır" hızlı geçişte doğru (ilk sürümde tercih yenilemesiyle yarış vardı → seçim
+  sayfada yerelde tutulur); geçersiz karakterli anahtar uyarısı; mobil genişlikte taşma yok. Yönetici olmayan kişinin
+  anahtarsız ekranı tarayıcıda denenmedi (API testleriyle).
+- Bağımsız inceleme (opus): kritik yok. Düzeltilen önemli: kişisel anahtarın her hatası (kota 429, geçersiz başlık,
+  kullanıcının kısa süresi) modelin devre kesicisini herkese açabiliyordu → kişisel anahtarla yalnız bağlantı / 5xx
+  sayılır, anahtar denemesi devreye dokunmaz; ASCII dışı / satır sonlu anahtar "çalışıyor" görünüyordu → kayıtta
+  reddedilir, aktarımda `INVALID_KEY_FORMAT`; başkasının görevini yeniden başlatan onun anahtarını harcıyor ya da anahtarsız
+  kişi ortak anahtara kaçabiliyordu → çalışma anında anahtar; 10 dk'lık süre sağlayıcı yuvasını tutuyordu → bekleme / kira
+  ayrıldı, iptal. Küçük düzeltilenler: silinen sağlayıcının kişisel anahtarları, yöneticiyi ortak anahtar hatasında
+  "Anahtarım"a yönlendirme, döküm SQL'i, eşzamanlı ilk kayıt, görev anahtarı varsayılanı, saklanan süre sınırı. Ertelenen:
+  anahtar denemesine sıklık sınırı; `retrieval` alanı tipsiz sözlük.

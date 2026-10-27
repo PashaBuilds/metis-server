@@ -30,7 +30,10 @@ from metis.llm.transport import TransportError, completions_url, post_completion
 DEFAULT_PROFILE = {"json_mode": "json_object", "thinking": "default", "probed": False}
 RETRYABLE_HTTP = {"HTTP_429", "HTTP_500", "HTTP_502", "HTTP_503", "HTTP_504"}
 # Kişisel anahtarın kendi sorunu (eksik, reddedildi): modelin devre kesicisini açmaz, başkasını etkilemez.
-PERSONAL_KEY_ERRORS = {"PERSONAL_KEY_MISSING", "HTTP_401", "HTTP_403", "SECRET_STORE_UNAVAILABLE"}
+PERSONAL_KEY_ERRORS = {"PERSONAL_KEY_MISSING", "HTTP_401", "HTTP_403", "SECRET_STORE_UNAVAILABLE", "INVALID_KEY_FORMAT"}
+# Kişisel anahtarla yapılan çağrıda devre kesiciyi yalnız kişiden bağımsız hatalar sayar: bağlantı ve sunucu hatası.
+# Kota (429), istek (4xx), süre (kullanıcının seçtiği) kişiye özgü olabilir; bir kişinin anahtarı modeli herkese kapatmaz.
+SERVICE_ERRORS = {"CONNECTION_FAILED", "TLS_FAILED"}
 
 
 @dataclass(frozen=True)
@@ -88,8 +91,9 @@ def build_body(model: Model, messages: list[dict], shape: dict | None, schema_na
     return body
 
 
-def _acquire_slot(provider_id: uuid.UUID, limit: int, budget_s: float) -> uuid.UUID | None:
-    deadline = time.monotonic() + budget_s
+def _acquire_slot(provider_id: uuid.UUID, limit: int, wait_s: float, lease_s: float) -> uuid.UUID | None:
+    """`wait_s`: sıra bekleme sınırı; `lease_s`: çağrı süresi (süreç çökerse yuva bu kadar sonra boşalır)."""
+    deadline = time.monotonic() + wait_s
     pause = 0.05
     while True:
         with transaction() as db:
@@ -97,7 +101,7 @@ def _acquire_slot(provider_id: uuid.UUID, limit: int, budget_s: float) -> uuid.U
             db.execute(delete(ProviderSlot).where(ProviderSlot.provider_id == provider_id, ProviderSlot.expires_at < utcnow()))
             used = db.scalar(select(func.count()).select_from(ProviderSlot).where(ProviderSlot.provider_id == provider_id)) or 0
             if used < max(1, limit):
-                slot = ProviderSlot(provider_id=provider_id, expires_at=utcnow() + timedelta(seconds=budget_s + 10))
+                slot = ProviderSlot(provider_id=provider_id, expires_at=utcnow() + timedelta(seconds=lease_s + 10))
                 db.add(slot)
                 db.flush()
                 return slot.id
@@ -113,11 +117,18 @@ def _release_slot(slot_id: uuid.UUID) -> None:
         db.execute(delete(ProviderSlot).where(ProviderSlot.id == slot_id))
 
 
-def _record_outcome(model_id: uuid.UUID, ok: bool, error: str | None, purpose: str = "", personal: bool = False) -> None:
+def _record_outcome(model_id: uuid.UUID, ok: bool, error: str | None, purpose: str = "", personal: bool = False, user_budget: bool = False) -> None:
     """Devre kesici: art arda 3 bağlantı hatası → 60 sn bekleme. Doğrulama hataları devreyi açmaz. Arka plan
     zenginleştirmesinin hataları da açmaz (Mentor'u etkilemesin; zenginleştirme kendi geri çekilmesini yapar). Kişisel
-    anahtarın reddedilmesi de açmaz: bir kişinin yanlış anahtarı modeli herkese kapatmaz."""
-    if not ok and (purpose == "enrichment" or (personal and error in PERSONAL_KEY_ERRORS)):
+    anahtarla yalnız bağlantı / sunucu (5xx) hatası sayılır; anahtar denemesi devreye hiç dokunmaz (açmaz, sıfırlamaz);
+    kullanıcının seçtiği süre dolması da sayılmaz."""
+    if purpose == "key_check":
+        return
+    if not ok and purpose == "enrichment":
+        return
+    if not ok and personal and not (error in SERVICE_ERRORS or (error or "").startswith("HTTP_5")):
+        return
+    if not ok and user_budget and error in ("TIMEOUT", "BUDGET_EXCEEDED"):
         return
     with transaction() as db:
         model = db.get(Model, model_id, with_for_update=True)
@@ -189,8 +200,9 @@ class ModelClient:
         budget = float(budget_s) if budget_s else float(min(provider.timeout_s, timeout_s or provider.timeout_s))
         started = time.perf_counter()
         log = {"user_id": ref.user_id, "key_source": ref.source}
+        outcome = {"purpose": purpose, "personal": ref.personal, "user_budget": bool(budget_s)}
         if ref.personal and personal is None:
-            return self._fail(model, prompt, purpose, key, job_id, answer_id, "PERSONAL_KEY_MISSING", started, log)
+            return self._fail(model, prompt, purpose, key, job_id, answer_id, "PERSONAL_KEY_MISSING", started, log, outcome)
 
         if cache:
             with transaction() as db:
@@ -224,19 +236,20 @@ class ModelClient:
                 else:
                     secret = decrypt_secret(provider.secret_enc) if provider.secret_enc else ""
             except AppError as exc:
-                return self._fail(model, prompt, purpose, key, job_id, answer_id, exc.code, started, log)
+                return self._fail(model, prompt, purpose, key, job_id, answer_id, exc.code, started, log, outcome)
             except TransportError as exc:
-                return self._fail(model, prompt, purpose, key, job_id, answer_id, exc.code, started, log)
-            slot = _acquire_slot(provider.id, provider.max_concurrency, budget)
+                return self._fail(model, prompt, purpose, key, job_id, answer_id, exc.code, started, log, outcome)
+            # Sıra bekleme sağlayıcının süresini aşmaz; kullanıcının uzun süresi yalnız çağrının kendisine uygulanır.
+            slot = _acquire_slot(provider.id, provider.max_concurrency, min(budget, float(provider.timeout_s)), budget)
             if slot is None:
-                return self._fail(model, prompt, purpose, key, job_id, answer_id, "PROVIDER_BUSY", started, log)
+                return self._fail(model, prompt, purpose, key, job_id, answer_id, "PROVIDER_BUSY", started, log, outcome)
             attempt = 0
             http_retries = 0
             current = list(messages)
             while True:
                 left = budget - (time.perf_counter() - started)
                 if left <= 0:
-                    return self._fail(model, prompt, purpose, key, job_id, answer_id, "BUDGET_EXCEEDED", started, log)
+                    return self._fail(model, prompt, purpose, key, job_id, answer_id, "BUDGET_EXCEEDED", started, log, outcome)
                 with transaction() as db:
                     call = ModelCall(
                         model_id=model.id, prompt_id=prompt.id, prompt_version=prompt.version, purpose=purpose, input_hash=key,
@@ -266,7 +279,8 @@ class ModelClient:
                         error = "VALIDATION"
                 except TransportError as exc:
                     error = exc.code
-                    raw_text = exc.body
+                    # Reddedilen anahtarın yanıtı anahtarın bir kısmını içerebilir (ör. "Incorrect API key: sk-ab***"): saklanmaz.
+                    raw_text = "" if error in ("HTTP_401", "HTTP_403") else exc.body
                 except (ValidationError, ValueError, KeyError, TypeError, IndexError):
                     error = "INVALID_RESPONSE"
                 duration = round((time.perf_counter() - attempt_start) * 1000, 2)
@@ -283,7 +297,7 @@ class ModelClient:
                         if db.get(ModelCache, key) is None:
                             db.add(ModelCache(key=key, call_id=call_id, output=output))
                 if not error:
-                    _record_outcome(model.id, True, None, purpose)
+                    _record_outcome(model.id, True, None, **outcome)
                     return CallResult(ok=True, output=output, call_id=call_id, latency_ms=round((time.perf_counter() - started) * 1000, 2), usage=usage, raw=raw_text)
                 if error in ("INVALID_RESPONSE", "VALIDATION") and attempt < repairs:
                     attempt += 1
@@ -298,13 +312,13 @@ class ModelClient:
                     attempt += 1
                     time.sleep(min(2.0, 0.25 * (2**http_retries)) * (0.5 + random.random()))
                     continue
-                _record_outcome(model.id, False, error, purpose, ref.personal)
+                _record_outcome(model.id, False, error, **outcome)
                 return CallResult(ok=False, error=error, call_id=call_id, latency_ms=round((time.perf_counter() - started) * 1000, 2), usage=usage, raw=raw_text)
         finally:
             if slot is not None:
                 _release_slot(slot)
 
-    def _fail(self, model, prompt, purpose, key, job_id, answer_id, code, started, log) -> CallResult:  # noqa: ANN001
+    def _fail(self, model, prompt, purpose, key, job_id, answer_id, code, started, log, outcome) -> CallResult:  # noqa: ANN001
         with transaction() as db:
             call = ModelCall(
                 model_id=model.id, prompt_id=prompt.id, prompt_version=prompt.version, purpose=purpose, input_hash=key,
@@ -314,5 +328,5 @@ class ModelClient:
             db.flush()
             call_id = call.id
         if code not in ("PROVIDER_BUSY", "BUDGET_EXCEEDED"):
-            _record_outcome(model.id, False, code, purpose, log["key_source"] == "personal")
+            _record_outcome(model.id, False, code, **outcome)
         return CallResult(ok=False, error=code, call_id=call_id, latency_ms=round((time.perf_counter() - started) * 1000, 2))

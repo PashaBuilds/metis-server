@@ -46,18 +46,25 @@ from metis.worker.runtime import (
 KIND_FOR_SOURCE = {"note": "concept", "code": "component", "document": "procedure", "test": "validation", "table": "table", "image": "concept"}
 
 
-def job_key(job) -> KeyRef:  # noqa: ANN001
-    """Kişinin başlattığı görev onun anahtarıyla (2.0.28); zamanlanmış bakım ve eski görevler ortak anahtarla (sistem işi)."""
-    source = (job.inputs or {}).get("key_source")
-    if source == "personal":
-        return KeyRef(user_id=job.requester_id, personal=True)
-    if source == "shared":
-        return KeyRef(user_id=job.requester_id, personal=False)
-    return SHARED
+def job_key(db, job, provider_id: uuid.UUID) -> KeyRef:  # noqa: ANN001
+    """Görevin anahtarı çalışma anında belirlenir (2.0.28): zamanlanmış bakım ortak anahtarla (sistem işi); diğer her görev
+    başlatanın — yeniden başlatıldıysa yeniden başlatanın — kendi anahtarıyla. Anahtarı yoksa (silinmiş, yöneticiliği
+    kalkmış) görev ortak anahtara düşmez, başarısız olur. Yükseltme öncesinden kalan görevler de böyle."""
+    from metis.core.models import User
+    from metis.modules.keys.service import key_for
+
+    inputs = job.inputs or {}
+    if inputs.get("scheduled"):
+        return SHARED
+    owner = db.get(User, uuid.UUID(inputs["key_user_id"]) if inputs.get("key_user_id") else job.requester_id)
+    key = key_for(db, owner, provider_id) if owner is not None and owner.active else None
+    if key is None:
+        raise JobFailed("PERSONAL_KEY_MISSING", "Görevi başlatanın bu modelin sağlayıcısında kişisel API anahtarı yok. Ayarlar → Anahtarım'dan ekleyip yeniden başlat.")
+    return key
 
 
 def load_model(db, job, ctx=None) -> tuple[Model, Provider]:  # noqa: ANN001
-    from metis.core.models import Project, UserProviderKey
+    from metis.core.models import Project
 
     model = db.get(Model, uuid.UUID(job.inputs["model_id"])) if job.inputs.get("model_id") else None
     project = db.get(Project, job.project_id)
@@ -67,9 +74,7 @@ def load_model(db, job, ctx=None) -> tuple[Model, Provider]:  # noqa: ANN001
     if not ok:
         raise JobFailed("MODEL_UNAVAILABLE", f"Seçilen model artık kullanılamıyor ({reason}). Başka bir modelle yeniden dene.")
     provider = db.get(Provider, model.provider_id)
-    key = job_key(job)
-    if key.personal and db.get(UserProviderKey, (key.user_id, model.provider_id)) is None:
-        raise JobFailed("PERSONAL_KEY_MISSING", "Görevi başlatanın bu modelin sağlayıcısında kişisel API anahtarı yok (kaldırılmış). Ayarlar → Anahtarım'dan ekleyip yeniden başlat.")
+    key = job_key(db, job, model.provider_id)
     if ctx is not None:
         ctx.key = key
     db.expunge(model)
@@ -99,6 +104,8 @@ def text_chunks(text: str, size: int = EXTRACT_CHUNK_CHARS) -> list[str]:
 
 
 def call(ctx: JobContext, model, provider, prompt_id, payload, schema, validator=None, output_tokens=2000):  # noqa: ANN001, ANN201
+    if ctx.key is None:  # anahtar belirlenmeden model çağrılmaz (ortak anahtara sessizce düşmez)
+        raise JobFailed("PERSONAL_KEY_MISSING", "Görevin model anahtarı belirlenmedi.")
     ctx.reserve(payload, output_tokens)
     res = ModelClient().call(model, provider, prompt_id=prompt_id, payload=payload, schema=schema, validator=validator, purpose="worker", job_id=ctx.job_id, max_tokens=output_tokens, key=ctx.key)
     ctx.note_call(res.call_id)

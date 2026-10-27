@@ -19,6 +19,8 @@ class MyKeyOut(BaseModel):
     provider_name: str
     models: list[str]
     has_key: bool
+    # Sağlayıcının ortak anahtarı yoksa (yerel, anahtarsız model sunucusu) kişisel anahtar gerekmez.
+    key_required: bool
     updated_at: datetime | None
     checked_at: datetime | None
     check_ok: bool | None

@@ -3363,6 +3363,8 @@ export interface components {
             checked_at: string | null;
             /** Has Key */
             has_key: boolean;
+            /** Key Required */
+            key_required: boolean;
             /** Models */
             models: string[];
             /**

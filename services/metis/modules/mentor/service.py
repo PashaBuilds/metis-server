@@ -225,16 +225,19 @@ def _conflict_sides(db: Session, user: User, finding: Finding) -> list[schemas.C
     return sides
 
 
-def _failure_reason(error: str | None) -> str:
-    """Model çağrısı başarısız: süre doldu, kişisel anahtar reddedildi ya da başka bir çağrı hatası."""
+def _failure_reason(error: str | None, personal: bool = True) -> str:
+    """Model çağrısı başarısız: süre doldu, kişisel anahtar reddedildi ya da başka bir çağrı hatası. Ortak anahtarın
+    reddi kişinin anahtar sorunu değildir (yönetici "Anahtarım"a yönlendirilmez)."""
     if error in ("BUDGET_EXCEEDED", "TIMEOUT"):
         return "timeout"
-    if error in PERSONAL_KEY_ERRORS:
+    if personal and error in PERSONAL_KEY_ERRORS:
         return "personal_key_rejected"
+    if error == "CANCELLED":
+        return "cancelled"
     return "call_failed"
 
 
-def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emit = _noop) -> schemas.AnswerOut:
+def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emit = _noop, cancelled: Callable[[], bool] = lambda: False) -> schemas.AnswerOut:
     started = time.perf_counter()
     timings: dict[str, Any] = {"retrieval_ms": None, "rerank_ms": None, "selection_ms": None, "generation_ms": None, "validation_ms": None, "total_ms": None}
     selector = normalize_scope(req.scope.model_dump() if req.scope else {})
@@ -394,8 +397,8 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
         # Kullanıcının seçtiği bekleme süresi iki model çağrısının (kaynak seçimi + cevap) toplamıdır.
         deadline = time.perf_counter() + req.timeout_s if req.timeout_s else None
 
-        def left() -> float | None:
-            return max(0.001, deadline - time.perf_counter()) if deadline else None
+        def left(share: float = 1.0) -> float | None:
+            return max(0.001, (deadline - time.perf_counter()) * share) if deadline else None
 
         pages = list(dict.fromkeys(b["page_id"] for b in bundle))
         if len(pages) > SELECTION_THRESHOLD or pending_conflict is not None:
@@ -405,11 +408,12 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 "scope": selector,
                 "pages": [{"page_id": p, "title": next(b["page_title"] for b in bundle if b["page_id"] == p), "statements": [b["statement"] for b in bundle if b["page_id"] == p][:20]} for p in pages],
             }
-            sel = client.call(model, provider, prompt_id=prompts.SOURCE_SELECTION, payload=payload, schema=contracts.SourceSelection, validator=lambda o: valid_source_selection(o, pages), purpose="mentor", key=key, budget_s=left())
+            # Kaynak seçimi sürenin en çok yarısını kullanır; kalan cevap çağrısınındır.
+            sel = client.call(model, provider, prompt_id=prompts.SOURCE_SELECTION, payload=payload, schema=contracts.SourceSelection, validator=lambda o: valid_source_selection(o, pages), purpose="mentor", key=key, budget_s=left(0.5))
             timings["selection_ms"] = round((time.perf_counter() - t0) * 1000, 2)
             if not sel.ok:
                 state["error"] = sel.error
-                state["model_unavailable_reason"] = _failure_reason(sel.error)
+                state["model_unavailable_reason"] = _failure_reason(sel.error, key.personal)
                 bundle = []
             else:
                 verdicts = {r["page_id"]: r["relevance"] for r in sel.output["reviews"]}
@@ -422,6 +426,11 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                     bundle = []
                 elif not bundle:
                     state["decision"] = "NO_EVIDENCE"
+        if bundle and cancelled():
+            # İstemci ayrıldı (yeniden sordu ya da sayfayı kapattı): cevap çağrısı yapılmaz, sağlayıcı boşuna meşgul edilmez.
+            state["error"] = "CANCELLED"
+            state["model_unavailable_reason"] = "cancelled"
+            bundle = []
         if bundle:
             t1 = time.perf_counter()
             payload = {
@@ -437,7 +446,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 state["decision"] = "VALIDATION_FAILED" if res.error in ("INVALID_RESPONSE", "VALIDATION") else "MODEL_UNAVAILABLE"
                 state["error"] = res.error
                 if state["decision"] == "MODEL_UNAVAILABLE":
-                    state["model_unavailable_reason"] = _failure_reason(res.error)
+                    state["model_unavailable_reason"] = _failure_reason(res.error, key.personal)
             else:
                 emit("progress", {"step": "verifying"})
                 t2 = time.perf_counter()

@@ -15,7 +15,7 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from metis.core.access import require_admin, require_member
@@ -247,6 +247,10 @@ def delete_provider(db: Session, user: User, provider_id: uuid.UUID) -> None:
     p.deleted_at = utcnow()
     p.secret_enc = ""
     db.execute(update(Model).where(Model.provider_id == p.id).values(deleted_at=utcnow(), enabled=False))
+    # Kişilerin bu sağlayıcı için kaydettiği anahtarlar da silinir (listede görünmeyecekleri için kendileri silemez).
+    from metis.core.models import UserProviderKey
+
+    db.execute(delete(UserProviderKey).where(UserProviderKey.provider_id == p.id))
     audit(db, user.id, "provider.delete", "provider", p.id)
 
 

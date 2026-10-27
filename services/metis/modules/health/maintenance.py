@@ -247,7 +247,9 @@ def schedule_due_jobs() -> int:
                     select(User.id).join(ProjectMember, ProjectMember.user_id == User.id).where(ProjectMember.project_id == project.id, ProjectMember.role == "steward", User.active.is_(True)).limit(1)
                 ) or db.scalar(select(User.id).where(User.is_admin.is_(True), User.active.is_(True), User.kind == "human").limit(1))
                 if requester:
-                    job = Job(project_id=project.id, requester_id=requester, kind="maintenance", title="Bakım taraması", inputs={"model_id": str(sched.model_id)} if sched.model_id else {}, state="queued", priority=30, model_id=sched.model_id)
+                    # Zamanlanmış tarama sistem işidir: ortak anahtarla çalışır (2.0.28).
+                    inputs = {"model_id": str(sched.model_id), "scheduled": True} if sched.model_id else {"scheduled": True}
+                    job = Job(project_id=project.id, requester_id=requester, kind="maintenance", title="Bakım taraması", inputs=inputs, state="queued", priority=30, model_id=sched.model_id)
                     db.add(job)
                     db.flush()
                     add_event(db, job.id, "state", state="queued")

@@ -35,10 +35,12 @@ async def ask_stream(project_id: uuid.UUID, data: schemas.AskIn, user: User = De
     def emit(event: str, payload: dict) -> None:
         loop.call_soon_threadsafe(queue.put_nowait, (event, payload))
 
+    gone = threading.Event()  # istemci ayrıldı: ikinci model çağrısı yapılmaz
+
     def worker() -> None:
         correlation_id.set(cid)
         try:
-            service.ask(user.id, project_id, data, emit)
+            service.ask(user.id, project_id, data, emit, gone.is_set)
         except AppError as exc:
             emit("error", exc.envelope(cid)["error"])
         except Exception:  # noqa: BLE001
@@ -50,17 +52,20 @@ async def ask_stream(project_id: uuid.UUID, data: schemas.AskIn, user: User = De
 
     async def stream():  # noqa: ANN202
         seq = 0
-        while True:
-            try:
-                item = await asyncio.wait_for(queue.get(), timeout=15)
-            except TimeoutError:
-                yield ": heartbeat\n\n"
-                continue
-            if item is None:
-                break
-            seq += 1
-            event, payload = item
-            yield f"id: {seq}\nevent: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+        try:
+            while True:
+                try:
+                    item = await asyncio.wait_for(queue.get(), timeout=15)
+                except TimeoutError:
+                    yield ": heartbeat\n\n"
+                    continue
+                if item is None:
+                    break
+                seq += 1
+                event, payload = item
+                yield f"id: {seq}\nevent: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+        finally:
+            gone.set()  # bağlantı kapandı (yeniden sorma, sayfa kapandı) ya da akış bitti
 
     return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 

@@ -61,9 +61,11 @@ interface Props {
   /** Akıştan yeni geldiyse orkestre an (via'lar sırayla yanar). */
   live: boolean;
   onReask: (modelId: string | null) => void;
+  /** Model kapalıyken: modeli açıp aynı soruyu yeniden sorar. */
+  onAskWithModel: () => void;
 }
 
-export function AnswerView({ answer, live, onReask }: Props) {
+export function AnswerView({ answer, live, onReask, onAskWithModel }: Props) {
   const answered = ANSWERED.has(answer.decision) && answer.citations.length > 0;
   const byN = new Map(answer.citations.map((c) => [c.n, c]));
   let ignite = 0;
@@ -159,7 +161,7 @@ export function AnswerView({ answer, live, onReask }: Props) {
           </section>
         </>
       ) : (
-        <Abstain answer={answer} onReask={onReask} />
+        <Abstain answer={answer} onReask={onReask} onAskWithModel={onAskWithModel} />
       )}
 
       {answer.unknowns.length > 0 && (
@@ -206,7 +208,7 @@ function seconds(ms: unknown): string | null {
   return typeof ms === 'number' ? (ms / 1000).toLocaleString('tr-TR', { maximumFractionDigits: 1 }) : null;
 }
 
-function Abstain({ answer, onReask }: { answer: Answer; onReask: (modelId: string | null) => void }) {
+function Abstain({ answer, onReask, onAskWithModel }: { answer: Answer; onReask: (modelId: string | null) => void; onAskWithModel: () => void }) {
   const session = useSession();
   const d = answer.decision;
   const reason = answer.model_unavailable_reason;
@@ -228,14 +230,7 @@ function Abstain({ answer, onReask }: { answer: Answer; onReask: (modelId: strin
               {tr.mentor.changeScope}
             </Button>
           ) : d === 'MODEL_UNAVAILABLE' && reason === 'model_off' ? (
-            <Button
-              size="sm"
-              icon={<RotateCcw size={15} aria-hidden />}
-              onClick={() => {
-                session.setPref('mentor_use_model', true);
-                onReask(null);
-              }}
-            >
+            <Button size="sm" icon={<RotateCcw size={15} aria-hidden />} onClick={onAskWithModel}>
               {tr.mentor.askWithModel}
             </Button>
           ) : d === 'MODEL_UNAVAILABLE' && keyIssue ? (

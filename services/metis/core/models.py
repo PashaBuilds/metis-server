@@ -959,6 +959,7 @@ class ModelCall(Base):
     user_id: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     key_source: Mapped[str] = mapped_column(String(10), nullable=False, default="shared")  # personal | shared
     created_at: Mapped[datetime] = ts()
+    __table_args__ = (Index("ix_model_calls_created_at", "created_at"),)
 
 
 class ModelCache(Base):

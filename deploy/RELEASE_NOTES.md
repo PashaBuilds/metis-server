@@ -13,7 +13,11 @@ veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisat
   yayın öncesi kontrol yalnız kurallarla yapılır; Metis görevi başlatılamaz. **Yükseltmeden sonra yönetici dışındaki
   herkesin anahtarını eklemesi gerekir; ekibe duyurun.**
 - Anahtar şifreli saklanır (kişiye ve sağlayıcıya bağlı), hiçbir ekranda / logda görünmez; kayıtta kısa bir deneme
-  isteğiyle sınanır. Yanlış kişisel anahtar yalnız o kişiyi etkiler (modeli herkese kapatmaz). Önbellek kişiye özel.
+  isteğiyle sınanır. Yanlış ya da kotası dolmuş kişisel anahtar yalnız o kişiyi etkiler (modeli herkese kapatmaz).
+  Önbellek kişiye özel.
+- Anahtar istemeyen sağlayıcı (yöneticinin anahtar alanını boş bıraktığı yerel model sunucusu) herkese açıktır; kişisel
+  anahtar gerekmez.
+- Başkasının görevini yeniden başlatan kendi anahtarıyla çalıştırır; zamanlanmış bakım ortak anahtarla.
 - **Kullanım:** herkes son 30 günün kendi çağrı ve token sayılarını görür; yönetici kişi başına yalnız toplamları görür
   (soru içerikleri görünmez).
 - **Mentor:** "Cevap: Model yazsın / Yalnız arama" seçimi ve **Bekleme süresi** (varsayılan sağlayıcının süresi; 30 sn –
