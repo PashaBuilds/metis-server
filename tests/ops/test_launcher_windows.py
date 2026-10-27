@@ -54,7 +54,14 @@ def _probe_dialog(pid: int) -> tuple[bool, int] | None:
     from ctypes import wintypes
 
     user32 = ctypes.WinDLL("user32", use_last_error=True)
+    # Tutamaçlar 64 bit: tip bildirilmezse ctypes int'e çevirir, 2^31'i aşan tutamaçta taşar ve tarama kesilir
+    # (masaüstündeki pencerelere göre değişen kararsız sonuç, 2.0.27 adayı).
+    user32.GetWindow.argtypes = [wintypes.HWND, wintypes.UINT]
     user32.GetWindow.restype = wintypes.HWND
+    user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+    user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    user32.GetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int]
     found: list[tuple[bool, int]] = []
 
     @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
