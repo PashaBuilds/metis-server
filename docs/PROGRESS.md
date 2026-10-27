@@ -531,3 +531,15 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
 - Düzeltmelerden sonra tarayıcıda yeniden: sekmeli kod yapıştırması değişmedi, Excel (HTML + sekmeli) → tablo, görsel
   imleçteki yere girdi, eki kaldırınca satırı da kalktı, Ekler'den dosya yüklemek notu bozmadı, tek tireli tablo
   düzenlendi ve boşaltılınca kaldırıldı.
+- Sürüm 2.0.27: ilk aday (1594dfc) derlendi, kurulu 2.0.26 → 2.0.27 görevle yükseltildi (`-Dene` başarılı), ama CI
+  kırmızı: e2e testi `input[type=file]` seçicisi yeni Görsel düğmesinin ikinci dosya girdisiyle iki öğe buldu; Windows
+  duman testinde servis yeniden başlatıldıktan sonraki sabit 15 sn bekleme yetmedi. Düzeltmeler (ba64633): e2e ek alanını
+  (PDF kabul eden girdi) seçer, duman testi `/health/ready` 200 olana kadar (≤ 90 sn) bekler. Sonraki iki `-Derle`
+  masaüstü testinde düştü: test 64 bit pencere tutamacını tip bildirmeden geçiriyordu, 2^31'i aşan tutamaçta pencere
+  taraması kesiliyordu (masaüstündeki pencerelere bağlı kararsızlık) → tipler bildirildi (b8f3ffb). Benim hatam: ilk
+  yeniden derleme sırasında ayrı çalışma ağacında test çalıştırdım; aynı sahte model portunu (9101) kullandığı için
+  derleme testleriyle çakışabilirdi — derleme sürerken başka test çalıştırılmaz.
+- Yayımlanan aday b8f3ffb: `-Derle` (ZIP `sha256:b7fcb073…57ef`), CI 40493857267 yeşil (Linux + Windows). `-Dene`: kurulu
+  METIS zaten 2.0.27'deydi (ilk adayla yükseltilmişti), bu adayla deneme 5 sn sürdü — yeniden kurulum yapılmadığı
+  anlaşılıyor; iki aday arasında uygulama kodu aynı, yalnız testler ve CI değişti. Çift tıklama sorusu/UAC ve Chrome bu
+  yolda denenmedi. `-Yayimla`: GitHub sürümü v2.0.27 (model paketleri 2.0.25 / 2.0.26 sürüm sayfalarında).
