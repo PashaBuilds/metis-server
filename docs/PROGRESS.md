@@ -447,3 +447,9 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
   de böyleydi).
 - Model kararı (ürün sahibi, 2026-10-27): vektör modeli bge-m3, yeniden sıralayıcı bge-reranker-v2-m3 (2.0.26, Mentor;
   3–5 sn bekleme kabul, ekranda ne yapıldığı gösterilecek).
+- Sürüm 2.0.25 (9ce6f15): ilk `-Derle` testleri geçirdi, paketleme düştü — derleme sürerken ajan çalışma ağacında 2.0.26
+  değişikliği yaptı (yarım `tsx`, `tsc` hatası); değişiklik stash'e alınıp temiz ağaçla yeniden derlendi (ZIP 70,8 MB,
+  `sha256:c7a777ea…e47c1`). İlk CI koşusu ikinci derlemenin başlattığı koşuyla iptal oldu; CI 40453106192 yeşil (Linux +
+  Windows). `-Dene`: kurulu 2.0.24 → 2.0.25 görevle yükseltildi (yedek `metis-backup-20261027-052316.zip`,
+  `/health/ready` şema 0017, sürüm 2.0.25); çift tıklama sorusu/UAC ve Chrome bu yolda denenmedi. `-Yayimla`: GitHub
+  sürümü v2.0.25; `METIS-vektor-modeli-bge-m3-1.zip` (`sha256:ebc203d3…89a1`) ve e5-base paketi ek dosya olarak eklendi.
