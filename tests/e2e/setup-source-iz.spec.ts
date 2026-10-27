@@ -31,7 +31,7 @@ test('kurulum, not + ekler, yayın, İz ve düzenleme', async ({ page, browser }
   await expect(page.getByRole('heading', { level: 1, name: 'Taslak hazırla' })).toBeVisible();
   await page.getByLabel('Başlık').fill(NOTE_TITLE);
   await page.getByRole('textbox', { name: 'Not', exact: true }).fill(`${QUOTE}\n\nISR içinde yalnız durum bitleri temizlenir; 1. görselde zamanlama var.`);
-  await page.locator('input[type=file]').setInputFiles([PNG_FILE, PDF_FILE]);
+  await page.locator('input[type=file][accept*=".pdf"]').setInputFiles([PNG_FILE, PDF_FILE]);
   await expect(page.getByText(PNG_FILE.name)).toBeVisible();
   await expect(page.getByText(PDF_FILE.name)).toBeVisible();
   await page.getByRole('button', { name: 'Taslağı kaydet' }).click();

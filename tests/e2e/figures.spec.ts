@@ -19,12 +19,12 @@ test('taslağa iki ek → birini kaldır → kaydet → kayıtta kalan ek', asyn
   await author.goto('/katki');
   await author.getByLabel('Başlık').fill('Kart görünümü notu');
   await author.getByRole('textbox', { name: 'Not', exact: true }).fill('Konnektörün yeri 1. görselde işaretli.');
-  await author.locator('input[type=file]').setInputFiles([PNG_FILE, PDF_FILE]);
+  await author.locator('input[type=file][accept*=".pdf"]').setInputFiles([PNG_FILE, PDF_FILE]);
   await expect(author.getByText(PDF_FILE.name)).toBeVisible();
   await author.getByRole('button', { name: `Eki kaldır: ${PDF_FILE.name}` }).click();
   await expect(author.getByText(PDF_FILE.name)).toHaveCount(0);
   // İzin verilmeyen tür seçilirse yüklenmez, açık hata gösterilir.
-  await author.locator('input[type=file]').setInputFiles({ name: 'not.docx', mimeType: 'application/octet-stream', buffer: Buffer.from('PK\u0003\u0004') });
+  await author.locator('input[type=file][accept*=".pdf"]').setInputFiles({ name: 'not.docx', mimeType: 'application/octet-stream', buffer: Buffer.from('PK\u0003\u0004') });
   await expect(author.getByText('Bu dosya türü eklenemez: not.docx')).toBeVisible();
   await author.getByRole('button', { name: 'Taslağı kaydet' }).click();
   await expect(author).toHaveURL(/\/kayitlar\/[0-9a-f-]{36}$/);

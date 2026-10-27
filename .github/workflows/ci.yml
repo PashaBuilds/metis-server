@@ -216,7 +216,10 @@ jobs:
           $form = @{ meta = $meta }
           Invoke-RestMethod -Method Post "$base/api/v1/projects/$pid_/sources" -Headers $h -WebSession $s -Form $form | Out-Null
           Restart-Service metis-api, metis-worker
-          Start-Sleep -Seconds 15
+          # Hazır olana kadar bekle (sabit 15 sn, servisin durması uzadığında yetmiyordu; 2.0.27 adayı).
+          $ready = $false
+          foreach ($i in 1..45) { try { if ((Invoke-WebRequest -UseBasicParsing -NoProxy http://127.0.0.1:8000/api/v1/health/ready).StatusCode -eq 200) { $ready = $true; break } } catch {}; Start-Sleep -Seconds 2 }
+          if (-not $ready) { throw "yeniden başlatma sonrası hazır değil" }
           $login = Invoke-RestMethod -Method Post "$base/api/v1/auth/login" -Headers @{ Origin = "http://localhost:8000" } -ContentType "application/json" -SessionVariable s2 `
             -Body (@{ username = "ci"; password = "Kurgusal-Parola-2026" } | ConvertTo-Json)
           $src = Invoke-RestMethod "$base/api/v1/projects/$pid_/sources" -WebSession $s2
