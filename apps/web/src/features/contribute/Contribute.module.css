@@ -886,3 +886,63 @@ span.figThumb {
   flex-direction: column;
   gap: var(--s4);
 }
+/* Not araçları: tablo ve görsel. */
+.bodyTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+}
+
+.inlineTag {
+  margin-left: var(--s2);
+  padding: 0 6px;
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-chip);
+  color: var(--soluk);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+}
+
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tableGrid {
+  border-collapse: collapse;
+}
+
+.tableGrid td,
+.tableGrid th {
+  padding: 2px;
+}
+
+.tableColHead {
+  text-align: center;
+}
+
+.tableCell {
+  width: 100%;
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-chip);
+  background: var(--yuzey);
+  color: inherit;
+  font: inherit;
+  font-size: var(--fs-14);
+}
+
+.tableHeadRow .tableCell {
+  background: var(--yuzey-gomuk);
+  font-weight: 600;
+}
+
+.tableActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}

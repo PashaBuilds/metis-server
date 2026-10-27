@@ -237,6 +237,17 @@ açılır. Taslak kaydedilir, Kayıtlar'dan açılıp geliştirilir; **Yayımla*
 çelişki/tekrar kontrolüyle). v0.5.5 aktarımı ve "önce kaynak ekle, sonra alıntı seç" yöntemi 2.0.10'da kaldırıldı;
 yükseltmede hiçbir bilgiye bağlanmamış eski kaynaklar kendiliğinden taslağa dönüşür (metin → not, dosya → ek).
 
+Notta tablo ve görsel (2.0.27'den beri):
+- **Tablo:** notun üstündeki **Tablo** düğmesi satır/sütun kutuları açar (ilk satır başlıktır); imleç bir tablonun
+  içindeyken aynı düğme o tabloyu düzenler. Excel'den kopyalanan hücreler notun içine Ctrl+V ile yapıştırılınca
+  kendiliğinden tabloya çevrilir. Tablo notta Markdown tablosu olarak saklanır ve bir bütün olarak tek iddia olur (Mentor
+  alıntısında tablo olarak görünür).
+- **Görsel:** ekran görüntüsü ya da kopyalanan görsel (PNG/JPEG) notun içine Ctrl+V ile yapıştırılır ya da sürüklenir;
+  **Görsel** düğmesi dosyadan ekler. Görsel bilginin eki olarak yüklenir ve notta kendi satırında
+  `![açıklama](ek:…)` bağlantısıyla durur; açıklama köşeli parantezin içine yazılır. Önizlemede ve bilgi sayfasında yerinde
+  görünür, tıklayınca büyür. Görsel iddia değildir, okunmaz, aranmaz, modele gitmez (açıklaması aramada görünür). Ek
+  kaldırılırsa nottaki görseli de kalkar. Notta gösterilen görseller bilgi sayfasının Ekler listesinde tekrarlanmaz.
+
 ### 10a. Confluence ve GitLab'dan taslak (2.0.18'den beri)
 
 1. **Ayarlar → Dış kaynaklar → Bağlantı ekle** (yalnız yönetici): tür (Confluence / GitLab), ad, kök adres, token ve

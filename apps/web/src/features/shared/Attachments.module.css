@@ -82,7 +82,64 @@
 .large {
   display: block;
   max-width: 100%;
-  max-height: 75vh;
+  max-height: 62vh;
   margin: 0 auto;
   object-fit: contain;
+}
+
+.viewerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  font-size: var(--fs-14);
+}
+
+.viewerLinks a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1, 4px);
+}
+
+/* Notun içindeki görsel: blok olarak metin genişliğinde (satır içi Markdown paragrafının içinde de durabilir). */
+.inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s1, 4px);
+  margin: var(--s3) 0;
+}
+
+.inlineBtn {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 1px solid var(--cizgi);
+  border-radius: var(--r-chip);
+  background: var(--yuzey-gomuk);
+  cursor: zoom-in;
+  line-height: 0;
+}
+
+.inlineImg {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--r-chip);
+}
+
+.inlineCaption {
+  color: var(--soluk);
+  font-size: var(--fs-13);
+}
+
+.inlineMissing {
+  display: block;
+  margin: var(--s3) 0;
+  padding: var(--s3);
+  border: 1px dashed var(--cizgi);
+  border-radius: var(--r-chip);
+  color: var(--soluk);
+  font-size: var(--fs-13);
 }

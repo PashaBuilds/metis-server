@@ -1,4 +1,4 @@
-import { FileText, Paperclip } from 'lucide-react';
+import { Download, FileText, Paperclip } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog } from '@/design/primitives';
 import { tr } from '@/i18n/tr';
@@ -10,6 +10,67 @@ import { apiUrl } from '@/lib/api/base';
 export type AttachmentData = Schemas['AttachmentOut'];
 
 export const attachmentUrl = (id: string) => apiUrl(`/attachments/${id}/download`);
+
+/** Notta satır içi görsel: taslağın görsel ekine bağlantı, `![açıklama](ek:<ek kimliği>)` (sunucu: knowledge.figures.INLINE_IMAGE). */
+export const INLINE_IMAGE = /!\[([^\]\n]*)\]\(ek:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\)/g;
+const ONLY_IMAGE = new RegExp(`^\\s*${INLINE_IMAGE.source}\\s*$`);
+const UUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+export const inlineImageMd = (id: string, alt: string) => `![${alt.replace(/[[\]\\\n]/g, ' ').trim()}](ek:${id})`;
+
+/** Paragraf yalnız bir satır içi görselse kimliği ve açıklaması. */
+export function inlineImage(text: string): { id: string; alt: string } | null {
+  const m = ONLY_IMAGE.exec(text);
+  return m ? { alt: m[1]!, id: m[2]!.toLowerCase() } : null;
+}
+
+export function inlineImageIds(text: string): Set<string> {
+  return new Set([...text.matchAll(INLINE_IMAGE)].map((m) => m[2]!.toLowerCase()));
+}
+
+/** `ek:` bağlantısı → ek kimliği (Markdown görüntüleyicisi için); geçersizse null. */
+export function attachmentRef(src: unknown): string | null {
+  return typeof src === 'string' && src.startsWith('ek:') && UUID.test(src.slice(3)) ? src.slice(3).toLowerCase() : null;
+}
+
+/** Görseli büyük gösterir; indirme bağlantısıyla (indirme ucu dosyayı hep ek olarak verir, yeni sekmede açmaz). */
+export function ImageViewer({ id, title, open, onOpenChange }: { id: string; title: string; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const url = attachmentUrl(id);
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      width={1100}
+      footer={
+        <span className={s.viewerLinks}>
+          <a href={url} download>
+            <Download size={15} aria-hidden /> {tr.attachments.download}
+          </a>
+        </span>
+      }
+    >
+      {open && <img className={s.large} src={url} alt={title} />}
+    </Dialog>
+  );
+}
+
+/** Notun içindeki görsel: metin genişliğinde, tıklayınca büyür. Kanıt değildir (altın yok). */
+export function InlineImage({ id, alt }: { id: string; alt: string }) {
+  const [open, setOpen] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const title = alt.trim() || tr.attachments.untitledImage;
+  if (failed) return <span className={s.inlineMissing}>{tr.attachments.imageMissing}</span>;
+  return (
+    <span className={s.inline}>
+      <button type="button" className={s.inlineBtn} onClick={() => setOpen(true)} aria-label={tr.attachments.preview(title)}>
+        <img className={s.inlineImg} src={attachmentUrl(id)} alt="" loading="lazy" onError={() => setFailed(true)} />
+      </button>
+      {alt.trim() && <span className={s.inlineCaption}>{alt.trim()}</span>}
+      <ImageViewer id={id} title={title} open={open} onOpenChange={setOpen} />
+    </span>
+  );
+}
 
 /** Bilginin ekleri: görseller küçük önizlemeyle (tıklayınca büyür), PDF'ler adıyla açılır/indirilir. Kanıt değildir. */
 export function Attachments({ items, headingLevel = 2 }: { items: AttachmentData[]; headingLevel?: 2 | 3 }) {
@@ -43,9 +104,7 @@ export function Attachments({ items, headingLevel = 2 }: { items: AttachmentData
           </li>
         ))}
       </ul>
-      <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)} title={open?.filename ?? ''}>
-        {open && <img className={s.large} src={attachmentUrl(open.id)} alt={open.filename} />}
-      </Dialog>
+      {open && <ImageViewer id={open.id} title={open.filename} open onOpenChange={(o) => !o && setOpen(null)} />}
     </section>
   );
 }

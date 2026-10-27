@@ -42,7 +42,7 @@ from metis.modules.attachments.service import resolve_for_draft as resolve_attac
 from metis.modules.changes import schemas
 from metis.modules.external.service import bind_import
 from metis.modules.knowledge import publish as publisher
-from metis.modules.knowledge.figures import figure_refs
+from metis.modules.knowledge.figures import figure_refs, inline_image_ids, inline_images_well_formed
 from metis.modules.knowledge.views import RevisionView, revision_views
 from metis.modules.notes.service import materialize_note
 from metis.modules.scopes.semantics import DIMENSIONS, WILDCARD, canonical, normalize_scope, same_scope
@@ -197,7 +197,15 @@ def _validate_item(db: Session, actor: User, project_id: uuid.UUID, item: schema
             )
         _validate_evidence(db, actor, project_id, claim.evidence, scope)
     _validate_figures(db, actor, project_id, item)
-    resolve_attachments(db, actor, project_id, item.page_id, item.attachments)
+    attachments = {a.id: a for a in resolve_attachments(db, actor, project_id, item.page_id, item.attachments)}
+    if not inline_images_well_formed(item.body_md):
+        raise AppError("INLINE_IMAGE_FORM", "inline image must stand on its own line as ![text](ek:id)", fields=[{"field": "body_md", "type": "inline_image"}])
+    for aid in inline_image_ids(item.body_md):
+        # Satır içi görsel taslağın kendi ekidir (erişim ve sürümleme eklerle aynı); PDF gövdede gösterilmez.
+        if aid not in attachments:
+            raise AppError("INLINE_IMAGE_MISSING", "body shows an image that is not among the attachments", fields=[{"field": "body_md", "type": "inline_image"}])
+        if not attachments[aid].media_type.startswith("image/"):
+            raise AppError("INLINE_IMAGE_NOT_IMAGE", "inline attachment is not an image", fields=[{"field": "body_md", "type": "inline_image"}], filename=attachments[aid].filename)
     return page, scope
 
 

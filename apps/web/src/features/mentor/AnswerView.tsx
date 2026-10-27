@@ -10,6 +10,8 @@ import { tr } from '@/i18n/tr';
 import { api, type Schemas } from '@/lib/api/client';
 import { formatDateTime, formatMs } from '@/lib/format';
 import { Banner } from '@/features/shared/Banner';
+import { Markdown } from '@/features/shared/Markdown';
+import { parseTable } from '@/features/shared/table';
 import { FreshnessBadge } from '@/features/shared/kinds';
 import { messageOf } from '@/features/shared/hooks';
 import { modelReason } from '@/features/shared/models';
@@ -132,7 +134,7 @@ export function AnswerView({ answer, live, onReask }: Props) {
                     <span className={s.quoteSource}>{c.source_title}</span>
                     {c.locator_label && <span className={s.quoteLoc}>{c.locator_label}</span>}
                   </div>
-                  <blockquote className={s.quoteText}>{c.quote}</blockquote>
+                  <blockquote className={s.quoteText}>{parseTable(c.quote) ? <Markdown>{c.quote}</Markdown> : c.quote}</blockquote>
                   {c.page_title && (
                     <Link to="/bilgi/$pageId" params={{ pageId: c.page_id }} search={{}} className={s.quotePage}>
                       {tr.mentor.openPage}: {c.page_title}
@@ -220,7 +222,13 @@ function Abstain({ answer, onReask }: { answer: Answer; onReask: (modelId: strin
                 <Link to="/bilgi/$pageId" params={{ pageId: p.page_id }} search={{}} className={s.relatedTitle}>
                   {p.heading_path ? `${p.title} › ${p.heading_path}` : p.title}
                 </Link>
-                <p className={s.passageText}>{p.text}</p>
+                {parseTable(p.text) ? (
+                  <div className={s.passageText}>
+                    <Markdown>{p.text}</Markdown>
+                  </div>
+                ) : (
+                  <p className={s.passageText}>{p.text}</p>
+                )}
               </li>
             ))}
           </ol>

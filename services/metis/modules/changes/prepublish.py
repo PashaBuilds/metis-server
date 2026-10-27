@@ -24,6 +24,7 @@ from metis.llm import contracts, prompts
 from metis.llm.client import ModelClient
 from metis.modules.changes import schemas
 from metis.modules.health.maintenance import _strip_numbers, shape_prefilter
+from metis.modules.knowledge.figures import strip_inline_images
 from metis.modules.scopes.semantics import overlaps
 
 MAX_RULE_JUDGE = 5
@@ -45,7 +46,7 @@ def _candidates(db, user: User, change: ChangeSet) -> dict:  # noqa: ANN001
         assert rev is not None
         draft_revs.append(rev.id)
         claims = list(db.scalars(select(Claim.statement).where(Claim.page_revision_id == rev.id).order_by(Claim.ord)))
-        drafts.append({"page_id": item.page_id, "title": rev.title, "summary": rev.summary, "body": rev.body_md, "scope": rev.scope, "claims": claims})
+        drafts.append({"page_id": item.page_id, "title": rev.title, "summary": rev.summary, "body": strip_inline_images(rev.body_md), "scope": rev.scope, "claims": claims})
     if not drafts:
         return {"drafts": [], "rule": [], "similar": []}
     own_pages = {d["page_id"] for d in drafts}

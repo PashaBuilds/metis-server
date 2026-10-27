@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import re
 
+from metis.modules.knowledge.figures import INLINE_IMAGE
+
 MAX_BLOCK = 4000  # iddia cümlesi üst sınırı (changes.schemas.ClaimIn.statement); kanıt alıntısı sınırı daha geniş
 _SEPARATOR = re.compile(r"\n[ \t]*\n")
 _SENTENCE_END = re.compile(r"[.!?…](?=\s)|\n")
@@ -40,10 +42,12 @@ def _split_long(text: str, start: int, end: int) -> list[tuple[int, int]]:
 
 
 def note_blocks(text: str) -> list[tuple[int, int]]:
-    """Boş satırlarla ayrılmış, harf ya da rakam içeren bloklar; her biri en çok MAX_BLOCK karakter."""
+    """Boş satırlarla ayrılmış, harf ya da rakam içeren bloklar; her biri en çok MAX_BLOCK karakter.
+    Satır içi görsel bağlantısı da ayırıcıdır: iddiaya girmez, çevresindeki metin birebir aralık kalır."""
     spans: list[tuple[int, int]] = []
     pos = 0
-    for m in [*_SEPARATOR.finditer(text), None]:
+    seps = sorted([*_SEPARATOR.finditer(text), *INLINE_IMAGE.finditer(text)], key=lambda m: m.start())
+    for m in [*seps, None]:
         stop = m.start() if m else len(text)
         s, e = _trimmed(text, pos, stop)
         if e > s and any(ch.isalnum() for ch in text[s:e]):

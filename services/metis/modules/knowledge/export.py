@@ -20,13 +20,18 @@ from sqlalchemy.orm import Session
 from metis.core.access import require_member
 from metis.core.blobs import read_blob
 from metis.core.models import Attachment, Project, SourceRevision, User
-from metis.modules.knowledge.figures import FIGURE_LINE
+from metis.modules.knowledge.figures import FIGURE_LINE, INLINE_IMAGE
 from metis.modules.knowledge.service import _active_rows
 from metis.modules.knowledge.views import revision_views
 from metis.modules.scopes.semantics import DIMENSIONS, normalize_scope
 
 KIND_LABELS = {"concept": "Kavram", "component": "Bileşen", "procedure": "Prosedür", "decision": "Karar", "incident": "Olay", "validation": "Doğrulama", "table": "Tablo", "learning_path": "Öğrenme yolu"}
 DIM_LABELS = {"domain": "Domain", "yatt": "YATT", "kart": "Kart", "proje": "Proje"}
+
+
+def md_target(path: str) -> str:
+    """Markdown bağlantı hedefi: boşluk ya da parantez içeren dosya adı (ör. ekran görüntüsü) `<...>` içinde yazılır."""
+    return f"<{path}>" if any(ch in path for ch in " ()<>") else path
 
 
 def slug(text: str) -> str:
@@ -78,6 +83,13 @@ def export_zip(db: Session, user: User, project_id: uuid.UUID) -> tuple[str, byt
                 f = figs.get(int(m.group(1)))
                 return f"![{f.caption}](../{images[f.source_revision_id]})" if f else ""
 
+            folder = "ekler/" + names[page.id].removeprefix("sayfalar/").removesuffix(".md")
+            att_paths = {att.id: f"{folder}/{n}-{att.filename}" for n, att in enumerate(view.attachments, start=1)}
+
+            def inline_md(m: re.Match[str], paths: dict = att_paths) -> str:
+                path = paths.get(uuid.UUID(m.group(2)))
+                return f"![{m.group(1)}]({md_target(f'../{path}')})" if path else ""
+
             notes: list[str] = []
             note_no: dict[uuid.UUID, int] = {}
             claim_lines = []
@@ -97,7 +109,7 @@ def export_zip(db: Session, user: User, project_id: uuid.UUID) -> tuple[str, byt
                 "",
                 view.summary,
                 "",
-                FIGURE_LINE.sub(figure_md, view.body_md).strip(),
+                INLINE_IMAGE.sub(inline_md, FIGURE_LINE.sub(figure_md, view.body_md)).strip(),
                 "",
                 "## İddialar",
                 "",
@@ -106,14 +118,13 @@ def export_zip(db: Session, user: User, project_id: uuid.UUID) -> tuple[str, byt
             if view.unknowns:
                 md += ["", "## Bilinmeyenler", "", *[f"- {u}" for u in view.unknowns]]
             if view.attachments:
-                folder = "ekler/" + names[page.id].removeprefix("sayfalar/").removesuffix(".md")
                 links = []
-                for n, att in enumerate(view.attachments, start=1):
+                for att in view.attachments:
                     row = db.get(Attachment, att.id)
                     assert row is not None
-                    path = f"{folder}/{n}-{att.filename}"
+                    path = att_paths[att.id]
                     z.writestr(path, read_blob(row.sha256))
-                    links.append(f"- [{att.filename}](../{path})")
+                    links.append(f"- [{att.filename}]({md_target(f'../{path}')})")
                 md += ["", "## Ekler", "", *links]
             if notes:
                 md += ["", *notes]

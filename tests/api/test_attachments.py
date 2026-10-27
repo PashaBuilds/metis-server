@@ -160,3 +160,10 @@ def test_export_includes_attachments(sp):  # noqa: F811
     assert z.read("ekler/uart-ayarlari/2-rapor.pdf") == PDF
     md = z.read("sayfalar/uart-ayarlari.md").decode()
     assert "## Ekler" in md and "(../ekler/uart-ayarlari/2-rapor.pdf)" in md
+
+
+def test_export_link_with_spaces_is_angle_bracketed():
+    from metis.modules.knowledge.export import md_target
+
+    assert md_target("../ekler/a/1-rapor.pdf") == "../ekler/a/1-rapor.pdf"
+    assert md_target("../ekler/a/1-Ekran görüntüsü (2).png") == "<../ekler/a/1-Ekran görüntüsü (2).png>"

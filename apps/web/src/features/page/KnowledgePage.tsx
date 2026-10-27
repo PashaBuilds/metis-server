@@ -18,7 +18,7 @@ import { messageOf, useUndoableDelete } from '@/features/shared/hooks';
 import { asScope } from '@/features/shared/scope';
 import { HistoryDrawer } from './HistoryDrawer';
 import { RelatedPanel } from './RelatedPanel';
-import { Attachments } from '@/features/shared/Attachments';
+import { Attachments, InlineImage, inlineImage } from '@/features/shared/Attachments';
 import s from './Knowledge.module.css';
 
 const route = getRouteApi('/app/bilgi/$pageId');
@@ -68,6 +68,7 @@ function PageView({ page }: { page: PageDetail }) {
   const undoableDelete = useUndoableDelete();
   const r = page.revision;
   const claimsByOrd = useMemo(() => new Map(r.claims.map((c) => [c.ord, c])), [r.claims]);
+  const inlineIds = useMemo(() => new Set(page.paragraphs.map((p) => inlineImage(p.text)?.id).filter((id): id is string => !!id)), [page.paragraphs]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -194,6 +195,8 @@ function PageView({ page }: { page: PageDetail }) {
                 const fig = r.figures[n - 1];
                 return fig ? <Figure key={i} figure={fig} n={n} /> : null;
               }
+              const img = inlineImage(p.text);
+              if (img) return <InlineImage key={i} id={img.id} alt={img.alt} />;
               return (
                 <EvidenceStripe key={i} count={p.claim_ords.length}>
                   <Paragraph text={p.text} marks={p.claim_ords.map((ord) => claimsByOrd.get(ord)).filter((c): c is ClaimView => !!c)} />
@@ -204,7 +207,8 @@ function PageView({ page }: { page: PageDetail }) {
         </section>
 
         <div id="ekler">
-          <Attachments items={r.attachments ?? []} />
+          {/* Notun içinde gösterilen görseller ekler listesinde tekrarlanmaz. */}
+          <Attachments items={(r.attachments ?? []).filter((a) => !inlineIds.has(a.id.toLowerCase()))} />
         </div>
 
         {/* Not tabanlı bilgide iddialar notun paragraflarıdır: ayrı liste gövdeyi tekrarlardı. */}

@@ -16,7 +16,7 @@ from metis.llm import contracts, prompts
 from metis.llm.validators import check_sentence, has_negation
 from metis.modules.changes import schemas as cs
 from metis.modules.changes import service as changes
-from metis.modules.knowledge.figures import strip_figures
+from metis.modules.knowledge.figures import strip_figures, strip_inline_images
 from metis.modules.knowledge.views import revision_views
 from metis.worker.prepare import call, load_model
 from metis.worker.runtime import JobContext, JobFailed, worker_identity
@@ -63,7 +63,7 @@ def run_refine(ctx: JobContext) -> None:
     for d in drafts:
         v = d["view"]
         ctx.step("refine", page=v.title)
-        payload = {"draft": {"title": v.title, "summary": v.summary, "body": strip_figures(v.body_md), "claims": [{"statement": c.statement} for c in v.claims]}, "evidence": {str(e.evidence_id): e.quote for c in v.claims for e in c.evidence}, "instructions": instructions}
+        payload = {"draft": {"title": v.title, "summary": v.summary, "body": strip_inline_images(strip_figures(v.body_md)), "claims": [{"statement": c.statement} for c in v.claims]}, "evidence": {str(e.evidence_id): e.quote for c in v.claims for e in c.evidence}, "instructions": instructions}
         n = len(v.claims)
 
         def covers(out: dict, n: int = n) -> bool:
@@ -77,11 +77,11 @@ def run_refine(ctx: JobContext) -> None:
             from metis.modules.search.service import search
 
             req = db.get(User, requester_id)
-            hits = [h for h in search(db, req, project_id, v.body_md[:4000] or v.title, None, None, 6).hits if h.page_id != d["item"].page_id][:3]  # type: ignore[arg-type]
+            hits = [h for h in search(db, req, project_id, strip_inline_images(v.body_md)[:4000] or v.title, None, None, 6).hits if h.page_id != d["item"].page_id][:3]  # type: ignore[arg-type]
             cands = [{"page_id": str(h.page_id), "title": h.title, "statements": list(db.scalars(select(Claim.statement).where(Claim.page_revision_id == h.revision_id)))} for h in hits]
         comparisons = []
         for cand in cands:
-            res = call(ctx, model, provider, prompts.PAGE_DIFF, {"kayit_a": v.body_md[:8000], "kayit_b": "\n".join([cand["title"], *cand["statements"]])}, contracts.PageDiff, output_tokens=1000)
+            res = call(ctx, model, provider, prompts.PAGE_DIFF, {"kayit_a": strip_inline_images(v.body_md)[:8000], "kayit_b": "\n".join([cand["title"], *cand["statements"]])}, contracts.PageDiff, output_tokens=1000)
             comparisons.append({"page_id": cand["page_id"], "page_title": cand["title"], "verdict": res["verdict"], "reason": res["reason"]})
         statements = [c.statement for c in v.claims]
         # Model başlık/özet önerir; iddialarla desteklenmeyen öneri kullanılmaz, eskisi korunur.

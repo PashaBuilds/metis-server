@@ -4,6 +4,20 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.27 — Notta tablo ve görsel:**
+- **Tablo:** taslak notunun üstündeki **Tablo** düğmesi satır ve sütun kutularıyla tablo ekler; imleç tablonun içindeyse
+  aynı düğme o tabloyu düzenler (satır/sütun ekle, sil). Excel'den kopyalanan hücreler notun içine Ctrl+V ile
+  yapıştırılınca kendiliğinden tabloya çevrilir. Tablo, bilgi sayfasında ve Mentor alıntısında tablo olarak görünür.
+- **Görsel:** ekran görüntüsü ya da kopyalanan görsel (PNG/JPEG) notun içine Ctrl+V ile yapıştırılır ya da sürüklenir;
+  **Görsel** düğmesi dosyadan seçer. Görsel bilginin eki olarak yüklenir ve notun içinde yazıldığı yerde görünür
+  (Önizle'de ve yayımlanan sayfada). Tıklayınca büyük açılır; oradan yeni sekmede açılır ya da indirilir. Ekler
+  listesindeki görseller de aynı büyük görünümde açılır.
+- Görsel iddia ya da kanıt değildir: okunmaz, aranmaz, modele gitmez (yalnız yazılan açıklaması aramada görünür). Notta
+  gösterilen görsel taslağın eki olmalıdır; ek kaldırılınca nottaki görseli de kalkar. Dışa aktarılan Markdown'da görsel
+  ek dosyasına bağlanır.
+- Notun kendisi yine düz Markdown metnidir (Yaz / Önizle); görsel metinde `![açıklama](ek:…)` satırı olarak durur.
+- Şema değişikliği yok; mevcut bilgiler aynı kalır.
+
 **2.0.26 — Mentor yeniden sıralayıcısı; ne yapıldığı ekranda:**
 - **Yeni, isteğe bağlı eklenti: `METIS-yeniden-siralayici-bge-reranker-v2-m3-1.zip`** (BAAI/bge-reranker-v2-m3, Apache 2.0,
   ≈ 432 MB; ayrı dosya olarak bu sürüme eklendi; kurulum KURULUM 10d). Mentor bir soru aldığında aramanın en iyi 30

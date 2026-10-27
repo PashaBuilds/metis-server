@@ -7,17 +7,29 @@ import { formatBytes } from '@/lib/format';
 import { attachmentUrl, type AttachmentData } from '@/features/shared/Attachments';
 import s from './Contribute.module.css';
 
-const MAX = 30;
+export const MAX_ATTACHMENTS = 30;
+const MAX = MAX_ATTACHMENTS;
 const ALLOWED = /\.(png|jpe?g|pdf)$/i;
+
+/** Tek dosya yükler. Her dosya ayrı istekle: sunucu önündeki vekilin (IIS) istek boyutu sınırı dosya başına sınırla
+ * aynı kalır; toplu tek istek birkaç büyük fotoğrafta vekilde reddediliyordu. */
+export async function uploadAttachment(projectId: string, file: File): Promise<AttachmentData[]> {
+  const fd = new FormData();
+  fd.append('files', file);
+  return api.upload<AttachmentData[]>(`/projects/${projectId}/attachments`, fd);
+}
 
 interface Props {
   projectId: string;
   value: AttachmentData[];
-  onChange: (next: AttachmentData[]) => void;
+  /** Güncelleyici: yükleme sürerken başka yoldan (notun içine yapıştırma) eklenen ekler kaybolmasın. */
+  onChange: (update: (prev: AttachmentData[]) => AttachmentData[]) => void;
+  /** Notun içinde gösterilen görsellerin kimlikleri (listede "Notta" işareti). */
+  inline?: Set<string>;
 }
 
 /** Taslağın ekleri: birden çok görsel/PDF seçilir ya da bırakılır, hemen yüklenir; kaldırılabilir. */
-export function AttachmentsField({ projectId, value, onChange }: Props) {
+export function AttachmentsField({ projectId, value, onChange, inline }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,16 +42,11 @@ export function AttachmentsField({ projectId, value, onChange }: Props) {
     if (bad) return setError(tr.attachments.notAllowed(bad.name));
     if (value.length + files.length > MAX) return setError(tr.attachments.tooMany);
     setBusy(true);
-    // Her dosya ayrı istekle yüklenir: sunucu önündeki vekilin (IIS) istek boyutu sınırı dosya başına sınırla aynı
-    // kalır; toplu tek istek birkaç büyük fotoğrafta vekilde reddediliyordu. Biri başarısız olursa öncekiler kalır.
-    let next = value;
+    // Biri başarısız olursa öncekiler kalır.
     try {
       for (const f of files) {
-        const fd = new FormData();
-        fd.append('files', f);
-        const added = await api.upload<AttachmentData[]>(`/projects/${projectId}/attachments`, fd);
-        next = [...next, ...added];
-        onChange(next);
+        const added = await uploadAttachment(projectId, f);
+        onChange((prev) => [...prev, ...added]);
       }
     } catch (e) {
       setError(e instanceof ApiError ? errorMessage(e.code) : errorMessage('NETWORK'));
@@ -97,10 +104,13 @@ export function AttachmentsField({ projectId, value, onChange }: Props) {
                   </span>
                 )}
                 <div className={s.grow}>
-                  <span className={s.attName}>{a.filename}</span>
+                  <span className={s.attName}>
+                    {a.filename}
+                    {inline?.has(a.id.toLowerCase()) && <span className={s.inlineTag}>{tr.attachments.inNote}</span>}
+                  </span>
                   <span className={s.hint}>{formatBytes(a.size_bytes)}</span>
                 </div>
-                <IconButton label={tr.attachments.remove(a.filename)} onClick={() => onChange(value.filter((x) => x.id !== a.id))}>
+                <IconButton label={tr.attachments.remove(a.filename)} onClick={() => onChange((prev) => prev.filter((x) => x.id !== a.id))}>
                   <Trash2 size={16} aria-hidden />
                 </IconButton>
               </li>

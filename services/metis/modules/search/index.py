@@ -28,7 +28,7 @@ from metis.core.models import (
     SearchPassage,
 )
 from metis.llm.prompts import ENRICH
-from metis.modules.knowledge.figures import strip_figures
+from metis.modules.knowledge.figures import strip_figures, strip_inline_images
 from metis.modules.search.text import fold
 from metis.modules.search.vectors import bump, embed_hash
 
@@ -179,7 +179,7 @@ def index_pages(db: Session, project_id: uuid.UUID, publication_id: uuid.UUID, p
         captions = db.scalars(
             select(PageRevisionFigure.caption).where(PageRevisionFigure.page_revision_id == rev.id).order_by(PageRevisionFigure.ord)
         ).all()
-        content = f"{rev.summary}\n{strip_figures(rev.body_md, list(captions))}\n{claim_text}"
+        content = f"{rev.summary}\n{strip_inline_images(strip_figures(rev.body_md, list(captions)))}\n{claim_text}"
         aliases = aliases_for(rev.title, rev.aliases or [], content)
         symbols = extract_symbols(rev.title, content)
         alias_text = " ".join(aliases)

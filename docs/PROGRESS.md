@@ -490,3 +490,44 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
   sorusu/UAC ve Chrome bu yolda denenmedi; kurulu METIS'e yeniden sıralayıcı kurulmadı (betik yönetici ister).
   `-Yayimla`: GitHub sürümü v2.0.26; ek dosyalar: `METIS-yeniden-siralayici-bge-reranker-v2-m3-1.zip`
   (`sha256:20d833d4…ed6c`), bge-m3 ve e5-base paketleri.
+
+## Notta tablo ve satır içi görsel (2026-10-27) — v2.0.27
+
+- Ürün sahibinin isteği (2026-10-27): taslak notuna satır/sütun tablo eklenebilmeli; görseller Ctrl+C / Ctrl+V ile notun
+  içine girmeli; görsele tıklayınca büyük önizleme açılmalı.
+- Karar: not düz Markdown metni olarak kalır (Yaz / Önizle; zengin editör yok). Tablo = GFM boru tablosu (Confluence
+  aktarımıyla aynı biçim). Görsel = taslağın kendi görsel eki + notta kendi satırında `![açıklama](ek:<ek kimliği>)`.
+  Böylece revizyon hash'i, iddia == kanıt aralığı ve ek erişim kuralları değişmeden kalır; şema değişikliği yok.
+- Sunucu: görsel bağlantısı nerede durursa dursun blok ayırıcıdır, iddia olmaz (`notes/blocks.py`; çevresindeki metin
+  birebir aralık kalır); bağlantıdaki ek taslağın eklerinde olmalı ve görsel olmalı (`INLINE_IMAGE_MISSING`,
+  `INLINE_IMAGE_NOT_IMAGE`); sayfada ayrı paragraf (iddia işareti yok); arama içeriğinde, yayın öncesi kontrolde ve Metis
+  düzenleme görevinde bağlantı açıklamaya çevrilir (ek kimliği metne / modele girmez); dışa aktarmada ek dosyasına bağlanır.
+- Ön yüz: not araç çubuğu (Tablo, Görsel); Excel hücreleri yapıştırılınca tabloya çevrilir (sekmeli metin öncelikli —
+  Excel yanında resim de koyar); yalnız görsel yapıştırılırsa / sürüklenirse yüklenip imlecin yerine ayrı paragraf olarak
+  girer; tablo penceresi (ilk satır başlık, satır/sütun ekle-sil, hücreye Excel yapıştırma), imleç tablodaysa o tabloyu
+  yerinde düzenler; ekleme `execCommand('insertText')` ile, Ctrl+Z geri alır. Görsel tıklanınca büyük görünüm (yeni
+  sekmede aç, indir); ekler listesi de aynı görünümü kullanır; notta gösterilen görsel sayfanın Ekler listesinde
+  tekrarlanmaz; Mentor alıntısı ve model yokken gösterilen bölüm tabloysa tablo olarak çizilir.
+- Testler: blok ayırma (görsel satırı / paragraf içinde görsel / tablo tek blok), yardımcılar; API: yayın + paragraflar,
+  eksik ve PDF bağlantısı reddi, dışa aktarma yolu, arama içeriğinde ek kimliği yok. Tablo yardımcıları (TSV tırnaklı
+  çok satırlı hücre, `\|`, tableAt, blok ayırma) node betiğiyle denendi (ön yüzde birim test altyapısı yok).
+- Tarayıcıda (geliştirme sunucusu, kurgusal veri): Excel yapıştırması → tablo; panodan PNG → yüklendi, ek listesinde
+  "Notta"; Önizle'de tablo + görsel; tıklayınca büyük görünüm; imleç tablodayken düzenleme → yerinde güncellendi; geri al /
+  yinele; yayımlanan sayfada tablo iddia işaretiyle, görsel işaretsiz ve Ekler listesinde tekrarsız; mobil genişlikte tablo
+  penceresi yatay kayar, sayfa taşmaz. Gerçek Excel / ekran görüntüsü aracıyla pano denenmedi (pano olayı betikle üretildi).
+- Bağımsız inceleme (opus). "Kritik" bildirilen `changeAttachments` gövdeyi bozuyor bulgusu yanlış alarm çıktı (ayraç gerçek
+  U+E000 karakteriydi; incelemenin okuduğu metinde görünmüyordu); kod yine de ayraçsız yazıldı. Düzeltilen önemli
+  bulgular: ek alanı ve ek kaldırma artık en güncel taslak üzerinden (yükleme sürerken yazılan metin / yapıştırılan görsel
+  kaybolmaz); `ek:` bağlantısının kurallı satır dışındaki her biçimi (cümle içi, tablo hücresi, başlıklı, `<...>`,
+  başvuru tanımı) sunucuda `INLINE_IMAGE_FORM` ile reddedilir (ek kimliği iddiaya / aramaya / modele giremez); sekmeli kod
+  ya da günlük yapıştırması tabloya çevrilmez (yalnız panoda HTML tablosu da varsa: Excel, LibreOffice, tarayıcı tablosu);
+  dışa aktarmada boşluklu / parantezli dosya adı `<...>` içinde. Küçük: indirme ucu dosyayı hep ek olarak verdiği için
+  "Yeni sekmede aç" kaldırıldı; dış adresli görsel yerine açıklaması yazılır; görsel yüklenirken kaydet kapalı, odak
+  çalınmaz (başka alandaysa görsel notun sonuna); sürükleme varsayılanı engellendi; tek tireli ayraç tablo sayılır;
+  tablo penceresinde tüm hücreler boşaltılınca "Tabloyu kaldır"; araç çubuğu `role=group`, yükleme duyurusu canlı bölgede.
+  Ertelenen: Metis düzenleme görevi (refine) öneride ekleri zaten taşımıyordu, satır içi görseller de önerinin gövdesine
+  girmez (görev yalnız modele giden metinden ek kimliğini çıkarır); kanıt görüntüleyici ve inceleme farkı ham
+  `![…](ek:…)` satırını gösterir.
+- Düzeltmelerden sonra tarayıcıda yeniden: sekmeli kod yapıştırması değişmedi, Excel (HTML + sekmeli) → tablo, görsel
+  imleçteki yere girdi, eki kaldırınca satırı da kalktı, Ekler'den dosya yüklemek notu bozmadı, tek tireli tablo
+  düzenlendi ve boşaltılınca kaldırıldı.
