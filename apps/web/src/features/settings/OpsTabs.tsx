@@ -176,6 +176,9 @@ export function SystemTab() {
           <Fact label={x.vector}>
             <VectorStatus v={d.vector_search ?? {}} />
           </Fact>
+          <Fact label={x.reranker}>
+            <RerankerStatus v={d.reranker ?? {}} />
+          </Fact>
           <Fact label={x.enrichment}>{x.enrichmentProgress(Number(d.enrichment?.blocks_enriched ?? 0), Number(d.enrichment?.blocks_eligible ?? 0))}</Fact>
         </dl>
       </section>
@@ -316,6 +319,16 @@ export function ExportTab() {
       <p className={s.hint}>{tr.settingsExtra.exportNote}</p>
     </section>
   );
+}
+
+/** Mentor yeniden sıralayıcısı: kurulu mu, yüklenebildi mi. Yoksa Mentor arama sırasıyla çalışır. */
+function RerankerStatus({ v }: { v: Record<string, unknown> }) {
+  const x = tr.settingsExtra;
+  const state = typeof v.state === 'string' ? v.state : 'absent';
+  if (state === 'ready') return <StatusBadge tone="onay" size="sm" label={x.rerankerReady(String(v.model_id ?? ''))} />;
+  if (state === 'loading') return <StatusBadge tone="inceleme" size="sm" label={x.rerankerLoading} />;
+  if (state === 'error') return <StatusBadge tone="celiski" size="sm" label={x.vectorError(String(v.reason ?? ''))} />;
+  return <StatusBadge tone="taslak" size="sm" label={x.rerankerAbsent} />;
 }
 
 /** Vektör arama: model kurulu mu, kaç bölümün vektörü hazır. Model yoksa METIS yalnız kelime aramasıyla çalışır. */

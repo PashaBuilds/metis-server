@@ -290,6 +290,10 @@ def test_stream_emits_progress_and_result(mentor_env):
     events = [line.split(": ", 1)[1] for line in body.splitlines() if line.startswith("event: ")]
     assert events[0] == "progress" and "sources" in events and events[-1] == "result"
     assert "kullanılmaz" not in body.split("event: result")[0]  # doğrulanmamış içerik sonuçtan önce akmaz
+    # Sıralayıcı yokken adımlar (2.0.26): aranıyor → kaynaklar → model yazıyor → cevap denetleniyor; "ranking" yok.
+    steps = [line.split('"step": "', 1)[1].split('"', 1)[0] for line in body.splitlines() if line.startswith("data: ") and '"step": "' in line]
+    assert steps == ["searching", "generating", "verifying"]
+    assert events.index("sources") < len(events) - 1 and body.index('"generating"') > body.index("event: sources")
 def test_answer_delete_is_private(mentor_env):
     env = mentor_env
     a = ask(env["reader"], env["pid"], "SPI saat bölücü kaç?")

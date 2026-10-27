@@ -25,7 +25,9 @@ def ask(project_id: uuid.UUID, data: schemas.AskIn, user: User = Depends(current
 
 @router.post("/projects/{project_id}/mentor/stream")
 async def ask_stream(project_id: uuid.UUID, data: schemas.AskIn, user: User = Depends(current_user)) -> StreamingResponse:
-    """İlerleme olayları: progress(searching|verifying) → sources → result | error. Doğrulanmamış token gönderilmez."""
+    """İlerleme olayları: progress(searching) → progress(ranking, candidates; yeniden sıralayıcı kuruluysa) → sources →
+    progress(generating; model çağrısı) → progress(verifying; model cevabı denetlenirken) → result | error.
+    Doğrulanmamış token gönderilmez."""
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue[tuple[str, dict] | None] = asyncio.Queue()
     cid = correlation_id.get()

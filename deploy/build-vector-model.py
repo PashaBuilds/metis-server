@@ -1,11 +1,15 @@
-"""Vektör arama model eklentisi ZIP'i (yalnız geliştirme bilgisayarında, internetle).
+"""Yerel arama modeli eklentisi ZIP'i: vektör modeli ya da yeniden sıralayıcı (yalnız geliştirme bilgisayarında, internetle).
 
-    python deploy/build-vector-model.py [--model bge-m3|e5-base] [--cache <klasör>]
+    python deploy/build-vector-model.py [--model bge-m3|e5-base|bge-reranker] [--cache <klasör>]
 
 Modeller ve ONNX int8 hâlleri aşağıda sabit revizyon ve dosya özetleriyle tanımlı — özet tutmazsa durur. ZIP: model
 klasörü (model + MODEL.json + NOTICE.txt + LICENSE.txt + MODEL-CARD.md), kurulum betiği `vektor-modeli-kur.ps1`,
-`SHA256SUMS`. Betik modeli `<METIS kökü>\\models\\vektor-modeli`'ye kurar (2.0.25'ten beri). Model değişmedikçe yeniden
+`SHA256SUMS`. Betik vektör modelini `<METIS kökü>\\models\\vektor-modeli`'ye (2.0.25'ten beri), yeniden sıralayıcıyı
+(`MODEL.json` `kind: reranker`) `models\\yeniden-siralayici`'ya (2.0.26'dan beri) kurar. Model değişmedikçe yeniden
 derlenmez; METIS sürümünden bağımsızdır.
+
+- `bge-reranker` (`METIS-yeniden-siralayici-bge-reranker-v2-m3-1.zip`, 2.0.26): BAAI/bge-reranker-v2-m3 (Apache 2.0),
+  ONNX int8 `onnx-community/bge-reranker-v2-m3-ONNX`. Mentor adayları soruyla birlikte okuyup yeniden sıralar.
 
 - `bge-m3` (`METIS-vektor-modeli-bge-m3-1.zip`, 2.0.25): BAAI/bge-m3 (MIT), ONNX int8 `Xenova/bge-m3`. 2026-10-27 kıyasında
   (kurgusal 5 bin sayfa, 44 soru) konu dışı soruyu ilgili sorudan en iyi ayıran model; sorgu ≈ 18 ms, gömme e5-base'in
@@ -87,6 +91,26 @@ MODELS: dict[str, dict] = {
         "upstream_files": {"README.md": "9d129cb0b912b55c7b5378f976a9c35ae4796c80466b659ad63930d8ca090fca"},  # license: mit
         "copyright": "the authors of intfloat/multilingual-e5-base (Wang et al.; see MODEL-CARD.md)",
     },
+    "bge-reranker": {
+        "name": "METIS-yeniden-siralayici-bge-reranker-v2-m3-1",
+        "dir": "bge-reranker-v2-m3",
+        "repo": "onnx-community/bge-reranker-v2-m3-ONNX",
+        "revision": "6f5ff65298512715a1e669753bc754d2bc8f367b",
+        "files": {
+            "config.json": "122e922dcfed6503c8721e6fe1daf090340c3d95ca7f3aa3a72730b321a51cfd",
+            "tokenizer.json": "8bf8afbfd11306bd872018c53bfdf2e160a56f8edbcf49933324404791c148d3",
+            "tokenizer_config.json": "b87c8703482b0300d3da30e201519aa641f6a450f5eb5bf1e624afbf70c74d80",
+            "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+            "onnx/model_quantized.onnx": "912fc1215c2dbff6499700534bd8d31253af01573861abbfc43afd1fab6cce5d",
+        },
+        # Yeniden sıralayıcı (2.0.26, Mentor): soru + aday birlikte okunur; puan sıralama içindir, eşik yok.
+        "model_json": {"id": "bge-reranker-v2-m3@6f5ff65", "kind": "reranker", "max_tokens": 512, "onnx": "onnx/model_quantized.onnx"},
+        "upstream": "BAAI/bge-reranker-v2-m3",
+        "upstream_revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e",
+        "upstream_files": {"README.md": "c887aa6dd2598f908bf0582ca7068cc816585c7a1b6a07df305b631ede0cb174"},  # license: apache-2.0
+        "license": "Apache 2.0",
+        "license_url": ("https://www.apache.org/licenses/LICENSE-2.0.txt", "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"),
+    },
 }
 MIT = """MIT License
 
@@ -105,9 +129,9 @@ WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEM
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
-NOTICE = """METIS vektör arama modeli
+NOTICE = """METIS yerel arama modeli
 
-Model: {upstream} — MIT lisansı (LICENSE.txt; model kartı MODEL-CARD.md, revizyon {upstream_revision})
+Model: {upstream} — {license} lisansı (LICENSE.txt; model kartı MODEL-CARD.md, revizyon {upstream_revision})
 ONNX int8 dönüşümü: {repo}, revizyon {revision}
 Dosyalar değiştirilmeden alınmıştır; özetler SHA256SUMS'ta. METIS bu modeli yalnız yerel CPU'da, internetsiz kullanır.
 """
@@ -136,6 +160,20 @@ def fetch(rel: str, cache: Path, repo: str, revision: str, files: dict[str, str]
     return target
 
 
+def fetch_url(url: str, digest: str, cache: Path) -> Path:
+    target = cache / "licenses" / url.rsplit("/", 1)[-1]
+    if target.is_file() and sha256(target) == digest:
+        return target
+    target.parent.mkdir(parents=True, exist_ok=True)
+    print(f"indiriliyor: {url}")
+    with urllib.request.urlopen(url, timeout=600) as resp, target.open("wb") as out:  # noqa: S310 — sabit https adresi
+        shutil.copyfileobj(resp, out)
+    if sha256(target) != digest:
+        target.unlink()
+        raise SystemExit(f"özet tutmadı: {url}")
+    return target
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -156,8 +194,11 @@ def main() -> int:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(fetch(rel, cache, spec["repo"], spec["revision"], spec["files"]), dest)
     (model / "MODEL.json").write_text(json.dumps(spec["model_json"], indent=2) + "\n", encoding="utf-8")
-    (model / "NOTICE.txt").write_text(NOTICE.format(**spec), encoding="utf-8")
-    (model / "LICENSE.txt").write_text(MIT.format(copyright=spec["copyright"]), encoding="utf-8")
+    (model / "NOTICE.txt").write_text(NOTICE.format(**{"license": "MIT", **spec}), encoding="utf-8")
+    if "license_url" in spec:
+        shutil.copy2(fetch_url(*spec["license_url"], cache), model / "LICENSE.txt")
+    else:
+        (model / "LICENSE.txt").write_text(MIT.format(copyright=spec["copyright"]), encoding="utf-8")
     card = fetch("README.md", cache, spec["upstream"], spec["upstream_revision"], spec["upstream_files"])
     shutil.copy2(card, model / "MODEL-CARD.md")
     script = ROOT / "deploy" / "windows" / "vektor-modeli-kur.ps1"

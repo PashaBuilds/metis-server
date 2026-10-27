@@ -186,6 +186,10 @@ def create_app() -> FastAPI:
 
     include_routers(app, API_PREFIX)
     _register_spa(app)
+    if settings.env != "test":
+        from metis.modules.search import rerank
+
+        rerank.preload()  # yeniden sıralayıcı kuruluysa arka planda yüklenir; ilk Mentor sorusu beklemez
     return app
 
 

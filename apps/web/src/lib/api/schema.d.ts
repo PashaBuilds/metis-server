@@ -1312,7 +1312,9 @@ export interface paths {
         put?: never;
         /**
          * Ask Stream
-         * @description İlerleme olayları: progress(searching|verifying) → sources → result | error. Doğrulanmamış token gönderilmez.
+         * @description İlerleme olayları: progress(searching) → progress(ranking, candidates; yeniden sıralayıcı kuruluysa) → sources →
+         *     progress(generating; model çağrısı) → progress(verifying; model cevabı denetlenirken) → result | error.
+         *     Doğrulanmamış token gönderilmez.
          */
         post: operations["ask_stream_api_v1_projects__project_id__mentor_stream_post"];
         delete?: never;
@@ -4348,6 +4350,13 @@ export interface components {
             queue_oldest_wait_s: number | null;
             /** Queue Waiting */
             queue_waiting: number;
+            /**
+             * Reranker
+             * @default {}
+             */
+            reranker: {
+                [key: string]: unknown;
+            };
             /** Running Jobs */
             running_jobs: number;
             /**

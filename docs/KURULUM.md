@@ -14,7 +14,7 @@ aynı sunucuda METIS'e ayrılmış PostgreSQL 16, TLS'in IIS/ARR'de sonlanması,
 | Gereksinim | Ayrıntı |
 |---|---|
 | İşletim sistemi | Windows Server 2019 veya 2022, 64 bit, güncel |
-| Donanım (25 kullanıcı) | 4 çekirdek, 8 GB RAM, veri için ayrı disk önerilir (≥ 50 GB) |
+| Donanım (25 kullanıcı) | 4 çekirdek, 8 GB RAM, veri için ayrı disk önerilir (≥ 50 GB). bge-m3 vektör modeli ve yeniden sıralayıcı birlikte kurulacaksa 16 GB RAM (bölüm 10c–10d) |
 | Hesap | Yerel yönetici (kurulum için) |
 | Ağ | Kullanıcıların sunucuya 443 ile erişmesi; METIS'in şirket model uç noktasına erişmesi |
 | Dosyalar | `METIS-<sürüm>-server-win64.zip`, PostgreSQL 16 EDB çevrimdışı kurucusu, IIS URL Rewrite 2.1 ve ARR 3.0 `.msi` kurucuları, şirket TLS sertifikası (`.pfx`) |
@@ -293,6 +293,33 @@ e5-base ≈ 0,6 GB; worker 64 uzun bölümü birlikte gömerken bge-m3 ≈ 2,2 G
 ≈ 4 GB, e5-base ≈ 3 GB. Ayrıca aranan her proje için API sürecinde bölüm başına ≈ 3 KB (e5-base) / 4 KB (bge-m3).
 Vektör aramayı tamamen kapatmak için `C:\METIS\models\vektor-modeli` ve `multilingual-e5-base` klasörlerinin ikisini de
 silip servisleri yeniden başlat.
+
+### 10d. Mentor yeniden sıralayıcısı (2.0.26'dan beri, isteğe bağlı)
+
+Mentor bir soru aldığında arama en iyi 30 adayı bulur; yeniden sıralayıcı soruyu her adayla **birlikte** okuyup soruyu
+gerçekten cevaplayan bölümleri başa alır, Mentor cevabı bu sırayla yazar. Kurgusal 5 bin sayfalık kıyasta Mentor'un
+kullandığı aramada doğru bilginin ilk 5'te olma oranını belirgin artırdı (ör. bge-m3 ile kart süzgeçsiz 0,64 → 0,82).
+Bedeli süre (6 çekirdekli geliştirme bilgisayarı): kısa bölümlerde 30 aday ≈ 1–2 sn; uzun paragraflarda adaylar sırayla
+okunur ve ≈ 4 sn'lik bütçe dolunca kalanlar arama sırasında bırakılır (ekranda "En ilgili bölümler seçiliyor" adımı).
+Arama kutusu etkilenmez, hızlı kalır. Yerel CPU'da, internetsiz çalışır; şirket modeline bağlı değildir.
+
+1. GitHub sürüm sayfasından **ayrı** dosyayı al: `METIS-yeniden-siralayici-bge-reranker-v2-m3-1.zip`
+   (BAAI/bge-reranker-v2-m3, Apache 2.0; yanındaki `.sha256` ile doğrula). METIS 2.0.26 ya da sonrası gerekir.
+2. ZIP'i aç, klasöründe yönetici PowerShell ile: `powershell -ExecutionPolicy Bypass -File .\vektor-modeli-kur.ps1`
+   (aynı betik; paket türünü kendisi tanır, modeli `C:\METIS\models\yeniden-siralayici`'ya kopyalar).
+3. **Ayarlar → Sistem durumu → Yeniden sıralayıcı**: "Açık". Hazırlık gerekmez; Mentor bir sonraki sorudan kullanır.
+
+Sıralayıcı aramanın bulduğu 30 adayın sırasını değiştirir, yeni aday getirmez; ama cevaba hangi sayfaların gireceğini
+bu sıra belirler (ilk 12'ye giren sayfalar). Her sayfa aramanın en iyi eşleşen bölümüyle puanlanır. Puan kanıt değildir:
+cevap yine yalnız yayımlanmış kanıtla yazılır ve denetlenir. Model API süreci açılırken arka planda yüklenir (birkaç
+sn; o sırada Sistem durumu "Yükleniyor" der ve Mentor arama sırasını kullanır); yüklenemezse ya da hata verirse Mentor
+arama sırasıyla sürer.
+
+**Bellek:** iki eklenti birlikte (bge-m3 + yeniden sıralayıcı) yalnız modeller için tepe ≈ 6 GB ister (üç süreçte
+bge-m3, iki API sürecinde sıralayıcı). Bölüm 1'deki 8 GB'lık en düşük donanımda yalnız e5-base önerilir; ikisi birlikte
+için **16 GB RAM** önerilir. Bellek (geliştirme bilgisayarında ölçüldü): model her API
+sürecinde (2) yüklü durur, ≈ 0,85 GB; sıralama sırasında ≈ 1,4 GB'a çıkar. Kaldırmak için `C:\METIS\models\yeniden-siralayici` klasörünü silip servisleri
+yeniden başlat.
 
 ## 11. Sorun giderme
 

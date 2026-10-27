@@ -1,17 +1,19 @@
 <#
-  METIS vektör arama modelini kurar (2.0.20'den beri; 2.0.25'ten beri hangi model paketi olursa). Yönetici PowerShell
-  ile, model ZIP'inin açıldığı klasörde:
+  METIS'in yerel arama modelini kurar: vektör modeli (2.0.20'den beri; 2.0.25'ten beri hangi model paketi olursa) ya da
+  Mentor'un yeniden sıralayıcısı (2.0.26'dan beri). Yönetici PowerShell ile, model ZIP'inin açıldığı klasörde:
 
       powershell -ExecutionPolicy Bypass -File .\vektor-modeli-kur.ps1
 
   - Paket bütünlüğünü SHA256SUMS ile doğrular.
-  - Paketteki model klasörünü (MODEL.json'u olan tek klasör) <METIS kökü>\models\vektor-modeli klasörüne kopyalar
-    (varsayılan C:\METIS; METIS bu yolu kendiliğinden bulur, metis.env'e dokunmak gerekmez). Önceden kurulmuş bir model
-    varsa yerine geçer.
-  - METIS 2.0.25 ya da sonrasını ister; metis.env'de METIS_EMBEDDING_MODEL_DIR ayarlıysa uyarır.
-  - metis-api ve metis-worker servislerini kopyalamadan önce durdurur, sonra başlatır. Worker yayımlanmış bölümlerin vektörlerini yeni modelle arka
-    planda hesaplar (vektörü henüz olmayan bölüm o sırada yalnız kelime aramasıyla bulunur); durum: Ayarlar → Sistem
-    durumu → Vektör arama. Model kurulmasa da METIS yalnız kelime aramasıyla çalışır.
+  - Paketteki model klasörünü (MODEL.json'u olan tek klasör) <METIS kökü>\models altına kopyalar (varsayılan C:\METIS;
+    METIS bu yolu kendiliğinden bulur, metis.env'e dokunmak gerekmez). Önceden kurulmuş aynı türden model varsa yerine
+    geçer:
+      vektör modeli       → models\vektor-modeli       (METIS 2.0.25 ya da sonrası)
+      yeniden sıralayıcı  → models\yeniden-siralayici  (MODEL.json "kind": "reranker"; METIS 2.0.26 ya da sonrası)
+  - metis.env'de aynı türün klasör ayarı (METIS_EMBEDDING_MODEL_DIR / METIS_RERANKER_MODEL_DIR) varsa uyarır.
+  - metis-api ve metis-worker servislerini kopyalamadan önce durdurur, sonra başlatır. Vektör modelinde worker yayımlanmış
+    bölümlerin vektörlerini yeni modelle arka planda hesaplar (vektörü henüz olmayan bölüm o sırada yalnız kelime
+    aramasıyla bulunur); durum: Ayarlar → Sistem durumu. Model kurulmasa da METIS kelime aramasıyla çalışır.
   - İnternet gerekmez. Kaldırmak için klasörü silip servisleri yeniden başlatmak yeter.
 #>
 param(
@@ -28,16 +30,6 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 $current = Join-Path $MetisRoot "app\current"
 if (-not (Test-Path $current)) { throw "METIS bulunamadı: $MetisRoot (önce METIS kurulmalı)." }
-# models\vektor-modeli klasörünü METIS 2.0.25'ten beri okur; daha eski sürüm bu modeli kullanmaz.
-$target = (Get-Item -LiteralPath $current).Target | Select-Object -First 1
-$installed = $null
-if ($target -and [version]::TryParse((Split-Path $target -Leaf), [ref]$installed) -and $installed -lt [version]"2.0.25") {
-  throw "Kurulu METIS $installed; bu model paketi METIS 2.0.25 ya da sonrasını gerektirir. Önce METIS'i yükseltin."
-}
-$envFile = Join-Path $MetisRoot "config\metis.env"
-if ((Test-Path $envFile) -and (Select-String -LiteralPath $envFile -Pattern '^\s*METIS_EMBEDDING_MODEL_DIR\s*=\s*\S' -Quiet)) {
-  Write-Warning "metis.env'de METIS_EMBEDDING_MODEL_DIR ayarlı; METIS o klasörü kullanır, bu kurulumu değil. Satırı silin ya da bu klasörü gösterin."
-}
 
 $here = $PSScriptRoot
 $found = @(Get-ChildItem -LiteralPath $here -Directory | Where-Object { Test-Path (Join-Path $_.FullName "MODEL.json") })
@@ -59,6 +51,26 @@ foreach ($line in Get-Content -LiteralPath $sums -Encoding UTF8) {
 }
 Write-Host "  $n dosya doğrulandı."
 
+$meta = Get-Content -LiteralPath (Join-Path $source "MODEL.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+if ($meta.kind -eq "reranker") {
+  $kind = "Yeniden sıralayıcı"; $folder = "yeniden-siralayici"; $minVersion = "2.0.26"; $envName = "METIS_RERANKER_MODEL_DIR"
+} elseif (-not $meta.kind -or $meta.kind -eq "embedding") {
+  $kind = "Vektör arama modeli"; $folder = "vektor-modeli"; $minVersion = "2.0.25"; $envName = "METIS_EMBEDDING_MODEL_DIR"
+} else {
+  throw "Bilinmeyen model türü: '$($meta.kind)' (beklenen: embedding ya da reranker). Bu paket bu betikle kurulmaz."
+}
+
+# Model klasörünü METIS ancak bu sürümden beri okur; daha eski sürüm modeli kullanmaz.
+$target = (Get-Item -LiteralPath $current).Target | Select-Object -First 1
+$installed = $null
+if ($target -and [version]::TryParse((Split-Path $target -Leaf), [ref]$installed) -and $installed -lt [version]$minVersion) {
+  throw "Kurulu METIS $installed; bu paket ($kind) METIS $minVersion ya da sonrasını gerektirir. Önce METIS'i yükseltin."
+}
+$envFile = Join-Path $MetisRoot "config\metis.env"
+if ((Test-Path $envFile) -and (Select-String -LiteralPath $envFile -Pattern "^\s*$envName\s*=\s*\S" -Quiet)) {
+  Write-Warning "metis.env'de $envName ayarlı; METIS o klasörü kullanır, bu kurulumu değil. Satırı silin ya da bu klasörü gösterin."
+}
+
 $services = @("metis-worker", "metis-api") | Where-Object { Get-Service $_ -ErrorAction SilentlyContinue }
 Step "Servisler durduruluyor (model dosyaları açıkken değiştirilmez)"
 foreach ($svc in $services) {
@@ -67,15 +79,15 @@ foreach ($svc in $services) {
 }
 
 try {
-  Step "Model kopyalanıyor ($($found[0].Name))"
+  Step "$kind kopyalanıyor ($($found[0].Name))"
   $models = Join-Path $MetisRoot "models"
-  $dest = Join-Path $models "vektor-modeli"
+  $dest = Join-Path $models $folder
   New-Item -ItemType Directory -Force $models | Out-Null
   if (Test-Path $dest) { Remove-Item -LiteralPath $dest -Recurse -Force }
   Copy-Item -LiteralPath $source -Destination $dest -Recurse
   Write-Host "  $dest"
   $old = Join-Path $models "multilingual-e5-base"
-  if (Test-Path $old) {
+  if ($folder -eq "vektor-modeli" -and (Test-Path $old)) {
     Write-Host "  Önceki e5-base kurulumu ($old) artık kullanılmaz; yer açmak için silinebilir."
   }
 } finally {
@@ -89,6 +101,11 @@ try {
 }
 
 Write-Host ""
-Write-Host "Vektör arama modeli kuruldu. Worker bölümlerin vektörlerini arka planda hesaplar (büyük bilgi havuzunda" -ForegroundColor Green
-Write-Host "dakikalar ya da saatler sürebilir; vektörü henüz hesaplanmamış bölümler o sırada yalnız kelime aramasıyla" -ForegroundColor Green
-Write-Host "bulunur). Durum: Ayarlar → Sistem durumu → Vektör arama." -ForegroundColor Green
+if ($folder -eq "yeniden-siralayici") {
+  Write-Host "Yeniden sıralayıcı kuruldu. Mentor bir sonraki sorudan başlayarak adayları soruyla birlikte okuyup" -ForegroundColor Green
+  Write-Host "yeniden sıralar (soru başına birkaç saniye ekler). Durum: Ayarlar → Sistem durumu → Yeniden sıralayıcı." -ForegroundColor Green
+} else {
+  Write-Host "Vektör arama modeli kuruldu. Worker bölümlerin vektörlerini arka planda hesaplar (büyük bilgi havuzunda" -ForegroundColor Green
+  Write-Host "dakikalar ya da saatler sürebilir; vektörü henüz hesaplanmamış bölümler o sırada yalnız kelime aramasıyla" -ForegroundColor Green
+  Write-Host "bulunur). Durum: Ayarlar → Sistem durumu → Vektör arama." -ForegroundColor Green
+}

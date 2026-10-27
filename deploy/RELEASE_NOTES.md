@@ -4,6 +4,32 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.26 — Mentor yeniden sıralayıcısı; ne yapıldığı ekranda:**
+- **Yeni, isteğe bağlı eklenti: `METIS-yeniden-siralayici-bge-reranker-v2-m3-1.zip`** (BAAI/bge-reranker-v2-m3, Apache 2.0,
+  ≈ 432 MB; ayrı dosya olarak bu sürüme eklendi; kurulum KURULUM 10d). Mentor bir soru aldığında aramanın en iyi 30
+  adayını soruyla **birlikte** okutur ve soruyu gerçekten cevaplayan bölümleri başa alır; cevap bu sırayla yazılır. Model
+  yokken gösterilen ilgili bölümler de bu sırayı izler. Sıralayıcı yeni aday getirmez ama cevaba hangi sayfaların
+  gireceğini sıra belirler; puan kanıt değildir, cevap yine yalnız yayımlanmış kanıtla yazılır ve denetlenir. Model API
+  açılışında arka planda yüklenir (ilk soru beklemez; o arada Mentor arama sırasını kullanır); yüklenemezse ya da hata
+  verirse Mentor arama sırasıyla sürer. Arama kutusu etkilenmez.
+- **Bellek:** bge-m3 ve yeniden sıralayıcı birlikte yalnız modeller için tepe ≈ 6 GB; 16 GB RAM önerilir (8 GB'lık
+  sunucuda yalnız e5-base). KURULUM bölüm 1 ve 10d.
+- Kurgusal 5 bin sayfalık kıyasta (44 soru) Mentor'un kullandığı aramada doğru bilgi ilk 5'te: bge-m3 ile kart süzgeçsiz
+  0,636 → 0,818, kart süzgeçli 0,886 → 0,932. Gerçek içerikte ölçülmedi.
+- Süre (6 çekirdekli geliştirme bilgisayarı): kısa bölümlerde 30 aday ≈ 0,9–2 sn; çok uzun paragraflarda 30 aday 8–12 sn
+  sürebildiği için aday başına en çok 256 belirteç okunur ve adaylar arama sırasıyla 8'li partilerle puanlanır, ≈ 4 sn'lik
+  bütçe dolunca kalanlar arama sırasında bırakılır (ilk parti her zaman puanlanır; 4 çekirdekli, yüklü sunucuda
+  daha az aday puanlanabilir). Bellek: API süreci başına ≈ 0,85 GB (sıralarken ≈ 1,4 GB).
+- Mentor ekranı ne yapıldığını adım adım gösterir: "Kaynaklar aranıyor" → "En ilgili bölümler seçiliyor" (sıralayıcı
+  kuruluysa) → "İlgili bilgiler bulundu" → "Cevap yazılıyor" (model çağrısı) → "Cevap denetleniyor". Etkin adımın altında
+  akan ince çizgi, o an yapılan işin açıklaması ve geçen süre görünür; şirket modeli yavaş yanıt verdiğinde kullanıcı neyi
+  beklediğini görür.
+- Ayarlar → Sistem durumu'nda "Yeniden sıralayıcı" satırı. Model kurulum betiği paket türünü tanır (vektör modeli →
+  `models\vektor-modeli`, yeniden sıralayıcı → `models\yeniden-siralayici`).
+- Betiğin yönetici izni ve servis durdur/başlat adımı geliştirme bilgisayarında denenmedi (doğrulama, sürüm kontrolü,
+  uyarı ve kopyalama sahte METIS klasörlerinde denendi; paketteki modelle gerçek sıralama testi geçti; Mentor akışı ve
+  Sistem durumu geliştirme sunucusunda tarayıcıda denendi, model servisi kapalıyken).
+
 **2.0.25 — Yayın listesi yalnız değişen sayfaları tutar:**
 - Her yayın artık yalnız o yayında değişen sayfa ve ilişkileri kaydeder (ürün sahibinin kararı; şema 0017). Önce her
   yayın projedeki tüm sayfaların listesini yeniden yazıyordu: kurgusal 20 bin sayfalık derlemde 40 milyon satır / 6,1 GB,

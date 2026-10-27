@@ -6371,6 +6371,12 @@
             "title": "Queue Waiting",
             "type": "integer"
           },
+          "reranker": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Reranker",
+            "type": "object"
+          },
           "running_jobs": {
             "title": "Running Jobs",
             "type": "integer"
@@ -6694,7 +6700,7 @@
   },
   "info": {
     "title": "METIS API",
-    "version": "2.0.25"
+    "version": "2.0.26"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -10790,7 +10796,7 @@
     },
     "/api/v1/projects/{project_id}/mentor/stream": {
       "post": {
-        "description": "İlerleme olayları: progress(searching|verifying) → sources → result | error. Doğrulanmamış token gönderilmez.",
+        "description": "İlerleme olayları: progress(searching) → progress(ranking, candidates; yeniden sıralayıcı kuruluysa) → sources →\nprogress(generating; model çağrısı) → progress(verifying; model cevabı denetlenirken) → result | error.\nDoğrulanmamış token gönderilmez.",
         "operationId": "ask_stream_api_v1_projects__project_id__mentor_stream_post",
         "parameters": [
           {

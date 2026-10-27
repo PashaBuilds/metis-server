@@ -58,6 +58,8 @@ class SystemStatus(BaseModel):
     model_endpoints: list[ModelEndpointStatus]
     # Vektör arama: state absent (model kurulu değil) | error (yüklenemedi; reason) | ready; blok kapsaması
     vector_search: dict = {}
+    # Mentor yeniden sıralayıcısı: state absent | error (reason) | ready, model_id
+    reranker: dict = {}
     # Model zenginleştirmesi: zenginleştirilebilir ve zenginleştirilmiş blok sayısı (zenginleştirmesi açık projelerde)
     enrichment: dict = {}
 
@@ -94,6 +96,12 @@ def _vector_status(db: Session) -> dict:
         ).one()
         done, failed = row[0] or 0, row[1] or 0
     return {**st, "blocks_total": int(total), "blocks_embedded": int(done), "blocks_failed": int(failed)}
+
+
+def _reranker_status() -> dict:
+    from metis.modules.search.rerank import reranker_status
+
+    return reranker_status(load=False)  # durum sayfası modeli yüklemez
 
 
 def _enrichment_status() -> dict:
@@ -172,6 +180,7 @@ def status(db: Session, user: User) -> SystemStatus:
         last_backup=last_backup_info(),
         fuzzy_search_available=trgm_available(db),
         vector_search=_vector_status(db),
+        reranker=_reranker_status(),
         enrichment=_enrichment_status(),
         model_endpoints=endpoints,
     )

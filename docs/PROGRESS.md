@@ -453,3 +453,35 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
   Windows). `-Dene`: kurulu 2.0.24 → 2.0.25 görevle yükseltildi (yedek `metis-backup-20261027-052316.zip`,
   `/health/ready` şema 0017, sürüm 2.0.25); çift tıklama sorusu/UAC ve Chrome bu yolda denenmedi. `-Yayimla`: GitHub
   sürümü v2.0.25; `METIS-vektor-modeli-bge-m3-1.zip` (`sha256:ebc203d3…89a1`) ve e5-base paketi ek dosya olarak eklendi.
+
+## Mentor yeniden sıralayıcısı + adım adım ilerleme (2026-10-27) — v2.0.26
+
+- Ürün sahibinin kararı (2026-10-27): yeniden sıralayıcı dahil; model zaman zaman onlarca saniye cevap vermediği için
+  ekranda ne yapıldığı anlatılırsa 3–5 sn ek bekleme kabul. Model: BAAI/bge-reranker-v2-m3 (Apache 2.0), ONNX int8
+  `onnx-community/bge-reranker-v2-m3-ONNX@6f5ff65`; eklenti `METIS-yeniden-siralayici-bge-reranker-v2-m3-1.zip`
+  (`build-vector-model.py --model bge-reranker`, Apache metni sabit özetle indirilir), kurulum aynı betikle
+  (`MODEL.json` `kind: reranker` → `models\yeniden-siralayici`).
+- `search/rerank.py`: yükleyici (yoksa/bozuksa Mentor arama sırasıyla), sigmoid puan, 8'li partiler, 256 belirteç,
+  ≈ 4 sn bütçe (ilk parti her zaman), 6 iş parçacığı; API açılışında arka planda yüklenir (Mentor `wait=False`, Sistem
+  durumu modeli yüklemez, "loading" der). Mentor: sıralayıcı hazırsa 30 aday alınır ve kapsam süzgeci/paket öncesi
+  yeniden sıralanır; olaylar searching → ranking → sources → generating → verifying (verifying artık model cevabı
+  döndükten sonra). Sıralayıcı yokken arama limiti ve karar yolu aynı.
+- Ölçüm (6 çekirdek, boşta): 30 kısa aday 0,88 sn; 30 uzun (≈ 1.800 karakter) aday 512 belirteçle 12,2 sn, 256 ile
+  9,5 sn (3 iş parçacığı), 6 iş parçacığıyla ≈ 8,3 sn → bütçe gerekli. Kurgusal derlemde bölüm ortanca 250, %99 395
+  karakter. Bellek: süreç başına yüklü 856 MB, 30 aday sonrası 1,4 GB. Geliştirme sunucusunda Mentor: sıralama 183 ms
+  (3 aday).
+- Ön yüz: Mentor ilerleme kutusunda "En ilgili bölümler seçiliyor" ve "Cevap yazılıyor" adımları; etkin adımın altında
+  akan ince çizgi (`--inceleme`, azaltılmış hareket tercihinde durağan), açıklama ve geçen süre (ekran okuyucudan gizli).
+  Sistem durumunda "Yeniden sıralayıcı" satırı. Tarayıcıda denendi (geliştirme sunucusu, masaüstü + mobil genişlik,
+  model servisi kapalıyken: sıralama → kaynaklar → cevap yazılıyor → model kullanılamıyor + sıralı bölümler).
+- Testler: sahte sıralayıcıyla yeniden sıralama (Mentor sayfaları ve model yokken gösterilen bölümler yeni sırada),
+  hata → arama sırası (`rerank_error`), bütçe, arka planda yükleme / durum, gerçek modelle cevaplayan bölüm başa
+  (`METIS_TEST_RERANKER_MODEL_DIR`), sıralayıcısız olay sırası. Kurulum betiği sahte METIS köklerinde: 2.0.25 reddedildi,
+  2.0.26'da kuruldu, değiştirilmiş MODEL.json özet denetiminde yakalandı.
+- Bağımsız inceleme (opus): kritik yok. Önemli: ekran okuyucu her saniye okuyordu → süre `aria-hidden`; ilk soru ve
+  Sistem durumu model yüklemeyi bekliyordu → arka planda yükleme; 8 GB'lık en düşük donanımda iki model birlikte sığmaz →
+  KURULUM'a 16 GB önerisi. Küçük: "aday eklemez/çıkarmaz" ifadesi düzeltildi (sıra cevaba giren sayfaları belirler);
+  betik bilinmeyen türü reddeder, MODEL.json'u özet denetiminden sonra okur; adım durumu; kapanma yüksekliği.
+  Ertelenen: sayfa tek (en iyi eşleşen) bölümüyle puanlanır.
+- Bilinen hata (benim): 2.0.25 `-Derle` sırasında çalışma ağacında değişiklik yapıldı → paketleme düştü, ikinci tam
+  derleme. Kalıcı not: `-Derle` sürerken ağaca dokunulmaz.

@@ -111,6 +111,24 @@ def _dense_note(dense: str) -> str | None:
     return None
 
 
+def _rerank(ranker: Any, question: str, hits: list, timings: dict[str, Any], emit: Emit) -> list:  # noqa: ANN401
+    """En çok `rerank.CANDIDATES` adayı soruyla birlikte okutup yeniden sıralar (yalnız sıra; aday eklenmez/çıkmaz;
+    süre bütçesi dolarsa kalanlar arama sırasında). Sıralayıcı hata verirse arama sırası kalır ve hatanın türü `timings.rerank_error`'a yazılır."""
+    from metis.modules.search import rerank
+
+    cands = hits[: rerank.CANDIDATES]
+    emit("progress", {"step": "ranking", "candidates": len(cands)})
+    t = time.perf_counter()
+    try:
+        order, scored = rerank.order(ranker, question, [" — ".join(x for x in (h.title, h.heading_path, h.passage_text or h.snippet) if x) for h in cands])
+    except Exception as exc:  # noqa: BLE001 — sıralayıcı hatası cevabı düşürmez
+        timings["rerank_error"] = type(exc).__name__
+        return hits
+    timings["rerank_ms"] = round((time.perf_counter() - t) * 1000, 2)
+    timings["rerank_scored"] = scored  # süre bütçesi dolarsa adayların bir kısmı
+    return [cands[i] for i in order] + hits[len(cands) :]
+
+
 def select_blocks(rows: list[dict], best: list[str]) -> list[dict]:
     """Tek sayfanın seçilen blokları, not sırasıyla."""
     return sorted(block_priority(rows, best), key=lambda r: r["ord"])
@@ -208,7 +226,7 @@ def _conflict_sides(db: Session, user: User, finding: Finding) -> list[schemas.C
 
 def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emit = _noop) -> schemas.AnswerOut:
     started = time.perf_counter()
-    timings: dict[str, float | None] = {"retrieval_ms": None, "selection_ms": None, "generation_ms": None, "validation_ms": None, "total_ms": None}
+    timings: dict[str, Any] = {"retrieval_ms": None, "rerank_ms": None, "selection_ms": None, "generation_ms": None, "validation_ms": None, "total_ms": None}
     selector = normalize_scope(req.scope.model_dump() if req.scope else {})
     state: dict[str, Any] = {
         "decision": "NO_EVIDENCE",
@@ -247,9 +265,11 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
             state["decision"] = "RETRIEVAL_UNAVAILABLE"
         else:
             try:
+                from metis.modules.search import rerank
                 from metis.modules.search.service import search
 
-                found = search(db, user, project_id, req.question, None, None, TOP_K * 2)
+                ranker = rerank.get_reranker(wait=False)  # yüklenmemişse beklemez (arka planda yüklenir)
+                found = search(db, user, project_id, req.question, None, None, max(TOP_K * 2, rerank.CANDIDATES) if ranker else TOP_K * 2)
                 hits = found.hits
                 dense_note = _dense_note(found.dense)
             except AppError:
@@ -259,6 +279,8 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 state["decision"] = "RETRIEVAL_UNAVAILABLE"
             if hits is not None:
                 timings["retrieval_ms"] = round((time.perf_counter() - started) * 1000, 2)
+                if ranker is not None and len(hits) > 1:
+                    hits = _rerank(ranker, req.question, hits, timings, emit)
                 matching, mismatch_dims = [], set()
                 for h in hits:
                     if matches_scope(h.scope, selector):
@@ -347,6 +369,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
     # ---------------------------------------------------------------- model çağrıları (oturum dışı)
     if model is not None and provider is not None:
         client = ModelClient()
+        emit("progress", {"step": "generating"})
         pages = list(dict.fromkeys(b["page_id"] for b in bundle))
         if len(pages) > SELECTION_THRESHOLD or pending_conflict is not None:
             t0 = time.perf_counter()
@@ -373,7 +396,6 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 elif not bundle:
                     state["decision"] = "NO_EVIDENCE"
         if bundle:
-            emit("progress", {"step": "verifying"})
             t1 = time.perf_counter()
             payload = {
                 "question": req.question,
@@ -390,6 +412,7 @@ def ask(user_id: uuid.UUID, project_id: uuid.UUID, req: schemas.AskIn, emit: Emi
                 if state["decision"] == "MODEL_UNAVAILABLE":
                     state["model_unavailable_reason"] = "call_failed"
             else:
+                emit("progress", {"step": "verifying"})
                 t2 = time.perf_counter()
                 v = validate_answer(res.output, bundle, req.level, scope=selector)
                 timings["validation_ms"] = round((time.perf_counter() - t2) * 1000, 3)

@@ -121,7 +121,7 @@
 
 @keyframes progressClose {
   from {
-    max-height: 240px;
+    max-height: 480px;
     opacity: 1;
   }
   to {
@@ -189,6 +189,63 @@
   gap: 2px;
   color: var(--soluk);
   font-size: var(--fs-13);
+}
+
+/* Şu an yapılan iş: ince, akan çizgi + açıklama + geçen süre */
+.activity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.activityBar {
+  position: relative;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--cizgi);
+  overflow: hidden;
+}
+
+.activityBar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  border-radius: 1px;
+  background: var(--inceleme);
+  animation: activitySweep 1600ms var(--ease) infinite;
+}
+
+@keyframes activitySweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+.activityText {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s1) var(--s3);
+  color: var(--soluk);
+  font-size: var(--fs-13);
+}
+
+.activityTime {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activityBar::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
+  }
 }
 
 .spin {

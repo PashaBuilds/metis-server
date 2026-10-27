@@ -23,10 +23,13 @@ const LEVELS: Level[] = ['short', 'steps', 'detailed'];
 const asLevel = (v: string | undefined): Level => (LEVELS as string[]).includes(v ?? '') ? (v as Level) : 'short';
 
 type Related = Schemas['RelatedPage'];
+type Step = 'searching' | 'ranking' | 'generating' | 'verifying';
+const STEPS: Step[] = ['searching', 'ranking', 'generating', 'verifying'];
 type Run =
   | { phase: 'idle' }
-  | { phase: 'streaming'; step: 'searching' | 'verifying'; related: Related[] | null }
-  | { phase: 'done'; answer: Answer; related: Related[] | null; verified: boolean }
+  /** `ranked`: yeniden sıralanan aday sayısı (sıralayıcı kurulu değilse null); `stepAt`: adımın başladığı an (ms). */
+  | { phase: 'streaming'; step: Step; related: Related[] | null; ranked: number | null; generating: boolean; stepAt: number }
+  | { phase: 'done'; answer: Answer; related: Related[] | null; verified: boolean; ranked: number | null; generating: boolean }
   | { phase: 'error'; message: string };
 
 export function MentorPage() {
@@ -63,18 +66,24 @@ export function MentorPage() {
     };
     setQuestion(search.q);
     setLevel(asLevel(search.level));
-    setRun({ phase: 'streaming', step: 'searching', related: null });
+    setRun({ phase: 'streaming', step: 'searching', related: null, ranked: null, generating: false, stepAt: Date.now() });
     (async () => {
       let related: Related[] | null = null;
       let verified = false;
+      let ranked: number | null = null;
+      let generating = false;
       try {
         const res = await postStream(`/projects/${pid}/mentor/stream`, body, ctrl.signal);
         for await (const ev of readSse(res)) {
           if (runId !== runRef.current) return;
           if (ev.event === 'progress') {
-            const step = (JSON.parse(ev.data) as { step: string }).step === 'verifying' ? 'verifying' : 'searching';
+            const data = JSON.parse(ev.data) as { step: string; candidates?: number };
+            const step = (STEPS as string[]).includes(data.step) ? (data.step as Step) : null;
+            if (!step) continue;
             if (step === 'verifying') verified = true;
-            setRun((r) => (r.phase === 'streaming' ? { ...r, step } : r));
+            if (step === 'generating') generating = true;
+            if (step === 'ranking') ranked = typeof data.candidates === 'number' ? data.candidates : 0;
+            setRun((r) => (r.phase === 'streaming' ? { ...r, step, ranked, generating, stepAt: Date.now() } : r));
           } else if (ev.event === 'sources') {
             related = (JSON.parse(ev.data) as { related: Related[] }).related;
             setRun((r) => (r.phase === 'streaming' ? { ...r, related } : r));
@@ -82,7 +91,7 @@ export function MentorPage() {
             const answer = JSON.parse(ev.data) as Answer;
             qc.setQueryData(['answer', answer.id], answer);
             void qc.invalidateQueries({ queryKey: ['answers', pid] });
-            setRun({ phase: 'done', answer, related, verified });
+            setRun({ phase: 'done', answer, related, verified, ranked, generating });
             navigate({ search: { answer: answer.id }, replace: true });
             return;
           } else if (ev.event === 'error') {
@@ -283,13 +292,21 @@ function Progress({ run, closing }: { run: Extract<Run, { phase: 'streaming' } |
   const related = run.related;
   const step = run.phase === 'streaming' ? run.step : 'done';
   const sourcesDone = related !== null;
-  const steps: { key: string; label: string; state: 'active' | 'done' | 'pending' }[] = [
+  const after = (k: Step) => step === 'done' || STEPS.indexOf(step as Step) > STEPS.indexOf(k);
+  type Row = { key: string; label: string; state: 'active' | 'done' | 'pending' };
+  const steps: Row[] = [
     { key: 'searching', label: tr.mentor.steps.searching!, state: sourcesDone || step !== 'searching' ? 'done' : 'active' },
+    ...(run.ranked !== null
+      ? [{ key: 'ranking', label: tr.mentor.steps.ranking!, state: (sourcesDone || after('ranking') ? 'done' : 'active') as Row['state'] }]
+      : []),
     {
       key: 'sources',
       label: related && related.length === 0 ? tr.mentor.steps.sourcesNone! : tr.mentor.steps.sources!,
       state: sourcesDone ? 'done' : 'pending',
     },
+    ...(run.generating
+      ? [{ key: 'generating', label: tr.mentor.steps.generating!, state: (after('generating') ? 'done' : step === 'generating' ? 'active' : 'pending') as Row['state'] }]
+      : []),
     { key: 'verifying', label: tr.mentor.steps.verifying!, state: run.phase === 'done' ? (run.verified ? 'done' : 'pending') : step === 'verifying' ? 'active' : 'pending' },
   ];
   return (
@@ -307,6 +324,7 @@ function Progress({ run, closing }: { run: Extract<Run, { phase: 'streaming' } |
           </li>
         ))}
       </ol>
+      {run.phase === 'streaming' && !closing && <Activity step={run.step} ranked={run.ranked} stepAt={run.stepAt} />}
       {related && related.length > 0 && !closing && (
         <ul className={s.progressSources}>
           {related.slice(0, 6).map((r) => (
@@ -314,6 +332,27 @@ function Progress({ run, closing }: { run: Extract<Run, { phase: 'streaming' } |
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** Şu an ne yapıldığı + adımda geçen süre; uzun süren model çağrısında kullanıcı neyi beklediğini bilir. */
+function Activity({ step, ranked, stepAt }: { step: Step; ranked: number | null; stepAt: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+  const seconds = Math.max(0, Math.floor((now - stepAt) / 1000));
+  const hint = step === 'ranking' ? tr.mentor.activity.ranking(ranked ?? 0) : tr.mentor.activity[step];
+  return (
+    <div className={s.activity}>
+      <div className={s.activityBar} aria-hidden />
+      <p className={s.activityText}>
+        <span>{hint}</span>
+        {/* Ekran okuyucu her saniye bölgeyi yeniden okumasın: süre yalnız görsel. */}
+        {seconds >= 2 && <span className={s.activityTime} aria-hidden>{tr.mentor.elapsed(seconds)}</span>}
+      </p>
     </div>
   );
 }
