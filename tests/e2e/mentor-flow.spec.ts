@@ -74,7 +74,7 @@ test('Lab: sağlayıcı ekle, test et, benchmark → mentor kaynaklı cevap ve �
   await expect(page).toHaveURL(/answer=/);
   const marks = answer.locator('[data-iz-marker^="ans:"]');
   expect(await marks.count()).toBeGreaterThanOrEqual(1);
-  await expect(answer.getByRole('heading', { name: 'Kaynak alıntıları' })).toBeVisible();
+  await expect(answer.getByRole('heading', { name: 'Bilgi havuzundan birebir alıntılar' })).toBeVisible();
   await expect(answer.locator('blockquote', { hasText: SPI_QUOTE })).toBeVisible();
 
   // 6) ●1 → İz paneli: kaynak başlığı ve vurgulu alıntı.

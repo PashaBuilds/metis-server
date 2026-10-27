@@ -36,7 +36,7 @@ const shots = (ids) => [
   ['01-ana-sayfa', '/'],
   ['02-bilgi-havuzu', '/bilgi'],
   ['03-bilgi-sayfasi-iz', `/bilgi/${ids.pageId}`, async (p) => { await p.locator('[data-iz-marker]').first().click(); await p.waitForTimeout(1200); }],
-  ['04-mentor-cevabi', `/mentor?q=${encodeURIComponent('SPI saat bölücü kaç?')}`, async (p) => { await p.getByText('Kaynak alıntıları').first().waitFor({ timeout: 30_000 }); await p.waitForTimeout(1500); }],
+  ['04-mentor-cevabi', `/mentor?q=${encodeURIComponent('SPI saat bölücü kaç?')}`, async (p) => { await p.getByText('Bilgi havuzundan birebir alıntılar').first().waitFor({ timeout: 30_000 }); await p.waitForTimeout(1500); }],
   ['05-yeni-katki', '/katki'],
   ['06-inceleme', ids.reviewId ? `/kayitlar/${ids.reviewId}` : '/kayitlar?tab=review'],
   ['07-gorevler', '/gorevler'],

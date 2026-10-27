@@ -298,7 +298,7 @@ kimlik → kapsam → aktif yayın → arama (top-k, deterministik)
     4. Geçmeyen cümle **atılır**, düzeltilmez. Hiç cümle kalmazsa yalnız alıntılar gösterilir ve kayda `explanation_dropped` düşülür.
     5. `claims` alıntıları v1'deki gibi: onaylı iddianın tamamı, karakteri karakterine.
   - Çekimser kararlarda (`NO_EVIDENCE`, `NEEDS_SCOPE`, `CONFLICTING`…) `explanation` ve `claims` boş; açıklama metni sabit Türkçe mesaj kataloğundan gelir. `NEEDS_SCOPE`'ta hangi kapsam boyutunun cevabı değiştirdiği yazılır.
-  - UI'da açıklama cümleleri normal metin, sonlarında ●n işaretleri; altında "Kaynak alıntıları" numaralı kartlar. Atılan cümle sayısı yalnız "Kanıt, kapsam ve üretim kaydı"nda görünür.
+  - UI'da açıklama cümleleri normal metin, sonlarında ●n işaretleri; altında "Bilgi havuzundan birebir alıntılar" numaralı kartlar. Modelin yazdığı kısım "Model", aramanın bulduğu alıntılar "Arama" etiketiyle ayrılır (2.0.28). Atılan cümle sayısı yalnız "Kanıt, kapsam ve üretim kaydı"nda görünür.
   - Değerlendirme: `evals/` setine açıklama vakaları eklenir — doğru cümle, uydurma sayı, yanlış sembol, ters olumsuzlama, kapsam dışı genelleme. Prompt sürümü `evidence-explain-v1`; v1'in `evidence-quotes-v4` sonuçlarının altına düşmemeli (aynı vakalarda karar doğruluğu).
 - Model seçimi: kullanıcı seçtiyse o; "Otomatik" ise deterministik routing. **Sessiz fallback yok** — seçilen model uygun değilse neden yazılır ve kullanıcıya alternatif önerilir.
 
@@ -637,7 +637,7 @@ METIS'in asıl değeri **iz sürülebilirlik**: her bilginin bir kaynağa giden 
 
 ### 7.5 Mentor `/mentor`
 - Sol: soru alanı, kapsam, model, detay düzeyi (Kısa / Adım adım / Ayrıntılı — **gerçekten etkili olmalı** veya kaldırılmalı; v1'de etkisizdi).
-- Cevap kartı: karar rozeti (ikon + Türkçe etiket) → kaynaklı açıklama (1-4 cümle, her cümle ●n işaretli; 5.6) → "Kaynak alıntıları" numaralı kartlar → uygulanabilir kapsam → "Bildiklerimizin sınırı" → ilgili okuma.
+- Cevap kartı: karar rozeti (ikon + Türkçe etiket) → kaynaklı açıklama (1-4 cümle, her cümle ●n işaretli; 5.6) → "Bilgi havuzundan birebir alıntılar" numaralı kartlar → uygulanabilir kapsam → "Bildiklerimizin sınırı" → ilgili okuma.
 - Çekimser kararlarda boş durum: ne biliniyor, ne eksik, ilgili kayıtlar, "Bu soruyu kaydet / katkı iste".
 - `CONFLICTING`: iki tarafın alıntısı yan yana + "Çelişkiden çözüme" akışı başlat.
 - Alt: "Bu cevaptan bilgi taslağı öner" (cevabın kanıtlarını taşıyan taslak; cevap kendisi kanıt değildir).
