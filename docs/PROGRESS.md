@@ -584,3 +584,10 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
   ayrıldı, iptal. Küçük düzeltilenler: silinen sağlayıcının kişisel anahtarları, yöneticiyi ortak anahtar hatasında
   "Anahtarım"a yönlendirme, döküm SQL'i, eşzamanlı ilk kayıt, görev anahtarı varsayılanı, saklanan süre sınırı. Ertelenen:
   anahtar denemesine sıklık sınırı; `retrieval` alanı tipsiz sözlük.
+- Sürüm 2.0.28: ilk aday (ef7fada) derlendi, kurulu 2.0.27 → 2.0.28 görevle yükseltildi (`-Dene` başarılı, şema 0018
+  uygulandı); CI'da Linux e2e düştü: Mentor testi eski "Kaynak alıntıları" başlığını arıyordu (başlık "Bilgi havuzundan
+  birebir alıntılar" oldu) → test, ekran görüntüsü betiği ve brief güncellendi (5639c9f). e2e'nin kalanı anahtarsız
+  sağlayıcıyla (yönetici) kaynaklı cevabı da geçti. Yayımlanan aday 5639c9f: `-Derle` (ZIP `sha256:5457a953…595f`), CI
+  40507456376 yeşil (Linux + Windows). `-Dene`: kurulu METIS zaten 2.0.28'deydi (5 sn; yükseltme ve 0018 ilk adayla
+  denendi; iki aday arasında yalnız test/belge farkı). Çift tıklama sorusu/UAC ve Chrome bu yolda denenmedi.
+  `-Yayimla`: GitHub sürümü v2.0.28.
