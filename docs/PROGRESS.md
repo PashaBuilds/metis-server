@@ -398,3 +398,20 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
   `-Dene`: kurulu 2.0.23 → 2.0.24 görevle yükseltildi (yedek `metis-backup-20261026-213642.zip`, `/health/live` 2.0.24,
   `app\current` → 2.0.24); çift tıklama sorusu/UAC ve Chrome bu yolda denenmedi. `-Yayimla`: GitHub sürümü v2.0.24;
   vektör modeli eklentisi (2.0.20 ile aynı dosya) ikinci dosya olarak eklendi.
+- Vektör modeli kıyası sonucu (2026-10-27; `metiscmp`, 5 bin kurgusal sayfa, 59.487 bölüm, 44 soru, model başına aynı
+  kuralla ayarlanmış eşik; boşta hız 2.000 bölüm, 4 iş parçacığı). Doğru bilgi ilk 5'te / MRR:
+  | | e5-base | e5-large | bge-m3 |
+  |---|---|---|---|
+  | kart süzgeçli hibrit | 0,886 / 0,740 | 0,955 / 0,771 | 0,886 / 0,771 |
+  | + yeniden sıralayıcı | 0,909 / 0,890 | 0,932 / 0,912 | 0,932 / 0,912 |
+  | süzgeçsiz hibrit | 0,614 / 0,593 | 0,614 / 0,591 | 0,636 / 0,597 |
+  | + yeniden sıralayıcı | 0,750 / 0,727 | 0,841 / 0,796 | 0,818 / 0,795 |
+  | gömme (boşta) | 36 bölüm/sn | 11 | 11 |
+  | sorgu gömme p50 | 8 ms | 20 ms | 18 ms |
+  | matris (59 bin bölüm) | 174 MB | 232 MB | 232 MB |
+  | eşik altında kalan ilgili soru | 19/44 | 12/44 | 8/44 |
+  Hibrit arama p50 ≈ 300 ms (üçü aynı); yeniden sıralayıcı (bge-reranker-v2-m3, 30 aday) kart süzgeçli sorguda p50
+  ≈ 1,6 sn, süzgeçsizde ≈ 5–6 sn (boşta kısa metinle 0,87 sn). Hiçbirinde konu dışı soru isabet vermedi. Yorum: en büyük
+  kazanç yeniden sıralayıcıdan; model değişimi kart süzgeçlide en çok 3 soru (e5-large), konu dışı ayrımda bge-m3 açık
+  ara iyi; büyük modeller ilk gömmede ≈ 3,3 kat yavaş. Kurgusal veri, 44 soru: fark küçük örnekte; gerçek içerikte
+  ölçülmedi. Karar ürün sahibinde.
