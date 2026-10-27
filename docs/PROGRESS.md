@@ -485,3 +485,8 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
   Ertelenen: sayfa tek (en iyi eşleşen) bölümüyle puanlanır.
 - Bilinen hata (benim): 2.0.25 `-Derle` sırasında çalışma ağacında değişiklik yapıldı → paketleme düştü, ikinci tam
   derleme. Kalıcı not: `-Derle` sürerken ağaca dokunulmaz.
+- Sürüm 2.0.26 (9de7263): `-Derle` (ZIP `sha256:6fac4520…555e`), CI 40460687295 yeşil (Linux + Windows). `-Dene`: kurulu
+  2.0.25 → 2.0.26 görevle yükseltildi (yedek `metis-backup-20261027-064213.zip`, `/health/ready` 2.0.26); çift tıklama
+  sorusu/UAC ve Chrome bu yolda denenmedi; kurulu METIS'e yeniden sıralayıcı kurulmadı (betik yönetici ister).
+  `-Yayimla`: GitHub sürümü v2.0.26; ek dosyalar: `METIS-yeniden-siralayici-bge-reranker-v2-m3-1.zip`
+  (`sha256:20d833d4…ed6c`), bge-m3 ve e5-base paketleri.
