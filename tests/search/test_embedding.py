@@ -25,6 +25,19 @@ def test_absent_model_dir(tmp_path: Path, monkeypatch):  # noqa: ANN001
     assert embedding.get_embedder() is None
 
 
+def test_default_model_dir_prefers_installed_package(tmp_path: Path, monkeypatch):  # noqa: ANN001
+    """Model eklentisi (2.0.25'ten beri) `models\\vektor-modeli`'ye kurulur; yoksa 2.0.20 eklentisinin e5-base klasörü."""
+    from types import SimpleNamespace
+
+    monkeypatch.delenv("METIS_EMBEDDING_MODEL_DIR", raising=False)
+    monkeypatch.setattr(embedding, "get_settings", lambda: SimpleNamespace(data_dir=tmp_path / "data"))
+    assert embedding.model_dir() == tmp_path / "models" / "multilingual-e5-base"
+    (tmp_path / "models" / "vektor-modeli").mkdir(parents=True)
+    assert embedding.model_dir() == tmp_path / "models" / "multilingual-e5-base"  # MODEL.json yoksa sayılmaz
+    (tmp_path / "models" / "vektor-modeli" / "MODEL.json").write_text("{}", encoding="utf-8")
+    assert embedding.model_dir() == tmp_path / "models" / "vektor-modeli"
+
+
 def test_broken_model_reports_error(tmp_path: Path, monkeypatch):  # noqa: ANN001
     (tmp_path / "onnx").mkdir()
     (tmp_path / "onnx" / "model_quantized.onnx").write_bytes(b"bozuk")

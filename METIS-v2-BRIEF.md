@@ -44,6 +44,7 @@ Bunlar pazarlık konusu değildir. Her faz bunlara karşı test edilir.
 2. **Revizyonlar değişmez.** Kaynak, sayfa, ilişki ve kanıt revizyonları immutable'dır (ORM hook + PostgreSQL trigger). Düzenleme = yeni revizyon.
 3. **Onay hash'e bağlıdır.** Onay, değişiklik setinin içerik hash'ine bağlanır. Onaydan sonra tek karakter değişirse yeniden onay gerekir. Taban revizyon ilerlediyse `409 REVISION_CONFLICT`.
 4. **Atomik yayın.** Yayın: proje satır kilidi → manifest → arama indeksi → en son aktif yayın işaretçisi. Arada hata olursa eski yayın hizmete devam eder.
+   > **Güncelleme (2026-10-27, ürün sahibinin kararı):** manifest her yayında tüm sayfaları yazmaz; yalnız o yayında değişen sayfa ve ilişkileri yazar (çıkan öğe revizyonsuz satır). Aktif yayındaki güncel liste `active_pages` / `active_relations` tablolarında, yayınla aynı transaction'da güncellenir. Herhangi bir yayının tam listesi değişikliklerden aynen kurulur; değişmezlik ve atomiklik aynı. Neden: tam liste 20 bin kurgusal sayfada 40 milyon satır / 6,1 GB (veritabanının dörtte üçü) etmişti.
 5. **Kaynaksız teknik iddia yok.** Mentor'un her iddiası onaylı bir kanıta bağlıdır; kanıt ID'leri ve alıntılar **deterministik** olarak doğrulanır. Model çıktısı validator'ı geçsin diye yamalanmaz.
 6. **Dürüst çekimserlik.** "Bilgi havuzunda yok" (`NO_EVIDENCE`) ile "arama/model hatası" (`RETRIEVAL_UNAVAILABLE`, `MODEL_UNAVAILABLE`) asla karıştırılmaz. Gizli bir projede cevap olduğu ima edilmez.
 7. **Kapsam metadata'dan karar verilir**, alıntı metninden çıkarılmaz. Boş kapsam "her şeye uyar" demek değildir; `*` (Bağımsız) ile boş (Belirlenmemiş) ayrıdır.
@@ -106,7 +107,7 @@ Eski reponun `PROGRESS.md`, release notları ve `AGENTS.md` dosyasından çıkan
 | İlişkiler JSON dizilerinde (roller, ACL, evidence_ids, revisions), FK/indeks yok, N+1 ve doğrusal tarama | Join tabloları + FK + indeks |
 | Zaman damgaları `String(40)`, lease'ler float | `timestamptz` |
 | `create_all` + elle "v2" migration | **Alembic** |
-| Her yayında tüm arama indeksinin kopyası | Yalnız güncel yayımlanmış revizyonların indeksi + `publication_pages` geçmişi |
+| Her yayında tüm arama indeksinin kopyası | Yalnız güncel yayımlanmış revizyonların indeksi + `publication_pages` geçmişi (yalnız değişenler) |
 | Arama: Python'da kaba ILIKE puanlama, her sayfa "kapsama örneği" olarak modele gidiyor | PG FTS (`simple` + `turkish`) + `ts_rank_cd` + başlık/alias/sembol eşleşmesi; `pg_trgm` varsa sembol bulanık arama |
 | Her mentor cevabı 2 model çağrısı (seçim + cevap) | Seçim çağrısı yalnız aday sayısı eşiği aşınca |
 | OpenAPI sözleşmesi koddan kopmuş | OpenAPI koddan üretilir, frontend tipleri ondan üretilir (`openapi-typescript`), CI'da diff kontrolü |
@@ -221,7 +222,7 @@ Tüm ID'ler UUID; zaman `timestamptz` (UTC saklanır, UI yerel saat:dakika göst
 - `change_set_items` (change_set_id, page_id, base_revision_id, proposed_revision_id)
 - `change_set_relations`
 - `reviews` immutable (change_set_id, hash, reviewer_id, decision: approve|request_changes|reject, reason, evidence_checked, policy)
-- `publications` immutable (project_id, change_set_id, created_at) + `publication_pages` (publication_id, page_id, revision_id)
+- `publications` immutable (project_id, change_set_id, created_at) + `publication_pages` (publication_id, page_id, revision_id; yalnız o yayında değişenler, boş revizyon = çıktı) + `active_pages` (page_id, project_id, revision_id; aktif yayın)
 - `search_documents` (page_id PK, revision_id, publication_id, title, aliases, symbols text[], tsv_simple, tsv_turkish) — yalnız aktif yayın
 
 **Worker ve hazırlık**

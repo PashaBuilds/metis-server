@@ -180,7 +180,7 @@ def updated_pages(db: Session, user: User, project_id: uuid.UUID, limit: int = 1
         .join(PublicationPage, PublicationPage.page_id == Page.id)
         .join(Publication, Publication.id == PublicationPage.publication_id)
         .join(PageRevision, PageRevision.id == PublicationPage.revision_id)
-        # Yayın manifestosu tüm sayfaları içerir; yalnız o kayıtta gerçekten değişen sayfa sayılır.
+        # Yayın yalnız değişen sayfaları yazar; kayıttaki öğeyle eşleştirme yine yalnız o kaydın sayfalarını sayar.
         .join(ChangeSetItem, (ChangeSetItem.change_set_id == Publication.change_set_id) & (ChangeSetItem.page_id == Page.id))
         .where(
             Page.project_id == project_id,

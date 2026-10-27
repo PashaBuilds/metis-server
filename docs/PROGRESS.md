@@ -415,3 +415,35 @@ Karar (ürün sahibi, 2026-10-11): bundan sonra PR açılmaz; değişiklikler do
   kazanç yeniden sıralayıcıdan; model değişimi kart süzgeçlide en çok 3 soru (e5-large), konu dışı ayrımda bge-m3 açık
   ara iyi; büyük modeller ilk gömmede ≈ 3,3 kat yavaş. Kurgusal veri, 44 soru: fark küçük örnekte; gerçek içerikte
   ölçülmedi. Karar ürün sahibinde.
+
+## Yayın listesi yalnız değişenler + bge-m3 paketi (2026-10-27) — v2.0.25
+
+- Ürün sahibinin kararı (2026-10-27): yayın listesi her yayında tüm sayfaları yazmaz. `publication_pages` /
+  `publication_relations` yalnız o yayında değişenleri tutar (boş revizyon = çıktı; tablolar değişmez kalır); güncel
+  liste `active_pages` / `active_relations`'ta, yayınla aynı transaction'da (şema 0017). Herhangi bir yayının tam listesi
+  `publish.manifest_at` ile kurulur. Brief Bölüm 2 madde 4 ve veri modeli güncellendi. Bilgi listesi, harita, sayfa
+  ilişkileri ve bakım güncel listeyi okur; "bu revizyon hiç yayımlandı mı" soran okuyucular değişmedi (değişiklik
+  satırlarıyla anlamı aynı). Geçmişteki `publication_kind` artık doğru: eskiden revizyon sonraki her yayında geçtiği için
+  `min(kind)` çoğu kez "prune" çıkıyordu.
+- Testler: değişiklik satırları + her yayında kurulan liste = o anki güncel liste; okuyucular eski yayın satırlarından
+  bağımsız; dönüşüm SQL'i geçici tablolarda (tam liste → değişiklik → tam liste); gerçek Alembic 0017 → 0016 → 0017 turu
+  (geri almada her yayının tam listesi, yükseltmede değişiklikler ve güncel liste aynen).
+- Ölçüm (`metisscale`, kurgusal 20 bin sayfa, 4.091 yayın; eski kod ayrı çalışma kopyasından, aynı veritabanı):
+  yükseltme (0016 + 0017) 257 sn; yayın listesi 40.788.530 → 20.191 satır, veritabanı 7,7 GB → 1,5 GB; tek sayfalık
+  yayın ortanca 2.156 → 366 ms, 5 sayfalık 2.804 → 766 ms (15'er tekrar). Dönüştürülen veride son yayının kurulan
+  listesi güncel listeyle aynı (20.191), çeyrek ve yarı noktalardaki yayınlarda sayfa sayısı beklenenle aynı; kurma
+  19–83 ms.
+- bge-m3 vektör modeli paketi (`deploy/build-vector-model.py --model bge-m3`, `METIS-vektor-modeli-bge-m3-1.zip`,
+  430,5 MB): Xenova/bge-m3@4de1325 (BAAI/bge-m3, MIT), `pooling: cls`, eşik 0,53/0,57 (kıyastaki kalibrasyon). METIS
+  `models\vektor-modeli`'yi tercih eder (yoksa `multilingual-e5-base`); kurulum betiği modelden bağımsız, servisleri
+  durdurup kopyalar, 2.0.25 öncesinde kurmaz, metis.env yönlendirmesine uyarır. Doğrulama: paketten çıkan modelle
+  gerçek gömme testi; betik sahte METIS köklerinde (2.0.24 reddedildi; 2.0.25'te uyarı + kurulum). Yönetici izni ve
+  servis durdur/başlat denenmedi. Bellek (bu bilgisayar): süreç başına yüklü bge-m3 ≈ 854 MB / e5-base ≈ 570 MB; 64
+  uzun bölümlük parti sonrası 2,2 / 1,7 GB.
+- Bağımsız inceleme (opus): kritik yok. Önemli: gerçek Alembic turu testsizdi → eklendi. Küçük: güncel listeye
+  satır başına SELECT → tek `ON CONFLICT` sorgusu; `manifest_at` sırası (seq, created_at); kullanılmayan
+  `active_manifest`/`active_relations` silindi; betiğe sürüm kontrolü, metis.env uyarısı, kopyadan önce servis durdurma;
+  KURULUM'a e5-base'e dönüş. Ertelenen: aynı kayıtta ilişki eklenip sayfası geri çekilirse ilişki yayında kalır (önceden
+  de böyleydi).
+- Model kararı (ürün sahibi, 2026-10-27): vektör modeli bge-m3, yeniden sıralayıcı bge-reranker-v2-m3 (2.0.26, Mentor;
+  3–5 sn bekleme kabul, ekranda ne yapıldığı gösterilecek).

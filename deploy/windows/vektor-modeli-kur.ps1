@@ -1,13 +1,17 @@
 <#
-  METIS vektör arama modelini kurar (2.0.20'den beri). Yönetici PowerShell ile, model ZIP'inin açıldığı klasörde:
+  METIS vektör arama modelini kurar (2.0.20'den beri; 2.0.25'ten beri hangi model paketi olursa). Yönetici PowerShell
+  ile, model ZIP'inin açıldığı klasörde:
 
       powershell -ExecutionPolicy Bypass -File .\vektor-modeli-kur.ps1
 
   - Paket bütünlüğünü SHA256SUMS ile doğrular.
-  - Modeli <METIS kökü>\models\multilingual-e5-base klasörüne kopyalar (varsayılan C:\METIS; METIS bu yolu kendiliğinden
-    bulur, metis.env'e dokunmak gerekmez).
-  - metis-api ve metis-worker servislerini yeniden başlatır. Worker yayımlanmış bölümlerin vektörlerini arka planda hesaplar;
-    durum: Ayarlar → Sistem durumu → Vektör arama. Model kurulmasa da METIS yalnız kelime aramasıyla çalışır.
+  - Paketteki model klasörünü (MODEL.json'u olan tek klasör) <METIS kökü>\models\vektor-modeli klasörüne kopyalar
+    (varsayılan C:\METIS; METIS bu yolu kendiliğinden bulur, metis.env'e dokunmak gerekmez). Önceden kurulmuş bir model
+    varsa yerine geçer.
+  - METIS 2.0.25 ya da sonrasını ister; metis.env'de METIS_EMBEDDING_MODEL_DIR ayarlıysa uyarır.
+  - metis-api ve metis-worker servislerini kopyalamadan önce durdurur, sonra başlatır. Worker yayımlanmış bölümlerin vektörlerini yeni modelle arka
+    planda hesaplar (vektörü henüz olmayan bölüm o sırada yalnız kelime aramasıyla bulunur); durum: Ayarlar → Sistem
+    durumu → Vektör arama. Model kurulmasa da METIS yalnız kelime aramasıyla çalışır.
   - İnternet gerekmez. Kaldırmak için klasörü silip servisleri yeniden başlatmak yeter.
 #>
 param(
@@ -22,11 +26,23 @@ $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
   throw "Yönetici PowerShell ile çalıştırın (sağ tık → Yönetici olarak çalıştır)."
 }
-if (-not (Test-Path (Join-Path $MetisRoot "app\current"))) { throw "METIS bulunamadı: $MetisRoot (önce METIS kurulmalı)." }
+$current = Join-Path $MetisRoot "app\current"
+if (-not (Test-Path $current)) { throw "METIS bulunamadı: $MetisRoot (önce METIS kurulmalı)." }
+# models\vektor-modeli klasörünü METIS 2.0.25'ten beri okur; daha eski sürüm bu modeli kullanmaz.
+$target = (Get-Item -LiteralPath $current).Target | Select-Object -First 1
+$installed = $null
+if ($target -and [version]::TryParse((Split-Path $target -Leaf), [ref]$installed) -and $installed -lt [version]"2.0.25") {
+  throw "Kurulu METIS $installed; bu model paketi METIS 2.0.25 ya da sonrasını gerektirir. Önce METIS'i yükseltin."
+}
+$envFile = Join-Path $MetisRoot "config\metis.env"
+if ((Test-Path $envFile) -and (Select-String -LiteralPath $envFile -Pattern '^\s*METIS_EMBEDDING_MODEL_DIR\s*=\s*\S' -Quiet)) {
+  Write-Warning "metis.env'de METIS_EMBEDDING_MODEL_DIR ayarlı; METIS o klasörü kullanır, bu kurulumu değil. Satırı silin ya da bu klasörü gösterin."
+}
 
 $here = $PSScriptRoot
-$source = Join-Path $here "multilingual-e5-base"
-if (-not (Test-Path (Join-Path $source "MODEL.json"))) { throw "Model klasörü bulunamadı: $source" }
+$found = @(Get-ChildItem -LiteralPath $here -Directory | Where-Object { Test-Path (Join-Path $_.FullName "MODEL.json") })
+if ($found.Count -ne 1) { throw "Paket klasöründe MODEL.json'u olan tek bir model klasörü bekleniyordu ($($found.Count) bulundu)." }
+$source = $found[0].FullName
 
 Step "Paket bütünlüğü doğrulanıyor (SHA256SUMS)"
 $sums = Join-Path $here "SHA256SUMS"
@@ -43,22 +59,36 @@ foreach ($line in Get-Content -LiteralPath $sums -Encoding UTF8) {
 }
 Write-Host "  $n dosya doğrulandı."
 
-Step "Model kopyalanıyor"
-$models = Join-Path $MetisRoot "models"
-$dest = Join-Path $models "multilingual-e5-base"
-New-Item -ItemType Directory -Force $models | Out-Null
-if (Test-Path $dest) { Remove-Item -LiteralPath $dest -Recurse -Force }
-Copy-Item -LiteralPath $source -Destination $dest -Recurse
-Write-Host "  $dest"
+$services = @("metis-worker", "metis-api") | Where-Object { Get-Service $_ -ErrorAction SilentlyContinue }
+Step "Servisler durduruluyor (model dosyaları açıkken değiştirilmez)"
+foreach ($svc in $services) {
+  Stop-Service $svc -Force
+  Write-Host "  $svc durdu."
+}
 
-Step "Servisler yeniden başlatılıyor"
-foreach ($svc in "metis-worker", "metis-api") {
-  if (Get-Service $svc -ErrorAction SilentlyContinue) {
-    Restart-Service $svc -Force
-    Write-Host "  $svc yeniden başladı."
+try {
+  Step "Model kopyalanıyor ($($found[0].Name))"
+  $models = Join-Path $MetisRoot "models"
+  $dest = Join-Path $models "vektor-modeli"
+  New-Item -ItemType Directory -Force $models | Out-Null
+  if (Test-Path $dest) { Remove-Item -LiteralPath $dest -Recurse -Force }
+  Copy-Item -LiteralPath $source -Destination $dest -Recurse
+  Write-Host "  $dest"
+  $old = Join-Path $models "multilingual-e5-base"
+  if (Test-Path $old) {
+    Write-Host "  Önceki e5-base kurulumu ($old) artık kullanılmaz; yer açmak için silinebilir."
+  }
+} finally {
+  Step "Servisler başlatılıyor"
+  foreach ($svc in @("metis-api", "metis-worker")) {
+    if ($services -contains $svc) {
+      Start-Service $svc
+      Write-Host "  $svc başladı."
+    }
   }
 }
 
 Write-Host ""
 Write-Host "Vektör arama modeli kuruldu. Worker bölümlerin vektörlerini arka planda hesaplar (büyük bilgi havuzunda" -ForegroundColor Green
-Write-Host "dakikalar sürebilir). Durum: Ayarlar → Sistem durumu → Vektör arama." -ForegroundColor Green
+Write-Host "dakikalar ya da saatler sürebilir; vektörü henüz hesaplanmamış bölümler o sırada yalnız kelime aramasıyla" -ForegroundColor Green
+Write-Host "bulunur). Durum: Ayarlar → Sistem durumu → Vektör arama." -ForegroundColor Green

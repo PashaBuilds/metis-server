@@ -1,6 +1,7 @@
 """Yerel gömme (embedding) modeli: ONNX Runtime + tokenizers, CPU, internetsiz. Tasarım bölüm 6.
 
-Model ayrı eklenti ZIP'iyle gelir (`METIS_EMBEDDING_MODEL_DIR`, varsayılan `<METIS kökü>/models/multilingual-e5-base`).
+Model ayrı eklenti ZIP'iyle gelir (`METIS_EMBEDDING_MODEL_DIR`, varsayılan `<METIS kökü>/models/vektor-modeli`, yoksa
+`<METIS kökü>/models/multilingual-e5-base`).
 Dizin: `MODEL.json` (`id`, `dim`, `query_prefix`, `passage_prefix`, `max_tokens`, `onnx`, isteğe bağlı `pooling`:
 `mean` varsayılan, bge-m3 için `cls`), `tokenizer.json`, ONNX dosyası.
 Model yoksa ya da yüklenemezse METIS çökmez: arama yalnız kelime kanalıyla sürer (`embedder_status` nedenini söyler).
@@ -27,10 +28,15 @@ _state: dict = {}
 
 
 def model_dir() -> Path:
+    """`METIS_EMBEDDING_MODEL_DIR`; yoksa eklentinin kurduğu `models/vektor-modeli` (2.0.25'ten beri, hangi model olursa);
+    o da yoksa 2.0.20 eklentisinin `models/multilingual-e5-base` klasörü."""
     env = os.getenv("METIS_EMBEDDING_MODEL_DIR", "").strip()
     if env:
         return Path(env)
-    return get_settings().data_dir.parent / "models" / "multilingual-e5-base"
+    models = get_settings().data_dir.parent / "models"
+    if (models / "vektor-modeli" / "MODEL.json").is_file():
+        return models / "vektor-modeli"
+    return models / "multilingual-e5-base"
 
 
 def effective_model_id(model_id: str, pooling: str) -> str:

@@ -15,6 +15,8 @@ from metis.core.access import can_read_page_revision, require_member, unreadable
 from metis.core.audit import audit
 from metis.core.errors import AppError
 from metis.core.models import (
+    ActivePage,
+    ActiveRelation,
     ChangeSet,
     ChangeSetItem,
     Claim,
@@ -26,7 +28,6 @@ from metis.core.models import (
     Project,
     Publication,
     PublicationPage,
-    PublicationRelation,
     Relation,
     RelationRevision,
     Review,
@@ -51,10 +52,10 @@ def _active_rows(db: Session, user: User, project_id: uuid.UUID, with_body: bool
         return []
     rows = db.execute(
         select(Page, PageRevision)
-        .join(PublicationPage, PublicationPage.page_id == Page.id)
-        .join(PageRevision, PageRevision.id == PublicationPage.revision_id)
+        .join(ActivePage, ActivePage.page_id == Page.id)
+        .join(PageRevision, PageRevision.id == ActivePage.revision_id)
         .where(
-            PublicationPage.publication_id == project.active_publication_id,
+            ActivePage.project_id == project.id,
             Page.deleted_at.is_(None),
             Page.lifecycle == "active",
         )
@@ -237,10 +238,10 @@ def page_detail(db: Session, user: User, page_id: uuid.UUID, rev_id: uuid.UUID |
     relations = []
     if project.active_publication_id:
         rows = db.execute(
-            select(RelationRevision, PublicationRelation.relation_id)
-            .join(PublicationRelation, PublicationRelation.revision_id == RelationRevision.id)
+            select(RelationRevision, ActiveRelation.relation_id)
+            .join(ActiveRelation, ActiveRelation.revision_id == RelationRevision.id)
             .where(
-                PublicationRelation.publication_id == project.active_publication_id,
+                ActiveRelation.project_id == project.id,
                 (RelationRevision.subject_page_id == page.id) | (RelationRevision.object_page_id == page.id),
             )
         ).all()

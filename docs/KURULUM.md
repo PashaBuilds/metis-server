@@ -269,17 +269,30 @@ tüm soruları dener ve sonucu önceki ölçümle yan yana gösterir. Arama ayar
 METIS model olmadan kelime aramasıyla çalışır. Vektör arama, farklı sözcüklerle ya da Türkçe–İngilizce karışık sorulan
 soruların doğru bölümü bulmasına yardım eder; yerel CPU'da, internetsiz çalışır, şirket modeline bağlı değildir.
 
-1. GitHub sürüm sayfasından **ayrı** model dosyasını al: `METIS-vektor-modeli-e5-base-1.zip` (≈ 218 MB; yanındaki
-   `.sha256` ile doğrula). Model değişmedikçe yeni METIS sürümlerinde yeniden kurmak gerekmez.
+1. GitHub sürüm sayfasından **ayrı** model dosyasını al (yanındaki `.sha256` ile doğrula). Model değişmedikçe yeni METIS
+   sürümlerinde yeniden kurmak gerekmez.
+   - **`METIS-vektor-modeli-bge-m3-1.zip`** (≈ 431 MB; 2.0.25'ten beri, METIS 2.0.25 ya da sonrası gerekir) — önerilen.
+     Kurgusal 5 bin sayfalık kıyasta konu dışı soruyu ilgili sorudan en iyi ayıran model; gömme e5-base'in ≈ üçte biri
+     hızında.
+   - `METIS-vektor-modeli-e5-base-1.zip` (≈ 218 MB; 2.0.20'den beri): daha hızlı gömer, daha az bellek ister.
 2. ZIP'i aç, klasöründe yönetici PowerShell ile: `powershell -ExecutionPolicy Bypass -File .\vektor-modeli-kur.ps1`
-   (model `C:\METIS\models\multilingual-e5-base`'e kopyalanır, servisler yeniden başlar).
+   (bge-m3 paketi servisleri durdurur, modeli `C:\METIS\models\vektor-modeli`'ye kopyalar — varsa önceki modelin yerine
+   geçer — ve servisleri başlatır; METIS 2.0.25 ya da sonrasını ister. 2.0.20'deki e5-base paketi
+   `C:\METIS\models\multilingual-e5-base`'e kopyalar. İkisi birden varsa `vektor-modeli` kullanılır: e5-base'e dönmek
+   için `vektor-modeli` klasörünü silip servisleri yeniden başlat. `metis.env`'de `METIS_EMBEDDING_MODEL_DIR` ayarlıysa
+   her zaman o klasör kullanılır.)
 3. **Ayarlar → Sistem durumu → Vektör arama**: önce "Hazırlanıyor: n/m bölüm" (worker yayımlanmış bölümleri arka planda
-   işler; 6 çekirdekli geliştirme bilgisayarında boşken ≈ 26 bölüm/sn, yük altında 15–19 bölüm/sn: 100 bin bölüm ≈ 1–2 saat,
-20 bin sayfalık kurgusal derlem (238 bin bölüm) ≈ 3 saat), sonra "Açık". METIS bu sırada kullanılabilir.
+   işler; model değişince tüm bölümler yeni modelle yeniden işlenir), sonra "Açık". METIS bu sırada kullanılabilir;
+   vektörü henüz olmayan bölüm yalnız kelime aramasıyla bulunur. 6 çekirdekli geliştirme bilgisayarında boşken e5-base
+   ≈ 26–36 bölüm/sn, bge-m3 ≈ 11 bölüm/sn (yük altında daha yavaş): 100 bin bölüm e5-base ile ≈ 1–2 saat, bge-m3 ile
+   ≈ 3–5 saat. Az içerikli yeni kurulumda dakikalar sürer.
 4. Etkisini ölçmek için **Model laboratuvarı → Arama ölçümü**: "Vektör kanalı açık" işaretli ve işaretsiz iki koşu.
 
-Bellek: model her METIS sürecinde (2 API + worker) ≈ 300–500 MB; aranan her proje için API sürecinde bölüm başına ≈ 3 KB
-(100 bin bölüm ≈ 300 MB). Kaldırmak için `C:\METIS\models\multilingual-e5-base` klasörünü silip servisleri yeniden başlat.
+Bellek (geliştirme bilgisayarında ölçüldü): model her METIS sürecinde (2 API + worker) yüklü durur — bge-m3 ≈ 0,85 GB,
+e5-base ≈ 0,6 GB; worker 64 uzun bölümü birlikte gömerken bge-m3 ≈ 2,2 GB'a, e5-base ≈ 1,7 GB'a çıkar. Toplam: bge-m3
+≈ 4 GB, e5-base ≈ 3 GB. Ayrıca aranan her proje için API sürecinde bölüm başına ≈ 3 KB (e5-base) / 4 KB (bge-m3).
+Vektör aramayı tamamen kapatmak için `C:\METIS\models\vektor-modeli` ve `multilingual-e5-base` klasörlerinin ikisini de
+silip servisleri yeniden başlat.
 
 ## 11. Sorun giderme
 

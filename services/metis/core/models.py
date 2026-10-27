@@ -486,17 +486,39 @@ class Publication(Base):
 
 
 class PublicationPage(Base):
+    """Yayında değişen sayfa (0017'den beri yalnız değişenler); `revision_id` boş = sayfa bu yayında çıktı."""
+
     __tablename__ = "publication_pages"
     publication_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("publications.id"), primary_key=True)
     page_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("pages.id"), primary_key=True, index=True)
-    revision_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("page_revisions.id"), nullable=False, index=True)
+    revision_id: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, ForeignKey("page_revisions.id"), nullable=True, index=True)
 
 
 class PublicationRelation(Base):
+    """Yayında değişen ilişki; `revision_id` boş = ilişki bu yayında çıktı."""
+
     __tablename__ = "publication_relations"
     publication_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("publications.id"), primary_key=True)
     relation_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("relations.id"), primary_key=True)
-    revision_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("relation_revisions.id"), nullable=False)
+    revision_id: Mapped[uuid.UUID | None] = mapped_column(UUIDPK, ForeignKey("relation_revisions.id"), nullable=True)
+
+
+class ActivePage(Base):
+    """Aktif yayındaki sayfalar (güncel liste); yayınla aynı transaction'da güncellenir."""
+
+    __tablename__ = "active_pages"
+    page_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("pages.id"), primary_key=True)
+    project_id: Mapped[uuid.UUID] = fk("projects.id")
+    revision_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("page_revisions.id"), nullable=False, index=True)
+
+
+class ActiveRelation(Base):
+    """Aktif yayındaki ilişkiler (güncel liste)."""
+
+    __tablename__ = "active_relations"
+    relation_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("relations.id"), primary_key=True)
+    project_id: Mapped[uuid.UUID] = fk("projects.id")
+    revision_id: Mapped[uuid.UUID] = mapped_column(UUIDPK, ForeignKey("relation_revisions.id"), nullable=False, index=True)
 
 
 class SearchDocument(Base):

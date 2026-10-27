@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from metis.core.access import require_member, unreadable_revisions
 from metis.core.deps import current_user, get_db
 from metis.core.errors import AppError
-from metis.core.models import Page, PageRevision, Project, PublicationPage, PublicationRelation, RelationRevision, User
+from metis.core.models import ActivePage, ActiveRelation, Page, PageRevision, Project, RelationRevision, User
 from metis.modules.scopes.semantics import matches_scope
 
 router = APIRouter(tags=["map"])
@@ -56,17 +56,17 @@ def build_map(
         return MapOut(nodes=[], edges=[], focus=None, truncated=False, total_nodes=0)
     rows = db.execute(
         select(Page, PageRevision)
-        .join(PublicationPage, PublicationPage.page_id == Page.id)
-        .join(PageRevision, PageRevision.id == PublicationPage.revision_id)
-        .where(PublicationPage.publication_id == project.active_publication_id, Page.deleted_at.is_(None), Page.lifecycle == "active")
+        .join(ActivePage, ActivePage.page_id == Page.id)
+        .join(PageRevision, PageRevision.id == ActivePage.revision_id)
+        .where(ActivePage.project_id == project.id, Page.deleted_at.is_(None), Page.lifecycle == "active")
     ).all()
     hidden = unreadable_revisions(db, user, project_id, [r.id for _, r in rows])
     pages = {p.id: (p, r) for p, r in rows if r.id not in hidden and matches_scope(r.scope, scope)}
     edges = []
     for rr, rel_id in db.execute(
-        select(RelationRevision, PublicationRelation.relation_id)
-        .join(PublicationRelation, PublicationRelation.revision_id == RelationRevision.id)
-        .where(PublicationRelation.publication_id == project.active_publication_id)
+        select(RelationRevision, ActiveRelation.relation_id)
+        .join(ActiveRelation, ActiveRelation.revision_id == RelationRevision.id)
+        .where(ActiveRelation.project_id == project.id)
     ):
         if rr.subject_page_id in pages and rr.object_page_id in pages and (not predicates or rr.predicate in predicates):
             edges.append(MapEdge(id=rel_id, source=rr.subject_page_id, target=rr.object_page_id, predicate=rr.predicate, rationale=rr.rationale))

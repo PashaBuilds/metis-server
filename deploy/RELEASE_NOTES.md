@@ -4,6 +4,27 @@ METIS sunucu kurulum paketi (Windows, internetsiz). Dosya: `METIS-<sürüm>-serv
 Türkçe Windows'ta PostgreSQL kurulumunun **Locale** adımında `English, United States` seç; varsayılan bölge ayarı
 veritabanı kümesinin oluşturulmasını bozuyor ("database cluster initialisation failed").
 
+**2.0.25 — Yayın listesi yalnız değişen sayfaları tutar:**
+- Her yayın artık yalnız o yayında değişen sayfa ve ilişkileri kaydeder (ürün sahibinin kararı; şema 0017). Önce her
+  yayın projedeki tüm sayfaların listesini yeniden yazıyordu: kurgusal 20 bin sayfalık derlemde 40 milyon satır / 6,1 GB,
+  veritabanının dörtte üçü. Şu an yayında olan liste ayrı tutulur; bilgi listesi, harita, arama ve Mentor sonuçları aynı.
+- Geçmiş kaybolmaz: herhangi bir yayının tam listesi değişikliklerden aynen kurulur; yayın kayıtları yine değiştirilemez
+  ve yayın yine tek işlemde (atomik) yapılır.
+- Yükseltme mevcut tam listeleri değişikliklere çevirir (bir kez; büyük veritabanında birkaç dakika sürebilir, ölçüm
+  aşağıda); sürüm geri alınırsa tam listeler yeniden yazılır.
+- Ölçüm (kurgusal 20 bin sayfa, 4.091 yayın, aynı bilgisayar, önce/sonra aynı veritabanı): yükseltme 4,3 dakika;
+  yayın listesi 40,8 milyon → 20 bin satır, veritabanı 7,7 GB → 1,5 GB; tek sayfalık yayın ortanca 2,16 → 0,37 sn,
+  5 sayfalık yayın 2,80 → 0,77 sn. Dönüştürülen veride son yayının kurulan listesi güncel listeyle birebir aynı.
+- **Yeni vektör modeli paketi: `METIS-vektor-modeli-bge-m3-1.zip`** (BAAI/bge-m3, MIT, ≈ 431 MB; ayrı dosya olarak bu
+  sürüme eklendi). Kurgusal 5 bin sayfalık kıyasta (44 soru) konu dışı soruyu ilgili sorudan en iyi ayıran model; kart
+  süzgeçli hibrit aramada e5-base ile aynı (ilk 5'te 0,886), soru başına ≈ 18 ms. Bedeli: gömme ≈ üçte bir hızında ve
+  süreç başına daha çok bellek (bge-m3 ile toplam ≈ 4 GB; KURULUM 10c). Kurulum betiği servisleri durdurup modeli
+  `C:\METIS\models\vektor-modeli`'ye kurar (önceki modelin yerine geçer), METIS 2.0.25 öncesinde kurmaz, metis.env'deki
+  `METIS_EMBEDDING_MODEL_DIR` için uyarır; worker tüm bölümleri yeni modelle yeniden işler. e5-base paketi geçerliliğini
+  korur. Betiğin yönetici izni ve servis durdur/başlat adımı geliştirme bilgisayarında denenmedi (doğrulama, sürüm
+  kontrolü, uyarı ve kopyalama sahte METIS klasörlerinde denendi; paketteki modelle gerçek gömme testi geçti). Şirket
+  içeriğinde ölçülmedi.
+
 **2.0.24 — Büyük derlemde hız; model zenginleştirmesi varsayılan kapalı:**
 - Kurgusal 20 bin sayfalık derlemle (238 bin bölüm, 240 bin iddia) ölçek denemesi yapıldı; büyüdükçe karesel ya da tam
   tarama yapan yollar düzeltildi:

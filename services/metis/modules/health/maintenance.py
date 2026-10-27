@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from metis.core.db import transaction, utcnow
 from metis.core.models import (
+    ActiveRelation,
     Claim,
     ClaimEvidence,
     Evidence,
@@ -23,7 +24,6 @@ from metis.core.models import (
     PageRevision,
     Project,
     ProjectMember,
-    PublicationRelation,
     RelationRevision,
     Schedule,
     Source,
@@ -91,7 +91,7 @@ def deterministic_scan(db: Session, project_id: uuid.UUID, actor: uuid.UUID | No
                     counts["source_changed"] += 1
     if project.active_publication_id:
         for rr in db.scalars(
-            select(RelationRevision).join(PublicationRelation, PublicationRelation.revision_id == RelationRevision.id).where(PublicationRelation.publication_id == project.active_publication_id)
+            select(RelationRevision).join(ActiveRelation, ActiveRelation.revision_id == RelationRevision.id).where(ActiveRelation.project_id == project.id)
         ):
             for pid in (rr.subject_page_id, rr.object_page_id):
                 p = db.get(Page, pid)
